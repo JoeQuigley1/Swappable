@@ -72,6 +72,12 @@ example "git checkout -b feature/auth-backend"
 git add .
 git commit -m "Add login endpoint"
 
+### Push Branch
+- On first push "git push -u origin feature/name"
+- Any subsequent push can just use "git push" 
+
+The u sets the branch upstream 
+
 ### Open Pull Request 
 In GitHub:
 
