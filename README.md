@@ -24,7 +24,7 @@ cd backend
 ./mvnw spring-boot:run
 
 
-runs on http://localhost8080
+runs on http://localhost8085
 
 
 ---
