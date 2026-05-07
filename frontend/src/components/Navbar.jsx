@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
+import { BRAND_COLOR } from '../constants'
 
 // navigation bar shown at the top of every page
 function Navbar() {
@@ -15,7 +16,7 @@ function Navbar() {
   }
 
   return (
-    <nav className="navbar navbar-expand-lg" style={{ backgroundColor: '#1a6eb5' }}>
+    <nav className="navbar navbar-expand-lg" style={{ backgroundColor: BRAND_COLOR }}>
       <div className="container">
 
         {/* logo and app name on the left */}

@@ -1,4 +1,5 @@
 import Navbar from './Navbar'
+import { BRAND_COLOR } from '../constants'
 
 // Layout wraps every page with the navbar at the top and footer at the bottom
 function Layout({ children }) {
@@ -15,7 +16,7 @@ function Layout({ children }) {
         {children}
       </main>
 
-      <footer style={{ backgroundColor: '#1a6eb5' }} className="text-white mt-auto py-4">
+      <footer style={{ backgroundColor: BRAND_COLOR }} className="text-white mt-auto py-4">
         <div className="container">
           <div className="row align-items-center">
 
