@@ -1,20 +1,16 @@
-import { useEffect, useState } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import MainLayout from './layouts/MainLayout.jsx'
+import HomePage from './pages/HomePage.jsx'
 
 function App() {
-  const [message, setMessage] = useState('Loading...')
-
-  useEffect(() => {
-    fetch('/api/health')
-        .then((res) => res.text())
-        .then((data) => setMessage(data))
-        .catch(() => setMessage('Error connecting to backend'))
-  }, [])
-
   return (
-      <div>
-        <h1>Swappable</h1>
-        <p>{message}</p>
-      </div>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<HomePage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   )
 }
 
