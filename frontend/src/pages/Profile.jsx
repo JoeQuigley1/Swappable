@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { BRAND_COLOR } from '../constants'
 
 // profile page where user can view and edit their account details
 function Profile() {
@@ -108,7 +109,7 @@ function Profile() {
               <div className="d-flex gap-2">
                 <button
                   className="btn flex-fill"
-                  style={{ backgroundColor: '#1a6eb5', color: 'white' }}
+                  style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
                   onClick={handleSave}
                 >
                   Save changes
@@ -123,7 +124,7 @@ function Profile() {
             ) : (
               <button
                 className="btn w-100"
-                style={{ backgroundColor: '#1a6eb5', color: 'white' }}
+                style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
                 onClick={() => setEditMode(true)}
               >
                 Edit profile
