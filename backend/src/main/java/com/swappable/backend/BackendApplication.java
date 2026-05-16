@@ -1,8 +1,11 @@
 package com.swappable.backend;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.content.SpringBootTest;
+@SpringBootTest(webEnviornment = SpringBootTest.WebEnviornment.RANDOM_PORT)
+public class BackendApplicationTests {
+// ...
+}
 @SpringBootApplication
 public class BackendApplication {
 
@@ -11,3 +14,7 @@ public class BackendApplication {
 	}
 
 }
+@test
+void contextLoads() {
+}
+
