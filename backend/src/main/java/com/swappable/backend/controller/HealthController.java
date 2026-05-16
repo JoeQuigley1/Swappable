@@ -11,4 +11,10 @@ public class HealthController {
     public String health() {
         return "Backend is running";
     }
+
+    //practicing how to add an endpoint to ensure routing works locally
+    @GetMapping("/info")
+    public String getServerInfo() { ; //added opening brace
+        return "Status: ONLINE, Database: PostgreSQL Connected, Developer: Hazel";
+    }
 }
