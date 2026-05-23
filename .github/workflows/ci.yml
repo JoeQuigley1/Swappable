@@ -42,6 +42,7 @@ jobs:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/swappable
           SPRING_DATASOURCE_USERNAME: ${{ secrets.DB_USER }}
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
   frontend:
     name: Frontend Build
