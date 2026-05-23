@@ -12,10 +12,12 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     // Register a new user
@@ -36,8 +38,11 @@ public class AuthService {
         // Save to database
         User savedUser = userRepository.save(user);
 
+        String token = jwtService.generateToken(savedUser);
+
         // Return response
         return new AuthResponse(
+                token,
                 savedUser.getId(),
                 savedUser.getUsername(),
                 savedUser.getEmail()
@@ -59,8 +64,11 @@ public class AuthService {
                     "Invalid email or password"
             );
         }
+
+        String token = jwtService.generateToken(user);
         // Return response
         return new AuthResponse(
+                token,
                 user.getId(),
                 user.getUsername(),
                 user.getEmail()
