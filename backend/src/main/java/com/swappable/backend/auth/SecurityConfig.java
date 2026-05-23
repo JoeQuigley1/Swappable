@@ -29,6 +29,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/health").permitAll()
+                       // Need to update this when we have proper web pages and JWT filtering
                         .anyRequest().permitAll()
                 )
                 .httpBasic(httpBasic -> httpBasic.disable())
