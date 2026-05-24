@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 // registration page for new users
 function Register() {
@@ -26,10 +26,34 @@ function Register() {
   // TODO: POST /api/auth/register
   // on success: navigate('/login')
   // on failure: setError('Registration failed. Please try again.')
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    console.log('Registering user:', formData)
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      })
+
+      if (!response.ok) {
+        setError('Registration failed.')
+        return
+      }
+
+      const data = await response.json()
+
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('userId', data.userId)
+      localStorage.setItem('username', data.username)
+      localStorage.setItem('email', data.email)
+
+      navigate('/login')
+    } catch (err) {
+      setError("Registration failed. Please try again.")
+    }
   }
 
   return (
