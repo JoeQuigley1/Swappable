@@ -47,7 +47,6 @@ function Login() {
       localStorage.setItem('userId', data.userId)
       localStorage.setItem('username', data.username)
       localStorage.setItem('email', data.email)
-
       navigate('/profile')
     } catch (err) {
       setError('Could not login. Please try again..')

@@ -11,7 +11,7 @@ function Register() {
     username: '',
     email: '',
     password: '',
-    userLocation: ''
+    location: ''
   })
 
   // error message shown to user if something goes wrong
@@ -49,6 +49,7 @@ function Register() {
       localStorage.setItem('userId', data.userId)
       localStorage.setItem('username', data.username)
       localStorage.setItem('email', data.email)
+      localStorage.setItem('location', formData.location)
 
       navigate('/login')
     } catch (err) {
@@ -119,9 +120,9 @@ function Register() {
                 <input
                   type="text"
                   className="form-control"
-                  name="userLocation"
+                  name="location"
                   placeholder="e.g. Galway"
-                  value={formData.userLocation}
+                  value={formData.location}
                   onChange={handleChange}
                   required
                 />
