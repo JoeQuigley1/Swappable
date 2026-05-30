@@ -8,7 +8,7 @@ function Profile() {
   const [profile, setProfile] = useState({
     username: '',
     email: '',
-    userLocation: ''
+    location: ''
   })
 
   // controls whether the form fields are editable or just displayed as text
@@ -20,10 +20,11 @@ function Profile() {
   // load profile data when page opens
   // TODO: replace with real API call to GET /api/users/me
   useEffect(() => {
+       const loc = localStorage.getItem('location')
     setProfile({
-      username: 'user123',
-      email: 'user@email.com',
-      userLocation: 'Cork'
+      username: localStorage.getItem('username') || '',
+      email: localStorage.getItem('email') || '',
+      location: localStorage.getItem('location') || ''
     })
   }, [])
 
@@ -95,12 +96,12 @@ function Profile() {
                 <input
                   type="text"
                   className="form-control"
-                  name="userLocation"
-                  value={profile.userLocation}
+                  name="location"
+                  value={profile.location}
                   onChange={handleChange}
                 />
               ) : (
-                <p className="form-control-plaintext">{profile.userLocation}</p>
+                <p className="form-control-plaintext">{profile.location}</p>
               )}
             </div>
 

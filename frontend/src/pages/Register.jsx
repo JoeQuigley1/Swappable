@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 // registration page for new users
 function Register() {
@@ -11,7 +11,7 @@ function Register() {
     username: '',
     email: '',
     password: '',
-    userLocation: ''
+    location: ''
   })
 
   // error message shown to user if something goes wrong
@@ -23,13 +23,33 @@ function Register() {
   }
 
   // runs when user clicks Register
-  // TODO: POST /api/auth/register
-  // on success: navigate('/login')
-  // on failure: setError('Registration failed. Please try again.')
-  const handleSubmit = (e) => {
+  // sends data to backend and saves token on success
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    console.log('Registering user:', formData)
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      })
+      if (!response.ok) {
+        setError('Registration failed.')
+        return
+      }
+      const data = await response.json()
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('userId', data.userId)
+      localStorage.setItem('username', data.username)
+      localStorage.setItem('email', data.email)
+      localStorage.setItem('location', formData.location)
+      console.log('Saved location:', formData.location)
+      navigate('/login')
+    } catch (err) {
+      setError('Registration failed. Please try again.')
+    }
   }
 
   return (
@@ -41,7 +61,7 @@ function Register() {
             <h2 className="card-title mb-1">Create an account</h2>
             <p className="text-muted mb-4">Join Swappable and start swapping</p>
 
-            {/* Show error message if something goes wrong */}
+            {/* show error if something goes wrong */}
             {error && (
               <div className="alert alert-danger">{error}</div>
             )}
@@ -89,15 +109,16 @@ function Register() {
                   required
                 />
               </div>
+
               {/* location field */}
               <div className="mb-4">
                 <label className="form-label fw-semibold">Location</label>
                 <input
                   type="text"
                   className="form-control"
-                  name="userLocation"
+                  name="location"
                   placeholder="e.g. Galway"
-                  value={formData.userLocation}
+                  value={formData.location}
                   onChange={handleChange}
                   required
                 />
