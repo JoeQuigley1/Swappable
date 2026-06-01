@@ -20,18 +20,28 @@ function ItemDetail() {
   // load item data when page opens
   // TODO: replace with real API call to GET /api/items/:id
   useEffect(() => {
-    setItem({
-      id: id,
-      title: 'Blue mountain bike',
-      description: 'Barely used, great condition. 26 inch wheels. Bought two years ago but hardly used. Comes with a lock and pump.',
-      category: 'Sports',
-      condition: 'Like New',
-      imageUrl: null,
-      ownerUsername: 'joe123',
-      ownerLocation: 'Galway',
-      createdAt: '2026-04-01'
-    })
-    setLoading(false)
+    const loadItem = async () => {
+      try {
+        const response = await fetch(`http://localhost:8080/api/items/${id}`)
+
+        if (response.status === 404) {
+          setError('Item not found.')
+          return
+        }
+
+        if (!response.ok) {
+          throw new Error('Failed to load item')
+        }
+
+        const data = await response.json()
+        setItem(data)
+      } catch (err) {
+        setError('Could not load item details.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadItem()
   }, [id])
 
   // runs when user clicks Request a swap
@@ -69,12 +79,6 @@ function ItemDetail() {
     <div className="mt-4">
 
       {/* back button goes to previous page */}
-      <button
-        className="btn btn-outline-secondary btn-sm mb-4"
-        onClick={() => navigate(-1)}
-      >
-        Back
-      </button>
 
       <div className="row g-4">
 
@@ -107,8 +111,8 @@ function ItemDetail() {
 
               {/* category and condition badges */}
               <div className="mb-3">
-                <span className="badge bg-secondary me-2">{item.category}</span>
-                <span className="badge bg-light text-dark border">{item.condition}</span>
+                <span className="badge bg-secondary me-2">Category: {item.categoryName}</span>
+                <span className="badge bg-light text-dark border"> Condition: {item.condition}</span>
               </div>
 
               <p className="text-muted mb-4">{item.description}</p>
@@ -120,29 +124,37 @@ function ItemDetail() {
                   {item.ownerUsername}
                 </p>
                 <p className="mb-1">
-                  <span className="fw-semibold">Location: </span>
+                  <span className="fw-semibold">Location: (PENDING IMPLEMENTATION) </span>
                   {item.ownerLocation}
                 </p>
                 <p className="mb-0 text-muted small">
-                  Listed on {item.createdAt}
+                  Listed on (PENDING IMPLEMENTATION){item.createdAt}
                 </p>
               </div>
 
               {/* show success message or swap request button */}
               {swapRequested ? (
-                <div className="alert alert-success mb-0">
-                  Swap request sent! The owner will be in touch.
-                </div>
+                  <div className="alert alert-success mb-0">
+                    Swap request sent! The owner will be in touch.
+                  </div>
               ) : (
-                <button
-                  className="btn w-100"
-                  style={{ backgroundColor: '#1a6eb5', color: 'white' }}
-                  onClick={handleRequestSwap}
-                >
-                  Request a swap
-                </button>
+                  <button
+                      className="btn w-100"
+                      style={{backgroundColor: '#1a6eb5', color: 'white'}}
+                      onClick={handleRequestSwap}
+                  >
+                    Request a swap
+                  </button>
               )}
 
+              <div className="border-top pt-3 mb-4">
+                <button
+                    className="btn btn-outline-secondary btn-sm mb-4 "
+                    onClick={() => navigate(-1)}
+                >
+                  Back
+                </button>
+              </div>
             </div>
           </div>
         </div>
