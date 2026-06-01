@@ -20,6 +20,7 @@ function Profile() {
   // load profile data when page opens
   // TODO: replace with real API call to GET /api/users/me
   useEffect(() => {
+       const loc = localStorage.getItem('location')
     setProfile({
       username: localStorage.getItem('username') || '',
       email: localStorage.getItem('email') || '',

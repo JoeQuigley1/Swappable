@@ -1,17 +1,24 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { BRAND_COLOR } from '../constants'
 
 // navigation bar shown at the top of every page
 function Navbar() {
 
   const navigate = useNavigate()
+  // useLocation makes the navbar re-render when the URL changes
+  // this ensures the login/logout button updates after logging in or out
+  const location = useLocation()
 
   // check if user is logged in by looking for a token in localStorage
   const isLoggedIn = !!localStorage.getItem('token')
 
-  // removes token and sends user to login page
+  // removes token and user data then sends user to login page
   const handleLogout = () => {
     localStorage.removeItem('token')
+    localStorage.removeItem('userId')
+    localStorage.removeItem('username')
+    localStorage.removeItem('email')
+    localStorage.removeItem('location')
     navigate('/login')
   }
 
@@ -43,6 +50,9 @@ function Navbar() {
             </li>
             <li className="nav-item">
               <Link className="nav-link text-white" to="/swap-requests">Swap Requests</Link>
+            </li>
+            <li className="nav-item">
+              <Link className="nav-link text-white" to="/my-items">My Items</Link>
             </li>
             <li className="nav-item">
               <Link className="nav-link text-white" to="/profile">My Profile</Link>
