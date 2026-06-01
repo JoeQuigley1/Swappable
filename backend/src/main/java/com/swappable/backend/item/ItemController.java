@@ -65,6 +65,7 @@ public class ItemController {
             @RequestBody CreateItemRequest request
     ) {
 
+        // TODO: Replace request.userId() with authenticated user once JWT filter is implemented
         User user = userRepository.findById(request.userId())
                 .orElseThrow();
 
