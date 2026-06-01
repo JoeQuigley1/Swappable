@@ -24,6 +24,11 @@ function ItemDetail() {
       try {
         const response = await fetch(`http://localhost:8080/api/items/${id}`)
 
+        if (response.status === 404) {
+          setError('Item not found.')
+          return
+        }
+
         if (!response.ok) {
           throw new Error('Failed to load item')
         }
