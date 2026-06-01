@@ -6,6 +6,7 @@ import com.swappable.backend.category.CategoryRepository;
 import com.swappable.backend.user.User;
 import com.swappable.backend.user.UserRepository;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -65,9 +66,10 @@ public class ItemController {
             @RequestBody CreateItemRequest request
     ) {
 
-        // TODO: Replace request.userId() with authenticated user once JWT filter is implemented
-        User user = userRepository.findById(request.userId())
-                .orElseThrow();
+        User user = (User) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
 
         Category category = categoryRepository.findById(request.categoryId())
                 .orElseThrow();
@@ -95,5 +97,29 @@ public class ItemController {
                 savedItem.getUser().getUsername(),
                 savedItem.getUser().getLocation()
         );
+    }
+
+    @GetMapping("/my-items")
+    public List<ItemResponse> getMyItems() {
+
+        User user = (User) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        return itemRepository.findByUserId(user.getId())
+                .stream()
+                .map(item -> new ItemResponse(
+                        item.getId(),
+                        item.getCategory().getName(),
+                        item.getUser().getUsername(),
+                        item.getUser().getLocation(),
+                        item.getTitle(),
+                        item.getDescription(),
+                        item.getCondition(),
+                        item.getImageUrl(),
+                        item.getStatus()
+                ))
+                .toList();
     }
 }

@@ -18,33 +18,31 @@ function MyItems() {
    // load items when page opens
    // TODO: replace with real API call to GET /api/items/my-items
   useEffect(() => {
-    setItems([
-      {
-        id: 1,
-        title: 'Blue mountain bike',
-        description: 'Barely used, great condition. 26 inch wheels.',
-        category: 'Sports',
-        condition: 'Like New',
-        imageUrl: null
-      },
-      {
-        id: 2,
-        title: 'Monstera plant',
-        description: 'Large healthy monstera in a terracotta pot.',
-        category: 'Plants',
-        condition: 'Good',
-        imageUrl: null
-      },
-      {
-        id: 3,
-        title: 'Acoustic guitar',
-        description: 'Yamaha F310, comes with a case and extra strings.',
-        category: 'Music',
-        condition: 'Good',
-        imageUrl: null
+    const fetchMyItems = async () => {
+      try {
+        const token = localStorage.getItem('token')
+
+        const response = await fetch('http://localhost:8080/api/items/my-items', {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to load your items')
+        }
+
+        const data = await response.json()
+        setItems(data)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
       }
-    ])
-    setLoading(false)
+    }
+
+    fetchMyItems()
   }, [])
 
   // removes item from the list
