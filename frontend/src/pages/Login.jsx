@@ -24,10 +24,33 @@ function Login() {
   // TODO: POST /api/auth/login
   // on success: save token to localStorage, navigate('/profile')
   // on failure: setError('Invalid email or password.')
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    console.log('Logging in:', formData)
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      })
+
+      if (!response.ok) {
+        setError('Invalid email or password.')
+        return
+      }
+
+      const data = await response.json()
+
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('userId', data.userId)
+      localStorage.setItem('username', data.username)
+      localStorage.setItem('email', data.email)
+      navigate('/profile')
+    } catch (err) {
+      setError('Could not login. Please try again..')
+    }
   }
 
   return (
