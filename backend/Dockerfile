@@ -1,5 +1,5 @@
 #Step one: Use Java 23 runtime as base imagine
-FROM openjdk:23-jdk-slim
+FROM openjdk:17-jdk-slim
 
 #Step two: Set working directory inside container
 WORKDIR /app

@@ -22,7 +22,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/swappable
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
-      JWT_SECRET: my-secret-key-here
+      JWT_SECRET: 3c9c34a2a51d428bda4c56e25f822a16d594b2a514d82bfa8c716e251b1a43a2
     depends_on:
       - postgres-db
 
