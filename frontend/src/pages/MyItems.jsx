@@ -15,8 +15,6 @@ function MyItems() {
    // holds the id of item waiting for delete confirmation
    const [deleteConfirm, setDeleteConfirm] = useState(null)
 
-   // load items when page opens
-   // TODO: replace with real API call to GET /api/items/my-items
   useEffect(() => {
     const fetchMyItems = async () => {
       try {
@@ -29,11 +27,17 @@ function MyItems() {
           }
         })
 
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Please login to view your items')
+        }
+
         if (!response.ok) {
           throw new Error('Failed to load your items')
         }
 
         const data = await response.json()
+
+
         setItems(data)
       } catch (err) {
         setError(err.message)
@@ -129,7 +133,6 @@ function MyItems() {
                   {item.description}
                 </p>
 
-                {/* category and condition badges */}
                 <div className="mb-3">
                   <span className="badge bg-secondary me-2">{item.category}</span>
                   <span className="badge bg-light text-dark border">{item.condition}</span>

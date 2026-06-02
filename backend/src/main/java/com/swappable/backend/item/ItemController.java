@@ -111,14 +111,14 @@ public class ItemController {
                 .stream()
                 .map(item -> new ItemResponse(
                         item.getId(),
-                        item.getCategory().getName(),
-                        item.getUser().getUsername(),
-                        item.getUser().getLocation(),
                         item.getTitle(),
                         item.getDescription(),
                         item.getCondition(),
                         item.getImageUrl(),
-                        item.getStatus()
+                        item.getStatus(),
+                        item.getCategory().getName(),
+                        item.getUser().getUsername(),
+                        item.getUser().getLocation()
                 ))
                 .toList();
     }
