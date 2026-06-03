@@ -1,34 +1,10 @@
-import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { BRAND_COLOR, CATEGORIES, CONDITIONS } from '../constants'
 
-// available categories and conditions match the database design
-const CATEGORIES = [
-  'Books',
-  'Clothing',
-  'Electronics',
-  'Furniture',
-  'Garden',
-  'Household',
-  'Music',
-  'Plants',
-  'Sports',
-  'Toys',
-  'Other'
-]
+// page for creating a new item listing
+function CreateItemPage() {
 
-const CONDITIONS = [
-  'New',
-  'Like New',
-  'Good',
-  'Fair',
-  'Poor'
-]
-
-// page for editing an existing item listing
-function EditItem() {
-
-  // id comes from the URL, for example /items/edit/5 gives id = 5
-  const { id } = useParams()
   const navigate = useNavigate()
 
   // form fields
@@ -39,35 +15,21 @@ function EditItem() {
     condition: ''
   })
 
-  // new image file selected by user
+  // image file selected by the user
   const [imageFile, setImageFile] = useState(null)
-  // temporary preview of the new image
+  // temporary preview URL of the selected image
   const [imagePreview, setImagePreview] = useState(null)
-  // shows spinner while item data is loading
-  const [loading, setLoading] = useState(true)
-  // shows saving state while form is submitting
-  const [saving, setSaving] = useState(false)
   // error message if something goes wrong
   const [error, setError] = useState('')
-
-  // load existing item data when page opens and fill the form
-  // TODO: replace with real API call to GET /api/items/:id
-  useEffect(() => {
-    setFormData({
-      title: 'Blue mountain bike',
-      description: 'Barely used, great condition. 26 inch wheels.',
-      category: 'Sports',
-      condition: 'Like New'
-    })
-    setLoading(false)
-  }, [id])
+  // shows loading state while form is submitting
+  const [loading, setLoading] = useState(false)
 
   // updates form data when user types in any field
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  // handles new image selection and creates a preview
+  // handles image selection and creates a preview
   const handleImageChange = (e) => {
     const file = e.target.files[0]
     if (file) {
@@ -76,29 +38,18 @@ function EditItem() {
     }
   }
 
-  // runs when user clicks Save changes
-  // TODO: if new image selected, upload to POST /api/images first
-  // TODO: send updated data to PUT /api/items/:id
+  // runs when user clicks List item
+  // TODO: upload image to POST /api/images and get back Cloudinary URL
+  // TODO: send form data + image URL to POST /api/items
   // on success: navigate('/my-items')
-  // on failure: setError('Failed to update item.')
+  // on failure: setError('Failed to create item.')
   const handleSubmit = (e) => {
     e.preventDefault()
     setError('')
-    setSaving(true)
-    console.log('Updating item:', id, formData)
-    console.log('New image file:', imageFile)
-    setSaving(false)
-    navigate('/my-items')
-  }
-
-  // show spinner while loading
-  if (loading) {
-    return (
-      <div className="text-center mt-5">
-        <div className="spinner-border" style={{ color: '#1a6eb5' }}></div>
-        <p className="mt-2 text-muted">Loading item...</p>
-      </div>
-    )
+    setLoading(true)
+    console.log('Creating item:', formData)
+    console.log('Image file:', imageFile)
+    setLoading(false)
   }
 
   return (
@@ -107,8 +58,10 @@ function EditItem() {
         <div className="card shadow-sm mt-4">
           <div className="card-body p-4">
 
-            <h2 className="card-title mb-1">Edit item</h2>
-            <p className="text-muted mb-4">Update your listing details</p>
+            <h2 className="card-title mb-1">List an item</h2>
+            <p className="text-muted mb-4">
+              Describe what you'd like to swap
+            </p>
 
             {/* show error if something goes wrong */}
             {error && (
@@ -124,6 +77,7 @@ function EditItem() {
                   type="text"
                   className="form-control"
                   name="title"
+                  placeholder="e.g. Blue mountain bike, barely used"
                   value={formData.title}
                   onChange={handleChange}
                   required
@@ -136,6 +90,7 @@ function EditItem() {
                 <textarea
                   className="form-control"
                   name="description"
+                  placeholder="Describe your item - size, colour, age, any defects..."
                   value={formData.description}
                   onChange={handleChange}
                   rows={4}
@@ -143,7 +98,7 @@ function EditItem() {
                 />
               </div>
 
-              {/* category and condition dropdowns */}
+              {/* category and condition dropdowns side by side */}
               <div className="row">
                 <div className="col-md-6 mb-3">
                   <label className="form-label fw-semibold">Category</label>
@@ -178,9 +133,9 @@ function EditItem() {
                 </div>
               </div>
 
-              {/* image upload - leave empty to keep existing photo */}
+              {/* image upload field */}
               <div className="mb-4">
-                <label className="form-label fw-semibold">Update photo</label>
+                <label className="form-label fw-semibold">Photo</label>
                 <input
                   type="file"
                   className="form-control"
@@ -188,10 +143,10 @@ function EditItem() {
                   onChange={handleImageChange}
                 />
                 <div className="form-text">
-                  Leave empty to keep the existing photo.
+                  Upload a clear photo of your item. JPG or PNG.
                 </div>
 
-                {/* show preview of newly selected image */}
+                {/* show preview of selected image */}
                 {imagePreview && (
                   <div className="mt-3">
                     <img
@@ -204,15 +159,15 @@ function EditItem() {
                 )}
               </div>
 
-              {/* save and cancel buttons */}
+              {/* submit and cancel buttons */}
               <div className="d-flex gap-2">
                 <button
                   type="submit"
                   className="btn flex-fill"
-                  style={{ backgroundColor: '#1a6eb5', color: 'white' }}
-                  disabled={saving}
+                  style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
+                  disabled={loading}
                 >
-                  {saving ? 'Saving...' : 'Save changes'}
+                  {loading ? 'Creating...' : 'List item'}
                 </button>
                 <button
                   type="button"
@@ -232,4 +187,4 @@ function EditItem() {
   )
 }
 
-export default EditItem
+export default CreateItemPage

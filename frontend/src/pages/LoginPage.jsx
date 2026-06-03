@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { BRAND_COLOR } from '../constants'
 
 // login page for existing users
-function Login() {
+function LoginPage() {
 
   const navigate = useNavigate()
 
@@ -101,7 +102,7 @@ function Login() {
               <button
                 type="submit"
                 className="btn w-100"
-                style={{ backgroundColor: '#1a6eb5', color: 'white' }}
+                style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
               >
                 Log in
               </button>
@@ -120,4 +121,4 @@ function Login() {
   )
 }
 
-export default Login
+export default LoginPage

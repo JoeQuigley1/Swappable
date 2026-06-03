@@ -1,15 +1,15 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout.jsx';
 import HomePage from './pages/HomePage.jsx';
-import Register from './pages/Register';
-import Login from './pages/Login';
-import Profile from './pages/Profile';
-import SwapRequests from './pages/SwapRequests';
-import CreateItem from './pages/CreateItem';
-import EditItem from './pages/EditItem';
-import MyItems from './pages/MyItems';
-import ItemDetail from './pages/ItemDetail';
-import NotFound from './pages/NotFound';
+import RegisterPage from './pages/RegisterPage.jsx';
+import LoginPage from './pages/LoginPage.jsx';
+import ProfilePage from './pages/ProfilePage.jsx';
+import SwapRequestsPage from './pages/SwapRequestsPage.jsx';
+import CreateItemPage from './pages/CreateItemPage.jsx';
+import EditItemPage from './pages/EditItemPage.jsx';
+import MyItemsPage from './pages/MyItemsPage.jsx';
+import ItemDetailPage from './pages/ItemDetailPage.jsx';
+import NotFoundPage from './pages/NotFoundPage.jsx';
 
 function App() {
   return (
@@ -17,15 +17,15 @@ function App() {
       <Routes>
         <Route element={<MainLayout />}>
           <Route path="/" element={<HomePage />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/swap-requests" element={<SwapRequests />} />
-          <Route path="/items/create" element={<CreateItem />} />
-          <Route path="/items/edit/:id" element={<EditItem />} />
-          <Route path="/my-items" element={<MyItems />} />
-          <Route path="/items/:id" element={<ItemDetail />} />
-          <Route path="*" element={<NotFound />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/swap-requests" element={<SwapRequestsPage />} />
+          <Route path="/items/create" element={<CreateItemPage />} />
+          <Route path="/items/edit/:id" element={<EditItemPage />} />
+          <Route path="/my-items" element={<MyItemsPage />} />
+          <Route path="/items/:id" element={<ItemDetailPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

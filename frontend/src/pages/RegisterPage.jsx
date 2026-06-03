@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { BRAND_COLOR } from '../constants'
 
 // registration page for new users
-function Register() {
+function RegisterPage() {
 
   const navigate = useNavigate()
 
@@ -132,7 +133,7 @@ function Register() {
               <button
                 type="submit"
                 className="btn w-100"
-                style={{ backgroundColor: '#1a6eb5', color: 'white' }}
+                style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
               >
                 Register
               </button>
@@ -151,4 +152,4 @@ function Register() {
   )
 }
 
-export default Register
+export default RegisterPage
