@@ -5,9 +5,11 @@ import com.swappable.backend.category.Category;
 import com.swappable.backend.category.CategoryRepository;
 import com.swappable.backend.user.User;
 import com.swappable.backend.user.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -16,12 +18,10 @@ import java.util.List;
 public class ItemController {
 
     private final ItemRepository itemRepository;
-    private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
 
     public ItemController(ItemRepository itemRepository, UserRepository userRepository, CategoryRepository categoryRepository) {
         this.itemRepository = itemRepository;
-        this.userRepository = userRepository;
         this.categoryRepository = categoryRepository;
     }
 
@@ -72,7 +72,12 @@ public class ItemController {
                 .getPrincipal();
 
         Category category = categoryRepository.findById(request.categoryId())
-                .orElseThrow();
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.BAD_REQUEST,
+                                "Invalid CategoryId"
+                        )
+                );
 
         Item item = new Item();
 
