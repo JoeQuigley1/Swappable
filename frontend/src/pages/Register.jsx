@@ -23,9 +23,7 @@ function Register() {
   }
 
   // runs when user clicks Register
-  // TODO: POST /api/auth/register
-  // on success: navigate('/login')
-  // on failure: setError('Registration failed. Please try again.')
+  // sends data to backend and saves token on success
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
@@ -37,23 +35,19 @@ function Register() {
         },
         body: JSON.stringify(formData)
       })
-
       if (!response.ok) {
         setError('Registration failed.')
         return
       }
-
       const data = await response.json()
-
       localStorage.setItem('token', data.token)
       localStorage.setItem('userId', data.userId)
       localStorage.setItem('username', data.username)
       localStorage.setItem('email', data.email)
       localStorage.setItem('location', formData.location)
-
       navigate('/login')
     } catch (err) {
-      setError("Registration failed. Please try again.")
+      setError('Registration failed. Please try again.')
     }
   }
 
@@ -66,7 +60,7 @@ function Register() {
             <h2 className="card-title mb-1">Create an account</h2>
             <p className="text-muted mb-4">Join Swappable and start swapping</p>
 
-            {/* Show error message if something goes wrong */}
+            {/* show error if something goes wrong */}
             {error && (
               <div className="alert alert-danger">{error}</div>
             )}
@@ -114,6 +108,7 @@ function Register() {
                   required
                 />
               </div>
+
               {/* location field */}
               <div className="mb-4">
                 <label className="form-label fw-semibold">Location</label>
@@ -131,8 +126,7 @@ function Register() {
               {/* submit button */}
               <button
                 type="submit"
-                className="btn w-100"
-                style={{ backgroundColor: '#1a6eb5', color: 'white' }}
+                className="btn btn-primary w-100"
               >
                 Register
               </button>

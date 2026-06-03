@@ -1,188 +1,234 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-// page showing all items listed by the logged in user
-function MyItems() {
+// condition options describe the physical state of the item
+const CONDITIONS = [
+  'New',
+  'Like New',
+  'Good',
+  'Fair',
+  'Poor'
+]
+
+// page for creating a new item listing
+function CreateItem() {
 
   const navigate = useNavigate()
 
-    // list of user's items
-   const [items, setItems] = useState([])
-   // shows spinner while data is loading
-   const [loading, setLoading] = useState(true)
-   // error message if something goes wrong
-   const [error, setError] = useState('')
-   // holds the id of item waiting for delete confirmation
-   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  // form fields
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    categoryId: '',
+    condition: ''
+  })
 
-   // load items when page opens
-   // TODO: replace with real API call to GET /api/items/my-items
+  // categories loaded from backend
+  const [categories, setCategories] = useState([])
+  // image file selected by the user
+  const [imageFile, setImageFile] = useState(null)
+  // temporary preview URL of the selected image
+  const [imagePreview, setImagePreview] = useState(null)
+  // error message if something goes wrong
+  const [error, setError] = useState('')
+  // shows loading state while form is submitting
+  const [loading, setLoading] = useState(false)
+
+  // load categories from backend when page opens
   useEffect(() => {
-    setItems([
-      {
-        id: 1,
-        title: 'Blue mountain bike',
-        description: 'Barely used, great condition. 26 inch wheels.',
-        category: 'Sports',
-        condition: 'Like New',
-        imageUrl: null
-      },
-      {
-        id: 2,
-        title: 'Monstera plant',
-        description: 'Large healthy monstera in a terracotta pot.',
-        category: 'Plants',
-        condition: 'Good',
-        imageUrl: null
-      },
-      {
-        id: 3,
-        title: 'Acoustic guitar',
-        description: 'Yamaha F310, comes with a case and extra strings.',
-        category: 'Music',
-        condition: 'Good',
-        imageUrl: null
+    const loadCategories = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/api/categories')
+        const data = await response.json()
+        setCategories(data)
+      } catch (err) {
+        console.log('Could not load categories:', err)
       }
-    ])
-    setLoading(false)
+    }
+    loadCategories()
   }, [])
 
-  // removes item from the list
-  // TODO: replace with real API call to DELETE /api/items/:id
-  const handleDelete = (id) => {
-    console.log('Deleting item:', id)
-    setItems(items.filter(item => item.id !== id))
-    setDeleteConfirm(null)
+  // updates form data when user types in any field
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  // Show a spinner while loading
-  if (loading) {
-    return (
-      <div className="text-center mt-5">
-        <div className="spinner-border" style={{ color: '#1a6eb5' }}></div>
-        <p className="mt-2 text-muted">Loading your items...</p>
-      </div>
-    )
+  // handles image selection and creates a preview
+  const handleImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setImageFile(file)
+      setImagePreview(URL.createObjectURL(file))
+    }
+  }
+
+  // runs when user clicks List item
+  // TODO: upload image to POST /api/images and get back Cloudinary URL
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      const userId = localStorage.getItem('userId')
+      const response = await fetch('http://localhost:8080/api/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userId: parseInt(userId),
+          categoryId: parseInt(formData.categoryId),
+          title: formData.title,
+          description: formData.description,
+          condition: formData.condition,
+          imageUrl: null
+        })
+      })
+      if (!response.ok) {
+        setError('Failed to create item. Please try again.')
+        return
+      }
+      navigate('/my-items')
+    } catch (err) {
+      setError('Failed to create item. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
-    <div className="mt-4">
+    <div className="row justify-content-center">
+      <div className="col-md-8 col-lg-6">
+        <div className="card shadow-sm mt-4">
+          <div className="card-body p-4">
 
-      {/* page header with title and button to add new item */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h2 className="mb-1">My Items</h2>
-          <p className="text-muted mb-0">Items you have listed for swapping</p>
-        </div>
-        <button
-          className="btn"
-          style={{ backgroundColor: '#1a6eb5', color: 'white' }}
-          onClick={() => navigate('/items/create')}
-        >
-          + List new item
-        </button>
-      </div>
+            <h2 className="card-title mb-1">List an item</h2>
+            <p className="text-muted mb-4">
+              Describe what you'd like to swap
+            </p>
 
-      {/* show error if something goes wrong */}
-      {error && (
-        <div className="alert alert-danger">{error}</div>
-      )}
+            {/* show error if something goes wrong */}
+            {error && (
+              <div className="alert alert-danger">{error}</div>
+            )}
 
-      {/* show message if user has no items yet */}
-      {items.length === 0 && (
-        <div className="text-center py-5">
-          <p className="text-muted fs-5">You haven't listed any items yet.</p>
-          <button
-            className="btn mt-2"
-            style={{ backgroundColor: '#1a6eb5', color: 'white' }}
-            onClick={() => navigate('/items/create')}
-          >
-            List your first item
-          </button>
-        </div>
-      )}
+            <form onSubmit={handleSubmit}>
 
-      {/* item cards in a grid */}
-      <div className="row g-3">
-        {items.map(item => (
-          <div key={item.id} className="col-md-6 col-lg-4">
-            <div className="card h-100 shadow-sm">
-
-              {/* show image or placeholder if no image */}
-              {item.imageUrl ? (
-                <img
-                  src={item.imageUrl}
-                  alt={item.title}
-                  className="card-img-top"
-                  style={{ height: '180px', objectFit: 'cover' }}
+              {/* title field */}
+              <div className="mb-3">
+                <label className="form-label fw-semibold">Title</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  name="title"
+                  placeholder="e.g. Blue mountain bike, barely used"
+                  value={formData.title}
+                  onChange={handleChange}
+                  required
                 />
-              ) : (
-                <div
-                  className="d-flex align-items-center justify-content-center bg-light"
-                  style={{ height: '180px' }}
-                >
-                  <span className="text-muted">No photo</span>
+              </div>
+
+              {/* description field */}
+              <div className="mb-3">
+                <label className="form-label fw-semibold">Description</label>
+                <textarea
+                  className="form-control"
+                  name="description"
+                  placeholder="Describe your item - size, colour, age, any defects..."
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows={4}
+                  required
+                />
+              </div>
+
+              {/* category and condition dropdowns side by side */}
+              <div className="row">
+                <div className="col-md-6 mb-3">
+                  <label className="form-label fw-semibold">Category</label>
+                  <select
+                    className="form-select"
+                    name="categoryId"
+                    value={formData.categoryId}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Select a category</option>
+                    {/* categories loaded from backend */}
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
                 </div>
-              )}
 
-              <div className="card-body d-flex flex-column">
-                <h5 className="card-title">{item.title}</h5>
-                <p className="card-text text-muted small flex-grow-1">
-                  {item.description}
-                </p>
+                <div className="col-md-6 mb-3">
+                  <label className="form-label fw-semibold">Condition</label>
+                  <select
+                    className="form-select"
+                    name="condition"
+                    value={formData.condition}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Select condition</option>
+                    {CONDITIONS.map(con => (
+                      <option key={con} value={con}>{con}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-                {/* category and condition badges */}
-                <div className="mb-3">
-                  <span className="badge bg-secondary me-2">{item.category}</span>
-                  <span className="badge bg-light text-dark border">{item.condition}</span>
+              {/* image upload field */}
+              <div className="mb-4">
+                <label className="form-label fw-semibold">Photo</label>
+                <input
+                  type="file"
+                  className="form-control"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                />
+                <div className="form-text">
+                  Upload a clear photo of your item. JPG or PNG.
                 </div>
 
-                {/* show delete confirmation or edit/delete buttons */}
-                {deleteConfirm === item.id ? (
-                  <div>
-                    <p className="text-danger small mb-2">
-                      Are you sure you want to delete this item?
-                    </p>
-                    <div className="d-flex gap-2">
-                      <button
-                        className="btn btn-danger btn-sm flex-fill"
-                        onClick={() => handleDelete(item.id)}
-                      >
-                        Yes, delete
-                      </button>
-                      <button
-                        className="btn btn-outline-secondary btn-sm flex-fill"
-                        onClick={() => setDeleteConfirm(null)}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="d-flex gap-2">
-                    <button
-                      className="btn btn-outline-primary btn-sm flex-fill"
-                      onClick={() => navigate(`/items/edit/${item.id}`)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="btn btn-outline-danger btn-sm flex-fill"
-                      onClick={() => setDeleteConfirm(item.id)}
-                    >
-                      Delete
-                    </button>
+                {/* show preview of selected image */}
+                {imagePreview && (
+                  <div className="mt-3">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="img-fluid rounded"
+                      style={{ maxHeight: '220px', objectFit: 'cover' }}
+                    />
                   </div>
                 )}
-
               </div>
-            </div>
-          </div>
-        ))}
-      </div>
 
+              {/* submit and cancel buttons */}
+              <div className="d-flex gap-2">
+                <button
+                  type="submit"
+                  className="btn btn-primary flex-fill"
+                  disabled={loading}
+                >
+                  {loading ? 'Creating...' : 'List item'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary flex-fill"
+                  onClick={() => navigate('/my-items')}
+                >
+                  Cancel
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
 
-export default MyItems
+export default CreateItem

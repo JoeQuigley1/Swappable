@@ -1,20 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-
-// available categories match the database design
-const CATEGORIES = [
-  'Books',
-  'Clothing',
-  'Electronics',
-  'Furniture',
-  'Garden',
-  'Household',
-  'Music',
-  'Plants',
-  'Sports',
-  'Toys',
-  'Other'
-]
+import { BRAND_COLOR } from '../constants'
 
 // condition options describe the physical state of the item
 const CONDITIONS = [
@@ -34,10 +20,12 @@ function CreateItem() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: '',
+    categoryId: '',
     condition: ''
   })
 
+  // categories loaded from backend
+  const [categories, setCategories] = useState([])
   // image file selected by the user
   const [imageFile, setImageFile] = useState(null)
   // temporary preview URL of the selected image
@@ -46,6 +34,20 @@ function CreateItem() {
   const [error, setError] = useState('')
   // shows loading state while form is submitting
   const [loading, setLoading] = useState(false)
+
+  // load categories from backend when page opens
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/api/categories')
+        const data = await response.json()
+        setCategories(data)
+      } catch (err) {
+        console.log('Could not load categories:', err)
+      }
+    }
+    loadCategories()
+  }, [])
 
   // updates form data when user types in any field
   const handleChange = (e) => {
@@ -63,16 +65,36 @@ function CreateItem() {
 
   // runs when user clicks List item
   // TODO: upload image to POST /api/images and get back Cloudinary URL
-  // TODO: send form data + image URL to POST /api/items
-  // on success: navigate('/my-items')
-  // on failure: setError('Failed to create item.')
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
-    console.log('Creating item:', formData)
-    console.log('Image file:', imageFile)
-    setLoading(false)
+    try {
+      const userId = localStorage.getItem('userId')
+      const response = await fetch('http://localhost:8080/api/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          userId: parseInt(userId),
+          categoryId: parseInt(formData.categoryId),
+          title: formData.title,
+          description: formData.description,
+          condition: formData.condition,
+          imageUrl: null
+        })
+      })
+      if (!response.ok) {
+        setError('Failed to create item. Please try again.')
+        return
+      }
+      navigate('/my-items')
+    } catch (err) {
+      setError('Failed to create item. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -127,14 +149,15 @@ function CreateItem() {
                   <label className="form-label fw-semibold">Category</label>
                   <select
                     className="form-select"
-                    name="category"
-                    value={formData.category}
+                    name="categoryId"
+                    value={formData.categoryId}
                     onChange={handleChange}
                     required
                   >
                     <option value="">Select a category</option>
-                    {CATEGORIES.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
+                    {/* categories loaded from backend */}
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
                   </select>
                 </div>
@@ -187,7 +210,7 @@ function CreateItem() {
                 <button
                   type="submit"
                   className="btn flex-fill"
-                  style={{ backgroundColor: '#1a6eb5', color: 'white' }}
+                  style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
                   disabled={loading}
                 >
                   {loading ? 'Creating...' : 'List item'}

@@ -1,21 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 
-// available categories and conditions match the database design
-const CATEGORIES = [
-  'Books',
-  'Clothing',
-  'Electronics',
-  'Furniture',
-  'Garden',
-  'Household',
-  'Music',
-  'Plants',
-  'Sports',
-  'Toys',
-  'Other'
-]
-
+// condition options describe the physical state of the item
 const CONDITIONS = [
   'New',
   'Like New',
@@ -35,10 +21,12 @@ function EditItem() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: '',
+    categoryId: '',
     condition: ''
   })
 
+  // categories loaded from backend
+  const [categories, setCategories] = useState([])
   // new image file selected by user
   const [imageFile, setImageFile] = useState(null)
   // temporary preview of the new image
@@ -50,16 +38,27 @@ function EditItem() {
   // error message if something goes wrong
   const [error, setError] = useState('')
 
-  // load existing item data when page opens and fill the form
-  // TODO: replace with real API call to GET /api/items/:id
+  // load categories and existing item data when page opens
+  // TODO: replace item fetch with real API call to GET /api/items/:id
   useEffect(() => {
-    setFormData({
-      title: 'Blue mountain bike',
-      description: 'Barely used, great condition. 26 inch wheels.',
-      category: 'Sports',
-      condition: 'Like New'
-    })
-    setLoading(false)
+    const loadData = async () => {
+      try {
+        const catResponse = await fetch('http://localhost:8080/api/categories')
+        const catData = await catResponse.json()
+        setCategories(catData)
+      } catch (err) {
+        console.log('Could not load categories:', err)
+      }
+      // placeholder item data for now
+      setFormData({
+        title: 'Blue mountain bike',
+        description: 'Barely used, great condition. 26 inch wheels.',
+        categoryId: '',
+        condition: 'Like New'
+      })
+      setLoading(false)
+    }
+    loadData()
   }, [id])
 
   // updates form data when user types in any field
@@ -77,7 +76,6 @@ function EditItem() {
   }
 
   // runs when user clicks Save changes
-  // TODO: if new image selected, upload to POST /api/images first
   // TODO: send updated data to PUT /api/items/:id
   // on success: navigate('/my-items')
   // on failure: setError('Failed to update item.')
@@ -86,7 +84,6 @@ function EditItem() {
     setError('')
     setSaving(true)
     console.log('Updating item:', id, formData)
-    console.log('New image file:', imageFile)
     setSaving(false)
     navigate('/my-items')
   }
@@ -95,7 +92,7 @@ function EditItem() {
   if (loading) {
     return (
       <div className="text-center mt-5">
-        <div className="spinner-border" style={{ color: '#1a6eb5' }}></div>
+        <div className="spinner-border text-primary"></div>
         <p className="mt-2 text-muted">Loading item...</p>
       </div>
     )
@@ -149,14 +146,14 @@ function EditItem() {
                   <label className="form-label fw-semibold">Category</label>
                   <select
                     className="form-select"
-                    name="category"
-                    value={formData.category}
+                    name="categoryId"
+                    value={formData.categoryId}
                     onChange={handleChange}
                     required
                   >
                     <option value="">Select a category</option>
-                    {CATEGORIES.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
                   </select>
                 </div>
@@ -208,8 +205,7 @@ function EditItem() {
               <div className="d-flex gap-2">
                 <button
                   type="submit"
-                  className="btn flex-fill"
-                  style={{ backgroundColor: '#1a6eb5', color: 'white' }}
+                  className="btn btn-primary flex-fill"
                   disabled={saving}
                 >
                   {saving ? 'Saving...' : 'Save changes'}

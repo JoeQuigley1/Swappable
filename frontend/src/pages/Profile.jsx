@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { BRAND_COLOR } from '../constants'
 
 // profile page where user can view and edit their account details
 function Profile() {
@@ -20,7 +19,6 @@ function Profile() {
   // load profile data when page opens
   // TODO: replace with real API call to GET /api/users/me
   useEffect(() => {
-       const loc = localStorage.getItem('location')
     setProfile({
       username: localStorage.getItem('username') || '',
       email: localStorage.getItem('email') || '',
@@ -39,7 +37,7 @@ function Profile() {
     console.log('Saving profile:', profile)
     setEditMode(false)
     setSuccessMessage('Profile updated successfully!')
-    // Hide the success message after 3 seconds
+    // hide the success message after 3 seconds
     setTimeout(() => setSuccessMessage(''), 3000)
   }
 
@@ -109,8 +107,7 @@ function Profile() {
             {editMode ? (
               <div className="d-flex gap-2">
                 <button
-                  className="btn flex-fill"
-                  style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
+                  className="btn btn-primary flex-fill"
                   onClick={handleSave}
                 >
                   Save changes
@@ -124,8 +121,7 @@ function Profile() {
               </div>
             ) : (
               <button
-                className="btn w-100"
-                style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
+                className="btn btn-primary w-100"
                 onClick={() => setEditMode(true)}
               >
                 Edit profile
