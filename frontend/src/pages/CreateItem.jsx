@@ -1,22 +1,8 @@
-import { useState } from 'react'
+import {useEffect, useState} from 'react'
 import { useNavigate } from 'react-router-dom'
 
-// available categories match the database design
-const CATEGORIES = [
-  'Books',
-  'Clothing',
-  'Electronics',
-  'Furniture',
-  'Garden',
-  'Household',
-  'Music',
-  'Plants',
-  'Sports',
-  'Toys',
-  'Other'
-]
-
 // condition options describe the physical state of the item
+//TODO remove conditions and store them in the DB
 const CONDITIONS = [
   'New',
   'Like New',
@@ -34,7 +20,7 @@ function CreateItem() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: '',
+    categoryId: '',
     condition: ''
   })
 
@@ -46,6 +32,15 @@ function CreateItem() {
   const [error, setError] = useState('')
   // shows loading state while form is submitting
   const [loading, setLoading] = useState(false)
+
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    fetch("http://localhost:8080/api/categories")
+        .then((response) => response.json())
+        .then((data) => setCategories(data))
+        .catch((error) => console.error(error));
+  }, []);
 
   // updates form data when user types in any field
   const handleChange = (e) => {
@@ -60,19 +55,40 @@ function CreateItem() {
       setImagePreview(URL.createObjectURL(file))
     }
   }
-
-  // runs when user clicks List item
-  // TODO: upload image to POST /api/images and get back Cloudinary URL
-  // TODO: send form data + image URL to POST /api/items
-  // on success: navigate('/my-items')
-  // on failure: setError('Failed to create item.')
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
-    console.log('Creating item:', formData)
-    console.log('Image file:', imageFile)
-    setLoading(false)
+
+    try {
+      const token = localStorage.getItem('token')
+
+      const response = await fetch('http://localhost:8080/api/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          categoryId: Number(formData.categoryId),
+          title: formData.title,
+          description: formData.description,
+          condition: formData.condition,
+          imageUrl: '',
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create item')
+      }
+
+      navigate('/my-items')
+    } catch (err) {
+      console.error(err)
+      setError('Failed to create item.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -127,14 +143,14 @@ function CreateItem() {
                   <label className="form-label fw-semibold">Category</label>
                   <select
                     className="form-select"
-                    name="category"
+                    name="categoryId"
                     value={formData.category}
                     onChange={handleChange}
                     required
                   >
                     <option value="">Select a category</option>
-                    {CATEGORIES.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
+                    {categories.map((category) => (
+                        <option key={category.id} value={category.id}>{category.name}</option>
                     ))}
                   </select>
                 </div>
