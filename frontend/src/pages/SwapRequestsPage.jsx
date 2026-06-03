@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
+import { BRAND_COLOR } from '../constants'
 
 // page for managing swap requests
-function SwapRequests() {
+function SwapRequestsPage() {
 
   // list of received requests
   const [received, setReceived] = useState([])
@@ -98,7 +99,7 @@ function SwapRequests() {
                         <div className="d-flex gap-2">
                           <button
                             className="btn btn-sm"
-                            style={{ backgroundColor: '#1a6eb5', color: 'white' }}
+                            style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
                             onClick={() => handleAccept(request.id)}
                           >
                             Accept
@@ -151,4 +152,4 @@ function SwapRequests() {
   )
 }
 
-export default SwapRequests
+export default SwapRequestsPage

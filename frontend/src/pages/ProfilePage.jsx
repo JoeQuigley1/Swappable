@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { BRAND_COLOR } from '../constants'
 
 // profile page where user can view and edit their account details
-function Profile() {
+function ProfilePage() {
 
   // profile data
   const [profile, setProfile] = useState({
@@ -139,4 +139,4 @@ function Profile() {
   )
 }
 
-export default Profile
+export default ProfilePage

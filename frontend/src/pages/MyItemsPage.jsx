@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { BRAND_COLOR } from '../constants'
 
 // page showing all items listed by the logged in user
-function MyItems() {
+function MyItemsPage() {
 
   const navigate = useNavigate()
 
@@ -59,7 +60,7 @@ function MyItems() {
   if (loading) {
     return (
       <div className="text-center mt-5">
-        <div className="spinner-border" style={{ color: '#1a6eb5' }}></div>
+        <div className="spinner-border" style={{ color: BRAND_COLOR }}></div>
         <p className="mt-2 text-muted">Loading your items...</p>
       </div>
     )
@@ -76,7 +77,7 @@ function MyItems() {
         </div>
         <button
           className="btn"
-          style={{ backgroundColor: '#1a6eb5', color: 'white' }}
+          style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
           onClick={() => navigate('/items/create')}
         >
           + List new item
@@ -94,7 +95,7 @@ function MyItems() {
           <p className="text-muted fs-5">You haven't listed any items yet.</p>
           <button
             className="btn mt-2"
-            style={{ backgroundColor: '#1a6eb5', color: 'white' }}
+            style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
             onClick={() => navigate('/items/create')}
           >
             List your first item
@@ -185,4 +186,4 @@ function MyItems() {
   )
 }
 
-export default MyItems
+export default MyItemsPage

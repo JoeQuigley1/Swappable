@@ -21,7 +21,7 @@ export default function HeroSection() {
                 <i className="bi bi-search me-2"></i>
                 Browse Items
               </Link>
-              <Link to="/items/new" className="btn btn-outline-light btn-lg px-4">
+              <Link to="/items/create" className="btn btn-outline-light btn-lg px-4">
                 <i className="bi bi-plus-circle me-2"></i>
                 Post an Item
               </Link>
