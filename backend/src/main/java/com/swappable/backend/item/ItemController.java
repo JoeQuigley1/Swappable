@@ -4,7 +4,7 @@ package com.swappable.backend.item;
 import com.swappable.backend.category.Category;
 import com.swappable.backend.category.CategoryRepository;
 import com.swappable.backend.user.User;
-import com.swappable.backend.user.UserRepository;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,7 +20,7 @@ public class ItemController {
     private final ItemRepository itemRepository;
     private final CategoryRepository categoryRepository;
 
-    public ItemController(ItemRepository itemRepository, UserRepository userRepository, CategoryRepository categoryRepository) {
+    public ItemController(ItemRepository itemRepository, CategoryRepository categoryRepository) {
         this.itemRepository = itemRepository;
         this.categoryRepository = categoryRepository;
     }
@@ -63,7 +63,7 @@ public class ItemController {
 
     @PostMapping
     public ItemResponse createItem(
-            @RequestBody CreateItemRequest request
+           @Valid @RequestBody CreateItemRequest request
     ) {
 
         User user = (User) SecurityContextHolder
