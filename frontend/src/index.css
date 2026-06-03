@@ -1,111 +1,104 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  --bs-primary: #33BBCC;
+  --bs-primary-rgb: 51, 187, 204;
+  --bs-link-color: #33BBCC;
+  --bs-link-color-rgb: 51, 187, 204;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+.btn-primary {
+  --bs-btn-bg: #33BBCC;
+  --bs-btn-border-color: #33BBCC;
+  --bs-btn-hover-bg: #28a0b0;
+  --bs-btn-hover-border-color: #28a0b0;
+  --bs-btn-active-bg: #1e8a99;
+  --bs-btn-active-border-color: #1e8a99;
+  --bs-btn-disabled-bg: #33BBCC;
+  --bs-btn-disabled-border-color: #33BBCC;
+  color: #fff;
+  --bs-btn-color: #fff;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-active-color: #fff;
+}
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+.btn-outline-primary {
+  --bs-btn-color: #33BBCC;
+  --bs-btn-border-color: #33BBCC;
+  --bs-btn-hover-bg: #33BBCC;
+  --bs-btn-hover-border-color: #33BBCC;
+  --bs-btn-hover-color: #fff;
+  --bs-btn-active-bg: #28a0b0;
+  --bs-btn-active-border-color: #28a0b0;
+  --bs-btn-active-color: #fff;
+}
+
+.text-primary {
+  color: #33BBCC !important;
+}
+
+.bg-primary {
+  background-color: #33BBCC !important;
+}
+
+.border-primary {
+  border-color: #33BBCC !important;
 }
 
 body {
   margin: 0;
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+.hero-section {
+  background: linear-gradient(135deg, #0c2b30 0%, #1a6a78 55%, #33BBCC 100%);
+  min-height: 420px;
+  padding-top: 140px;
+  padding-bottom: 3rem;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+.site-navbar {
+  background: transparent;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
+.site-footer {
+  background: linear-gradient(135deg, #0c2b30 0%, #1a6a78 100%);
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+.footer-link {
+  color: rgba(255, 255, 255, 0.55);
+  transition: color 0.15s ease;
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+.footer-link:hover {
+  color: #33BBCC;
+}
+
+.hero-image {
+  clip-path: polygon(
+    10% 0%,
+    88% 4%,
+    100% 18%,
+    96% 78%,
+    82% 100%,
+    22% 97%,
+    0% 82%,
+    4% 22%
+  );
+  max-height: 380px;
+  width: 100%;
+  object-fit: cover;
+  filter: drop-shadow(0 16px 40px rgba(0, 0, 0, 0.45));
+}
+
+.category-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+}
+
+.category-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
 }
