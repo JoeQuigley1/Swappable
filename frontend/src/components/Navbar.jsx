@@ -1,91 +1,104 @@
-import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { BRAND_COLOR } from '../constants'
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import logo from '../assets/swappable-logo.png';
 
-// navigation bar shown at the top of every page
-function Navbar() {
-
-  const navigate = useNavigate()
+export default function Navbar() {
+  const navigate = useNavigate();
   // useLocation makes the navbar re-render when the URL changes
-  // this ensures the login/logout button updates after logging in or out
-  const location = useLocation()
+  // so the login/logout state refreshes after auth actions
+  useLocation();
 
-  // check if user is logged in by looking for a token in localStorage
-  const isLoggedIn = !!localStorage.getItem('token')
+  const isLoggedIn = !!localStorage.getItem('token');
 
-  // removes token and user data then sends user to login page
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('userId')
-    localStorage.removeItem('username')
-    localStorage.removeItem('email')
-    localStorage.removeItem('location')
-    navigate('/login')
-  }
+    localStorage.removeItem('token');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('username');
+    localStorage.removeItem('email');
+    localStorage.removeItem('location');
+    navigate('/login');
+  };
 
   return (
-    <nav className="navbar navbar-expand-lg" style={{ backgroundColor: BRAND_COLOR }}>
-      <div className="container">
-
-        {/* logo and app name on the left */}
-        <Link className="navbar-brand fw-bold text-white" to="/">
-          🔄 Swappable
+    <nav
+      className="navbar navbar-expand-lg navbar-dark site-navbar py-0"
+      style={{ height: '104px', overflow: 'visible' }}
+    >
+      <div className="container" style={{ overflow: 'visible' }}>
+        <Link className="navbar-brand" to="/">
+          <img src={logo} alt="Swappable" height="128" className="me-2" />
         </Link>
 
-        {/* hamburger button visible on mobile screens */}
         <button
           className="navbar-toggler"
           type="button"
           data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-          style={{ borderColor: 'white' }}
+          data-bs-target="#mainNav"
+          aria-controls="mainNav"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
         >
           <span className="navbar-toggler-icon"></span>
         </button>
 
-        {/* navigation links */}
-        <div className="collapse navbar-collapse" id="navbarNav">
-          <ul className="navbar-nav me-auto">
+        <div className="collapse navbar-collapse" id="mainNav">
+          <ul className="navbar-nav me-auto mb-2 mb-lg-0">
             <li className="nav-item">
-              <Link className="nav-link text-white" to="/browse">Browse</Link>
+              <NavLink className="nav-link" to="/" end>
+                Home
+              </NavLink>
             </li>
             <li className="nav-item">
-              <Link className="nav-link text-white" to="/swap-requests">Swap Requests</Link>
+              <NavLink className="nav-link" to="/items">
+                Browse Items
+              </NavLink>
             </li>
             <li className="nav-item">
-              <Link className="nav-link text-white" to="/my-items">My Items</Link>
+              <NavLink className="nav-link" to="/how-it-works">
+                How It Works
+              </NavLink>
             </li>
-            <li className="nav-item">
-              <Link className="nav-link text-white" to="/profile">My Profile</Link>
-            </li>
-          </ul>
-
-          {/* show logout button if logged in, otherwise show login and register links */}
-          <ul className="navbar-nav ms-auto">
-            {isLoggedIn ? (
-              <li className="nav-item">
-                <button
-                  className="btn btn-outline-light btn-sm"
-                  onClick={handleLogout}
-                >
-                  Log out
-                </button>
-              </li>
-            ) : (
+            {isLoggedIn && (
               <>
-                <li className="nav-item me-2">
-                  <Link className="nav-link text-white" to="/login">Log in</Link>
+                <li className="nav-item">
+                  <NavLink className="nav-link" to="/my-items">
+                    My Items
+                  </NavLink>
                 </li>
                 <li className="nav-item">
-                  <Link className="btn btn-light btn-sm mt-1" to="/register">Register</Link>
+                  <NavLink className="nav-link" to="/swap-requests">
+                    Swap Requests
+                  </NavLink>
                 </li>
               </>
             )}
           </ul>
-        </div>
 
+          <div className="d-flex gap-2 align-items-center">
+            {isLoggedIn ? (
+              <>
+                <NavLink className="nav-link text-white" to="/profile">
+                  My Profile
+                </NavLink>
+                <button
+                  className="btn btn-outline-light btn-sm"
+                  onClick={handleLogout}
+                >
+                  Log Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="btn btn-outline-light btn-sm">
+                  Log In
+                </Link>
+                <Link to="/register" className="btn btn-primary btn-sm">
+                  Sign Up
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </nav>
-  )
+  );
 }
-
-export default Navbar
