@@ -1,4 +1,6 @@
+import { Link } from 'react-router-dom'
 import logo from '../assets/swappable-logo.png'
+import { BRAND_COLOR } from '../lib/constants'
 
 export default function Footer() {
   return (
@@ -12,27 +14,27 @@ export default function Footer() {
             </p>
           </div>
           <div className="col-md-4">
-            <h6 className="fw-semibold mb-3" style={{ color: '#33BBCC' }}>Links</h6>
+            <h6 className="fw-semibold mb-3" style={{ color: BRAND_COLOR }}>Links</h6>
             <ul className="list-unstyled small mb-0">
               <li className="mb-1">
-                <a href="/" className="text-decoration-none footer-link">Home</a>
+                <Link to="/" className="text-decoration-none footer-link">Home</Link>
               </li>
               <li className="mb-1">
-                <a href="/items" className="text-decoration-none footer-link">Browse Items</a>
+                <Link to="/items" className="text-decoration-none footer-link">Browse Items</Link>
               </li>
               <li className="mb-1">
-                <a href="/how-it-works" className="text-decoration-none footer-link">How It Works</a>
+                <Link to="/how-it-works" className="text-decoration-none footer-link">How It Works</Link>
               </li>
             </ul>
           </div>
           <div className="col-md-4">
-            <h6 className="fw-semibold mb-3" style={{ color: '#33BBCC' }}>Contact</h6>
+            <h6 className="fw-semibold mb-3" style={{ color: BRAND_COLOR }}>Contact</h6>
             <p className="small mb-0" style={{ color: 'rgba(255,255,255,0.55)' }}>
               <i className="bi bi-envelope me-2"></i>hello@swappable.ie
             </p>
           </div>
         </div>
-        <hr style={{ borderColor: 'rgba(51,187,204,0.2)' }} />
+        <hr style={{ borderColor: 'rgba(52,187,204,0.2)' }} />
         <p className="small text-center mb-0" style={{ color: 'rgba(255,255,255,0.35)' }}>
           &copy; {new Date().getFullYear()} Swappable. All rights reserved.
         </p>

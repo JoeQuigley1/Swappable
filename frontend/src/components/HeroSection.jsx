@@ -14,14 +14,14 @@ export default function HeroSection() {
             </h1>
             <p className="lead mb-4 opacity-75">
               Join Ireland&apos;s growing community of swappers. List your unused items and trade
-              them for something you actually need — no money required.
+              them for something you actually need, no money required.
             </p>
             <div className="d-flex flex-wrap gap-3">
               <Link to="/items" className="btn btn-warning btn-lg px-4 fw-semibold">
                 <i className="bi bi-search me-2"></i>
                 Browse Items
               </Link>
-              <Link to="/items/new" className="btn btn-outline-light btn-lg px-4">
+              <Link to="/items/create" className="btn btn-outline-light btn-lg px-4">
                 <i className="bi bi-plus-circle me-2"></i>
                 Post an Item
               </Link>

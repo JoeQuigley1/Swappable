@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { BRAND_COLOR } from '../lib/constants'
 
 // page showing full details of one item
-function ItemDetail() {
+function ItemDetailPage() {
 
   // id comes from the URL, for example /items/5 gives id = 5
   const { id } = useParams()
@@ -55,7 +56,7 @@ function ItemDetail() {
   if (loading) {
     return (
       <div className="text-center mt-5">
-        <div className="spinner-border" style={{ color: '#1a6eb5' }}></div>
+        <div className="spinner-border" style={{ color: BRAND_COLOR }}></div>
         <p className="mt-2 text-muted">Loading item...</p>
       </div>
     )
@@ -140,7 +141,7 @@ function ItemDetail() {
               ) : (
                   <button
                       className="btn w-100"
-                      style={{backgroundColor: '#1a6eb5', color: 'white'}}
+                      style={{backgroundColor: BRAND_COLOR, color: 'white'}}
                       onClick={handleRequestSwap}
                   >
                     Request a swap
@@ -164,4 +165,4 @@ function ItemDetail() {
   )
 }
 
-export default ItemDetail
+export default ItemDetailPage

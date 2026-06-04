@@ -1,31 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-
-// available categories and conditions match the database design
-const CATEGORIES = [
-  'Books',
-  'Clothing',
-  'Electronics',
-  'Furniture',
-  'Garden',
-  'Household',
-  'Music',
-  'Plants',
-  'Sports',
-  'Toys',
-  'Other'
-]
-
-const CONDITIONS = [
-  'New',
-  'Like New',
-  'Good',
-  'Fair',
-  'Poor'
-]
+import { BRAND_COLOR, CATEGORIES, CONDITIONS } from '../lib/constants'
 
 // page for editing an existing item listing
-function EditItem() {
+function EditItemPage() {
 
   // id comes from the URL, for example /items/edit/5 gives id = 5
   const { id } = useParams()
@@ -95,7 +73,7 @@ function EditItem() {
   if (loading) {
     return (
       <div className="text-center mt-5">
-        <div className="spinner-border" style={{ color: '#1a6eb5' }}></div>
+        <div className="spinner-border" style={{ color: BRAND_COLOR }}></div>
         <p className="mt-2 text-muted">Loading item...</p>
       </div>
     )
@@ -209,7 +187,7 @@ function EditItem() {
                 <button
                   type="submit"
                   className="btn flex-fill"
-                  style={{ backgroundColor: '#1a6eb5', color: 'white' }}
+                  style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
                   disabled={saving}
                 >
                   {saving ? 'Saving...' : 'Save changes'}
@@ -232,4 +210,4 @@ function EditItem() {
   )
 }
 
-export default EditItem
+export default EditItemPage
