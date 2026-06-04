@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { BRAND_COLOR, CATEGORIES, CONDITIONS } from '../constants'
+import { BRAND_COLOR, CATEGORIES, CONDITIONS } from '../lib/constants'
 
 // page for editing an existing item listing
 function EditItemPage() {

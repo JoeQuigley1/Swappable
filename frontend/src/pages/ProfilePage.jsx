@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { BRAND_COLOR } from '../constants'
+import { BRAND_COLOR } from '../lib/constants'
 
 // profile page where user can view and edit their account details
 function ProfilePage() {

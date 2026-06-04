@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { BRAND_COLOR } from '../constants'
+import { BRAND_COLOR } from '../lib/constants'
 
 // page for managing swap requests
 function SwapRequestsPage() {

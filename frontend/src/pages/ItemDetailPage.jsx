@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { BRAND_COLOR } from '../constants'
+import { BRAND_COLOR } from '../lib/constants'
 
 // page showing full details of one item
 function ItemDetailPage() {

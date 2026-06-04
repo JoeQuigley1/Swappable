@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import logo from '../assets/swappable-logo.png'
-import { BRAND_COLOR } from '../constants'
+import { BRAND_COLOR } from '../lib/constants'
 
 export default function Footer() {
   return (

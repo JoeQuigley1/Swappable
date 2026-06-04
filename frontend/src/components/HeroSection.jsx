@@ -14,7 +14,7 @@ export default function HeroSection() {
             </h1>
             <p className="lead mb-4 opacity-75">
               Join Ireland&apos;s growing community of swappers. List your unused items and trade
-              them for something you actually need — no money required.
+              them for something you actually need, no money required.
             </p>
             <div className="d-flex flex-wrap gap-3">
               <Link to="/items" className="btn btn-warning btn-lg px-4 fw-semibold">
