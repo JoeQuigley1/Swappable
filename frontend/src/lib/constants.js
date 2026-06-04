@@ -1,6 +1,10 @@
 // constants used across the application
 export const BRAND_COLOR = '#34BBCC'
 
+// routes that render their own full-bleed dark hero. the navbar is
+// transparent over these and solid (so its links stay visible) elsewhere.
+export const HERO_ROUTES = ['/', '/how-it-works']
+
 // available item categories match the database design
 export const CATEGORIES = [
   'Books',

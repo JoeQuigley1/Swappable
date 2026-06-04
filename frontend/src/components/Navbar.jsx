@@ -1,11 +1,16 @@
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import logo from '../assets/swappable-logo.png';
+import { HERO_ROUTES } from '../lib/constants';
 
 export default function Navbar() {
   const navigate = useNavigate();
   // useLocation makes the navbar re-render when the URL changes
   // so the login/logout state refreshes after auth actions
-  useLocation();
+  const location = useLocation();
+
+  // hero routes have a dark hero behind the transparent navbar. on every
+  // other (light) page the navbar needs a solid background so links show.
+  const hasHero = HERO_ROUTES.includes(location.pathname);
 
   const isLoggedIn = !!localStorage.getItem('token');
 
@@ -20,7 +25,9 @@ export default function Navbar() {
 
   return (
     <nav
-      className="navbar navbar-expand-lg navbar-dark site-navbar py-0"
+      className={`navbar navbar-expand-lg navbar-dark site-navbar py-0${
+        hasHero ? '' : ' brand-gradient'
+      }`}
       style={{ height: '104px', overflow: 'visible' }}
     >
       <div className="container" style={{ overflow: 'visible' }}>
@@ -88,7 +95,11 @@ export default function Navbar() {
               </>
             ) : (
               <>
-                <Link to="/login" className="btn btn-outline-primary btn-sm">
+                <Link
+                  to="/login"
+                  className="btn btn-outline-primary btn-sm"
+                  style={{ '--bs-btn-color': '#fff' }}
+                >
                   Log In
                 </Link>
                 <Link to="/register" className="btn btn-primary btn-sm">
