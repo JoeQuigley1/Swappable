@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BRAND_COLOR } from '../constants'
+import { BRAND_COLOR } from '../lib/constants'
 
 // page showing all items listed by the logged in user
 function MyItemsPage() {

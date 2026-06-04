@@ -9,6 +9,7 @@ import CreateItemPage from './pages/CreateItemPage.jsx';
 import EditItemPage from './pages/EditItemPage.jsx';
 import MyItemsPage from './pages/MyItemsPage.jsx';
 import ItemDetailPage from './pages/ItemDetailPage.jsx';
+import HowItWorksPage from './pages/HowItWorksPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
       <Routes>
         <Route element={<MainLayout />}>
           <Route path="/" element={<HomePage />} />
+          <Route path="/how-it-works" element={<HowItWorksPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/profile" element={<ProfilePage />} />

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BRAND_COLOR, CATEGORIES, CONDITIONS } from '../constants'
+import { BRAND_COLOR, CATEGORIES, CONDITIONS } from '../lib/constants'
 
 // page for creating a new item listing
 function CreateItemPage() {

@@ -67,6 +67,11 @@ body {
   background: linear-gradient(135deg, #0c2b30 0%, #1a6a78 100%);
 }
 
+/* shared brand gradient, matching the home hero, reused by page banners */
+.brand-gradient {
+  background: linear-gradient(135deg, #0c2b30 0%, #1a6a78 55%, #33BBCC 100%);
+}
+
 .footer-link {
   color: rgba(255, 255, 255, 0.55);
   transition: color 0.15s ease;
