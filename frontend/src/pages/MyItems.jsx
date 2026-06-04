@@ -134,7 +134,7 @@ function MyItems() {
                 </p>
 
                 <div className="mb-3">
-                  <span className="badge bg-secondary me-2">{item.category}</span>
+                  <span className="badge bg-secondary me-2">{item.categoryName}</span>
                   <span className="badge bg-light text-dark border">{item.condition}</span>
                 </div>
 
