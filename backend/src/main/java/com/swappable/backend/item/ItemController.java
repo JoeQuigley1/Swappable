@@ -4,9 +4,12 @@ package com.swappable.backend.item;
 import com.swappable.backend.category.Category;
 import com.swappable.backend.category.CategoryRepository;
 import com.swappable.backend.user.User;
-import com.swappable.backend.user.UserRepository;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -15,12 +18,10 @@ import java.util.List;
 public class ItemController {
 
     private final ItemRepository itemRepository;
-    private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
 
-    public ItemController(ItemRepository itemRepository, UserRepository userRepository, CategoryRepository categoryRepository) {
+    public ItemController(ItemRepository itemRepository, CategoryRepository categoryRepository) {
         this.itemRepository = itemRepository;
-        this.userRepository = userRepository;
         this.categoryRepository = categoryRepository;
     }
 
@@ -62,15 +63,21 @@ public class ItemController {
 
     @PostMapping
     public ItemResponse createItem(
-            @RequestBody CreateItemRequest request
+           @Valid @RequestBody CreateItemRequest request
     ) {
 
-        // TODO: Replace request.userId() with authenticated user once JWT filter is implemented
-        User user = userRepository.findById(request.userId())
-                .orElseThrow();
+        User user = (User) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
 
         Category category = categoryRepository.findById(request.categoryId())
-                .orElseThrow();
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.BAD_REQUEST,
+                                "Invalid CategoryId"
+                        )
+                );
 
         Item item = new Item();
 
@@ -95,5 +102,29 @@ public class ItemController {
                 savedItem.getUser().getUsername(),
                 savedItem.getUser().getLocation()
         );
+    }
+
+    @GetMapping("/my-items")
+    public List<ItemResponse> getMyItems() {
+
+        User user = (User) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        return itemRepository.findByUserId(user.getId())
+                .stream()
+                .map(item -> new ItemResponse(
+                        item.getId(),
+                        item.getTitle(),
+                        item.getDescription(),
+                        item.getCondition(),
+                        item.getImageUrl(),
+                        item.getStatus(),
+                        item.getCategory().getName(),
+                        item.getUser().getUsername(),
+                        item.getUser().getLocation()
+                ))
+                .toList();
     }
 }
