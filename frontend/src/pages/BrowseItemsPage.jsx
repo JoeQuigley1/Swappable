@@ -28,7 +28,6 @@ export default function BrowseItemsPage() {
 // get logged in user's coordinates from localStorage
   const userLat = parseFloat(localStorage.getItem('lat'))
   const userLng = parseFloat(localStorage.getItem('lng'))
-  const hasLocation = !isNaN(userLat) && !isNaN(userLng)
 
 // filter options are derived from the data so every choice yields results.
   const categories = useMemo(
@@ -53,7 +52,7 @@ export default function BrowseItemsPage() {
 // distance filter - only applies if user has location and radius is set
 // TODO: use real item owner coordinates from backend once available
   let matchesRadius = true
-  if (radius !== 'all' && hasLocation && item.lat && item.lng) {
+  if (radius !== 'all' && item.lat && item.lng) {
       const distance = haversineDistance(userLat, userLng, item.lat, item.lng)
       matchesRadius = distance <= parseInt(radius)
       }
@@ -74,12 +73,6 @@ export default function BrowseItemsPage() {
         <p className="text-muted mb-0">Find something to swap from the community</p>
       </div>
 
-       {/* show message if user has no location set */}
-       {!hasLocation && radius !== 'all' && (
-           <div className="alert alert-warning mb-3">
-               Please set your location in your profile to use the distance filter.
-           </div>
-       )}
 
       <ItemFilterBar
         search={search}
