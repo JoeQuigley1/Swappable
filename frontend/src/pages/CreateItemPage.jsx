@@ -1,9 +1,18 @@
-import { useState } from 'react'
+import {useEffect, useState} from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BRAND_COLOR, CATEGORIES, CONDITIONS } from '../lib/constants'
+
+// condition options describe the physical state of the item
+//TODO remove conditions and store them in the DB
+const CONDITIONS = [
+  'New',
+  'Like New',
+  'Good',
+  'Fair',
+  'Poor'
+]
 
 // page for creating a new item listing
-function CreateItemPage() {
+function CreateItem() {
 
   const navigate = useNavigate()
 
@@ -11,7 +20,7 @@ function CreateItemPage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: '',
+    categoryId: '',
     condition: ''
   })
 
@@ -23,6 +32,15 @@ function CreateItemPage() {
   const [error, setError] = useState('')
   // shows loading state while form is submitting
   const [loading, setLoading] = useState(false)
+
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    fetch("http://localhost:8080/api/categories")
+        .then((response) => response.json())
+        .then((data) => setCategories(data))
+        .catch((error) => console.error(error));
+  }, []);
 
   // updates form data when user types in any field
   const handleChange = (e) => {
@@ -37,19 +55,40 @@ function CreateItemPage() {
       setImagePreview(URL.createObjectURL(file))
     }
   }
-
-  // runs when user clicks List item
-  // TODO: upload image to POST /api/images and get back Cloudinary URL
-  // TODO: send form data + image URL to POST /api/items
-  // on success: navigate('/my-items')
-  // on failure: setError('Failed to create item.')
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
-    console.log('Creating item:', formData)
-    console.log('Image file:', imageFile)
-    setLoading(false)
+
+    try {
+      const token = localStorage.getItem('token')
+
+      const response = await fetch('http://localhost:8080/api/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          categoryId: Number(formData.categoryId),
+          title: formData.title,
+          description: formData.description,
+          condition: formData.condition,
+          imageUrl: '',
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create item')
+      }
+
+      navigate('/my-items')
+    } catch (err) {
+      console.error(err)
+      setError('Failed to create item.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -104,14 +143,14 @@ function CreateItemPage() {
                   <label className="form-label fw-semibold">Category</label>
                   <select
                     className="form-select"
-                    name="category"
+                    name="categoryId"
                     value={formData.category}
                     onChange={handleChange}
                     required
                   >
                     <option value="">Select a category</option>
-                    {CATEGORIES.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
+                    {categories.map((category) => (
+                        <option key={category.id} value={category.id}>{category.name}</option>
                     ))}
                   </select>
                 </div>
@@ -164,7 +203,7 @@ function CreateItemPage() {
                 <button
                   type="submit"
                   className="btn flex-fill"
-                  style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
+                  style={{ backgroundColor: '#1a6eb5', color: 'white' }}
                   disabled={loading}
                 >
                   {loading ? 'Creating...' : 'List item'}
@@ -187,4 +226,4 @@ function CreateItemPage() {
   )
 }
 
-export default CreateItemPage
+export default CreateItem

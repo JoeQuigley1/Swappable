@@ -1,11 +1,15 @@
 package com.swappable.backend.item;
 
+
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
 public record CreateItemRequest(
-        Integer userId,
-        Integer categoryId,
-        String title,
+        @NotNull Integer categoryId,
+        @NotBlank String title,
         String description,
-        String condition,
+        @NotNull String condition,
         String imageUrl
 ) {
 }
