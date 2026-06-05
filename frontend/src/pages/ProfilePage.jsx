@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { BRAND_COLOR } from '../lib/constants'
+import { IRISH_COUNTIES } from '../lib/counties'
 
 // profile page where user can view and edit their account details
 function ProfilePage() {
@@ -13,14 +13,16 @@ function ProfilePage() {
 
   // controls whether the form fields are editable or just displayed as text
   const [editMode, setEditMode] = useState(false)
-
   // success message shown after saving
   const [successMessage, setSuccessMessage] = useState('')
+  // tracks if browser is currently getting location
+  const [locating, setLocating] = useState(false)
+  // message shown after location is detected
+  const [locationMessage, setLocationMessage] = useState('')
 
-  // load profile data when page opens
+  // load profile data from localStorage when page opens
   // TODO: replace with real API call to GET /api/users/me
   useEffect(() => {
-       const loc = localStorage.getItem('location')
     setProfile({
       username: localStorage.getItem('username') || '',
       email: localStorage.getItem('email') || '',
@@ -33,14 +35,72 @@ function ProfilePage() {
     setProfile({ ...profile, [e.target.name]: e.target.value })
   }
 
+  // handles county selection - saves county name and coordinates
+  const handleCountyChange = (e) => {
+    const selectedCounty = IRISH_COUNTIES.find(c => c.name === e.target.value)
+    if (selectedCounty) {
+      setProfile({ ...profile, location: selectedCounty.name })
+      localStorage.setItem('lat', selectedCounty.lat)
+      localStorage.setItem('lng', selectedCounty.lng)
+      setLocationMessage('')
+    } else {
+      setProfile({ ...profile, location: '' })
+      setLocationMessage('')
+    }
+  }
+
+  // asks browser for user's exact GPS coordinates
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser.')
+      return
+    }
+    setLocating(true)
+    setLocationMessage('')
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const userLat = position.coords.latitude
+        const userLng = position.coords.longitude
+
+        // find the closest county to the user's coordinates
+        let closestCounty = null
+        let shortestDistance = Infinity
+
+        IRISH_COUNTIES.forEach(county => {
+          const distance = Math.sqrt(
+            Math.pow(county.lat - userLat, 2) +
+            Math.pow(county.lng - userLng, 2)
+          )
+          if (distance < shortestDistance) {
+            shortestDistance = distance
+            closestCounty = county
+          }
+        })
+
+        if (closestCounty) {
+          setProfile({ ...profile, location: closestCounty.name })
+          localStorage.setItem('lat', userLat)
+          localStorage.setItem('lng', userLng)
+          setLocationMessage(`Location detected: ${closestCounty.name}`)
+        }
+        setLocating(false)
+      },
+      () => {
+        alert('Could not get your location. Please select your county manually.')
+        setLocating(false)
+      }
+    )
+  }
+
   // runs when user clicks Save changes
   // TODO: replace with real API call to PUT /api/users/me
   const handleSave = () => {
     console.log('Saving profile:', profile)
+    localStorage.setItem('location', profile.location)
     setEditMode(false)
     setSuccessMessage('Profile updated successfully!')
-    // Hide the success message after 3 seconds
     setTimeout(() => setSuccessMessage(''), 3000)
+    setLocationMessage('')
   }
 
   return (
@@ -89,17 +149,45 @@ function ProfilePage() {
               )}
             </div>
 
-            {/* location field - shows input in edit mode, plain text otherwise */}
+            {/* location field - shows dropdown in edit mode, plain text otherwise */}
             <div className="mb-4">
               <label className="form-label fw-semibold">Location</label>
               {editMode ? (
-                <input
-                  type="text"
-                  className="form-control"
-                  name="location"
-                  value={profile.location}
-                  onChange={handleChange}
-                />
+                <div>
+                  {/* use my location button */}
+                  <div className="mb-2">
+                    <button
+                      type="button"
+                      className="btn btn-outline-primary btn-sm"
+                      onClick={handleUseMyLocation}
+                      disabled={locating}
+                    >
+                      {locating ? 'Detecting location...' : '📍 Use my exact location'}
+                    </button>
+                  </div>
+
+                  {/* show success message if location was detected */}
+                  {locationMessage && (
+                    <div className="alert alert-success py-2 mb-2 small">
+                      {locationMessage}
+                    </div>
+                  )}
+
+                  {/* county dropdown as fallback */}
+                  <select
+                    className="form-select"
+                    name="location"
+                    value={profile.location}
+                    onChange={handleCountyChange}
+                  >
+                    <option value="">Select your county manually</option>
+                    {IRISH_COUNTIES.map(county => (
+                      <option key={county.name} value={county.name}>
+                        {county.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               ) : (
                 <p className="form-control-plaintext">{profile.location}</p>
               )}
@@ -109,8 +197,7 @@ function ProfilePage() {
             {editMode ? (
               <div className="d-flex gap-2">
                 <button
-                  className="btn flex-fill"
-                  style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
+                  className="btn btn-primary flex-fill"
                   onClick={handleSave}
                 >
                   Save changes
@@ -124,8 +211,7 @@ function ProfilePage() {
               </div>
             ) : (
               <button
-                className="btn w-100"
-                style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
+                className="btn btn-primary w-100"
                 onClick={() => setEditMode(true)}
               >
                 Edit profile
