@@ -1,47 +1,39 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import Layout from './components/Layout'
-import Home from './pages/Home'
-import Register from './pages/Register'
-import Login from './pages/Login'
-import Profile from './pages/Profile'
-import SwapRequests from './pages/SwapRequests'
-import CreateItem from './pages/CreateItem'
-import EditItem from './pages/EditItem'
-import MyItems from './pages/MyItems'
-import ItemDetail from './pages/ItemDetail'
-import NotFound from './pages/NotFound'
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import MainLayout from './layouts/MainLayout.jsx';
+import HomePage from './pages/HomePage.jsx';
+import RegisterPage from './pages/RegisterPage.jsx';
+import LoginPage from './pages/LoginPage.jsx';
+import ProfilePage from './pages/ProfilePage.jsx';
+import SwapRequestsPage from './pages/SwapRequestsPage.jsx';
+import CreateItemPage from './pages/CreateItemPage.jsx';
+import EditItemPage from './pages/EditItemPage.jsx';
+import MyItemsPage from './pages/MyItemsPage.jsx';
+import ItemDetailPage from './pages/ItemDetailPage.jsx';
+import BrowseItemsPage from './pages/BrowseItemsPage.jsx';
+import HowItWorksPage from './pages/HowItWorksPage.jsx';
+import NotFoundPage from './pages/NotFoundPage.jsx';
 
-// main file of the application
-// sets up routing - decides which page to show based on the URL
-// every page is wrapped in Layout which adds the navbar and footer
 function App() {
   return (
     <BrowserRouter>
-      <Layout>
-        <Routes>
-          {/* home page */}
-          <Route path="/" element={<Home />} />
-
-          {/* authentication pages */}
-          <Route path="/register" element={<Register />} />
-          <Route path="/login" element={<Login />} />
-
-          {/* user pages */}
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/swap-requests" element={<SwapRequests />} />
-
-          {/* item pages */}
-          <Route path="/items/create" element={<CreateItem />} />
-          <Route path="/items/edit/:id" element={<EditItem />} />
-          <Route path="/my-items" element={<MyItems />} />
-          <Route path="/items/:id" element={<ItemDetail />} />
-
-          {/* 404 - shown when no route matches */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Layout>
+      <Routes>
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/how-it-works" element={<HowItWorksPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/swap-requests" element={<SwapRequestsPage />} />
+          <Route path="/items" element={<BrowseItemsPage />} />
+          <Route path="/items/create" element={<CreateItemPage />} />
+          <Route path="/items/edit/:id" element={<EditItemPage />} />
+          <Route path="/my-items" element={<MyItemsPage />} />
+          <Route path="/items/:id" element={<ItemDetailPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;

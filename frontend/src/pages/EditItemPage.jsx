@@ -1,60 +1,51 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { BRAND_COLOR } from '../constants'
+import { useParams, useNavigate } from 'react-router-dom'
+import { BRAND_COLOR, CATEGORIES, CONDITIONS } from '../lib/constants'
 
-// condition options describe the physical state of the item
-const CONDITIONS = [
-  'New',
-  'Like New',
-  'Good',
-  'Fair',
-  'Poor'
-]
+// page for editing an existing item listing
+function EditItemPage() {
 
-// page for creating a new item listing
-function CreateItem() {
-
+  // id comes from the URL, for example /items/edit/5 gives id = 5
+  const { id } = useParams()
   const navigate = useNavigate()
 
   // form fields
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    categoryId: '',
+    category: '',
     condition: ''
   })
 
-  // categories loaded from backend
-  const [categories, setCategories] = useState([])
-  // image file selected by the user
+  // new image file selected by user
   const [imageFile, setImageFile] = useState(null)
-  // temporary preview URL of the selected image
+  // temporary preview of the new image
   const [imagePreview, setImagePreview] = useState(null)
+  // shows spinner while item data is loading
+  const [loading, setLoading] = useState(true)
+  // shows saving state while form is submitting
+  const [saving, setSaving] = useState(false)
   // error message if something goes wrong
   const [error, setError] = useState('')
-  // shows loading state while form is submitting
-  const [loading, setLoading] = useState(false)
 
-  // load categories from backend when page opens
+  // load existing item data when page opens and fill the form
+  // TODO: replace with real API call to GET /api/items/:id
   useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        const response = await fetch('http://localhost:8080/api/categories')
-        const data = await response.json()
-        setCategories(data)
-      } catch (err) {
-        console.log('Could not load categories:', err)
-      }
-    }
-    loadCategories()
-  }, [])
+    setFormData({
+      title: 'Blue mountain bike',
+      description: 'Barely used, great condition. 26 inch wheels.',
+      category: 'Sports',
+      condition: 'Like New'
+    })
+    setLoading(false)
+  }, [id])
 
   // updates form data when user types in any field
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  // handles image selection and creates a preview
+  // handles new image selection and creates a preview
   const handleImageChange = (e) => {
     const file = e.target.files[0]
     if (file) {
@@ -63,38 +54,29 @@ function CreateItem() {
     }
   }
 
-  // runs when user clicks List item
-  // TODO: upload image to POST /api/images and get back Cloudinary URL
-  const handleSubmit = async (e) => {
+  // runs when user clicks Save changes
+  // TODO: if new image selected, upload to POST /api/images first
+  // TODO: send updated data to PUT /api/items/:id
+  // on success: navigate('/my-items')
+  // on failure: setError('Failed to update item.')
+  const handleSubmit = (e) => {
     e.preventDefault()
     setError('')
-    setLoading(true)
-    try {
-      const userId = localStorage.getItem('userId')
-      const response = await fetch('http://localhost:8080/api/items', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId: parseInt(userId),
-          categoryId: parseInt(formData.categoryId),
-          title: formData.title,
-          description: formData.description,
-          condition: formData.condition,
-          imageUrl: null
-        })
-      })
-      if (!response.ok) {
-        setError('Failed to create item. Please try again.')
-        return
-      }
-      navigate('/my-items')
-    } catch (err) {
-      setError('Failed to create item. Please try again.')
-    } finally {
-      setLoading(false)
-    }
+    setSaving(true)
+    console.log('Updating item:', id, formData)
+    console.log('New image file:', imageFile)
+    setSaving(false)
+    navigate('/my-items')
+  }
+
+  // show spinner while loading
+  if (loading) {
+    return (
+      <div className="text-center mt-5">
+        <div className="spinner-border" style={{ color: BRAND_COLOR }}></div>
+        <p className="mt-2 text-muted">Loading item...</p>
+      </div>
+    )
   }
 
   return (
@@ -103,10 +85,8 @@ function CreateItem() {
         <div className="card shadow-sm mt-4">
           <div className="card-body p-4">
 
-            <h2 className="card-title mb-1">List an item</h2>
-            <p className="text-muted mb-4">
-              Describe what you'd like to swap
-            </p>
+            <h2 className="card-title mb-1">Edit item</h2>
+            <p className="text-muted mb-4">Update your listing details</p>
 
             {/* show error if something goes wrong */}
             {error && (
@@ -122,7 +102,6 @@ function CreateItem() {
                   type="text"
                   className="form-control"
                   name="title"
-                  placeholder="e.g. Blue mountain bike, barely used"
                   value={formData.title}
                   onChange={handleChange}
                   required
@@ -135,7 +114,6 @@ function CreateItem() {
                 <textarea
                   className="form-control"
                   name="description"
-                  placeholder="Describe your item - size, colour, age, any defects..."
                   value={formData.description}
                   onChange={handleChange}
                   rows={4}
@@ -143,21 +121,20 @@ function CreateItem() {
                 />
               </div>
 
-              {/* category and condition dropdowns side by side */}
+              {/* category and condition dropdowns */}
               <div className="row">
                 <div className="col-md-6 mb-3">
                   <label className="form-label fw-semibold">Category</label>
                   <select
                     className="form-select"
-                    name="categoryId"
-                    value={formData.categoryId}
+                    name="category"
+                    value={formData.category}
                     onChange={handleChange}
                     required
                   >
                     <option value="">Select a category</option>
-                    {/* categories loaded from backend */}
-                    {categories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    {CATEGORIES.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
                 </div>
@@ -179,9 +156,9 @@ function CreateItem() {
                 </div>
               </div>
 
-              {/* image upload field */}
+              {/* image upload - leave empty to keep existing photo */}
               <div className="mb-4">
-                <label className="form-label fw-semibold">Photo</label>
+                <label className="form-label fw-semibold">Update photo</label>
                 <input
                   type="file"
                   className="form-control"
@@ -189,10 +166,10 @@ function CreateItem() {
                   onChange={handleImageChange}
                 />
                 <div className="form-text">
-                  Upload a clear photo of your item. JPG or PNG.
+                  Leave empty to keep the existing photo.
                 </div>
 
-                {/* show preview of selected image */}
+                {/* show preview of newly selected image */}
                 {imagePreview && (
                   <div className="mt-3">
                     <img
@@ -205,15 +182,15 @@ function CreateItem() {
                 )}
               </div>
 
-              {/* submit and cancel buttons */}
+              {/* save and cancel buttons */}
               <div className="d-flex gap-2">
                 <button
                   type="submit"
                   className="btn flex-fill"
                   style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
-                  disabled={loading}
+                  disabled={saving}
                 >
-                  {loading ? 'Creating...' : 'List item'}
+                  {saving ? 'Saving...' : 'Save changes'}
                 </button>
                 <button
                   type="button"
@@ -233,4 +210,4 @@ function CreateItem() {
   )
 }
 
-export default CreateItem
+export default EditItemPage

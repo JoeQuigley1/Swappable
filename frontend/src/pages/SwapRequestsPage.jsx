@@ -1,24 +1,25 @@
 import { useState, useEffect } from 'react'
+import { BRAND_COLOR } from '../lib/constants'
 
 // page for managing swap requests
-function SwapRequests() {
+function SwapRequestsPage() {
 
-  // list of requests other users sent to me
+  // list of received requests
   const [received, setReceived] = useState([])
-  // list of requests I sent to other users
+  // list of sent requests
   const [sent, setSent] = useState([])
-  // which tab is open right now
+  // controls which tab is open right now
   const [tab, setTab] = useState('received')
 
   // load data when page opens
-  // TODO: replace with real API calls to GET /api/swaps/received and GET /api/swaps/sent
+  // TODO: replace with real API calls
   useEffect(() => {
     setReceived([
-      { id: 1, fromUser: 'john123', offeredItem: 'Bicycle pump', wantedItem: 'Plant pot', status: 'PENDING' },
-      { id: 2, fromUser: 'henry_lp', offeredItem: 'Cookbook', wantedItem: 'Yoga mat', status: 'PENDING' }
+      { id: 1, fromUser: 'johnfun2', offeredItem: 'Bicycle pump', wantedItem: 'Plant pot', status: 'PENDING' },
+      { id: 2, fromUser: 'hannad', offeredItem: 'Cookbook', wantedItem: 'Yoga mat', status: 'PENDING' }
     ])
     setSent([
-      { id: 3, toUser: 'roland99', offeredItem: 'Desk lamp', wantedItem: 'Headphones', status: 'PENDING' }
+      { id: 3, toUser: 'brad99', offeredItem: 'Desk lamp', wantedItem: 'Headphones', status: 'PENDING' }
     ])
   }, [])
 
@@ -97,13 +98,14 @@ function SwapRequests() {
                       {request.status === 'PENDING' && (
                         <div className="d-flex gap-2">
                           <button
-                            className="btn btn-primary btn-sm"
+                            className="btn btn-sm"
+                            style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
                             onClick={() => handleAccept(request.id)}
                           >
                             Accept
                           </button>
                           <button
-                            className="btn btn-outline-danger btn-sm"
+                            className="btn btn-sm btn-outline-danger"
                             onClick={() => handleDecline(request.id)}
                           >
                             Decline
@@ -150,4 +152,4 @@ function SwapRequests() {
   )
 }
 
-export default SwapRequests
+export default SwapRequestsPage
