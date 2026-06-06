@@ -11,12 +11,9 @@ export const CATEGORIES = [
   'Clothing',
   'Electronics',
   'Furniture',
-  'Garden',
-  'Household',
-  'Music',
-  'Plants',
+  'Home & Garden',
   'Sports',
-  'Toys',
+  'Toys & Games',
   'Other'
 ]
 
