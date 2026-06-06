@@ -1,13 +1,54 @@
+import { useEffect, useState } from 'react'
 import HeroSection from '../components/HeroSection.jsx'
 import ItemCard from '../components/ItemCard.jsx'
 import CategoryCard from '../components/CategoryCard.jsx'
 import HowItWorksSection from '../components/HowItWorksSection.jsx'
-import { featuredItems, categories } from '../lib/mockData.js'
+import { CATEGORY_ICONS, DEFAULT_CATEGORY_ICON } from '../lib/constants.js'
+
+// map a backend item (ItemResponse) onto the shape ItemCard expects
+function toCardItem(item) {
+  return {
+    id: item.id,
+    title: item.title,
+    description: item.description,
+    category: item.categoryName,
+    condition: item.condition,
+    owner: item.ownerUsername,
+    location: item.ownerLocation,
+  }
+}
 
 export default function HomePage() {
+  const [items, setItems] = useState([])
+  const [categories, setCategories] = useState([])
+
+  useEffect(() => {
+    fetch('/api/items')
+      .then((res) => res.json())
+      .then(setItems)
+      .catch(() => setItems([]))
+
+    fetch('/api/categories')
+      .then((res) => res.json())
+      .then(setCategories)
+      .catch(() => setCategories([]))
+  }, [])
+
+  // live count of items per category name so each card shows a real total
+  const itemsByCategory = items.reduce((acc, item) => {
+    acc[item.categoryName] = (acc[item.categoryName] ?? 0) + 1
+    return acc
+  }, {})
+
+  // show the six most recently listed items (highest id first)
+  const featuredItems = [...items]
+    .sort((a, b) => b.id - a.id)
+    .slice(0, 6)
+    .map(toCardItem)
+
   return (
     <>
-      <HeroSection />
+      <HeroSection itemCount={items.length} />
 
       <section className="py-5">
         <div className="container">
@@ -18,7 +59,13 @@ export default function HomePage() {
           <div className="row row-cols-2 row-cols-sm-4 row-cols-lg-8 g-3">
             {categories.map((cat) => (
               <div key={cat.id} className="col">
-                <CategoryCard category={cat} />
+                <CategoryCard
+                  category={{
+                    name: cat.name,
+                    icon: CATEGORY_ICONS[cat.name] ?? DEFAULT_CATEGORY_ICON,
+                    count: itemsByCategory[cat.name] ?? 0,
+                  }}
+                />
               </div>
             ))}
           </div>

@@ -20,6 +20,22 @@ export const CATEGORIES = [
   'Other'
 ]
 
+// bootstrap icon for each category name returned by GET /api/categories.
+// the backend does not store an icon, so the mapping lives on the frontend.
+export const CATEGORY_ICONS = {
+  Electronics: 'bi-laptop',
+  Books: 'bi-book',
+  Clothing: 'bi-bag',
+  Furniture: 'bi-house-door',
+  Sports: 'bi-bicycle',
+  'Home & Garden': 'bi-flower1',
+  'Toys & Games': 'bi-controller',
+  Other: 'bi-box'
+}
+
+// fallback icon for any category without an explicit mapping
+export const DEFAULT_CATEGORY_ICON = 'bi-box'
+
 // condition options describe the physical state of the item
 export const CONDITIONS = [
   'New',
