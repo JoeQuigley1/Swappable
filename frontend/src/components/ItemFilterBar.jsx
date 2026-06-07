@@ -11,6 +11,8 @@ export default function ItemFilterBar({
   conditions,
   sort,
   onSortChange,
+  radius,
+  onRadiusChange,
 }) {
   return (
     <div className="card border-0 shadow-sm mb-4 brand-gradient text-white">
@@ -74,6 +76,21 @@ export default function ItemFilterBar({
               <option value="title">Title (A-Z)</option>
             </select>
           </div>
+          {/* distance radius filter */}
+           <div className="col-sm-4 col-lg-2">
+               <label className="form-label fw-semibold small mb-1">Distance</label>
+               <select
+                  className="form-select"
+                  value={radius}
+                  onChange={(e) => onRadiusChange(e.target.value)}
+               >
+                  <option value="all">All Ireland</option>
+                  <option value="10">Within 10km</option>
+                  <option value="25">Within 25km</option>
+                  <option value="50">Within 50km</option>
+                  <option value="100">Within 100km</option>
+               </select>
+           </div>
         </div>
       </div>
     </div>
