@@ -62,7 +62,7 @@ export default function BrowseItemsPage() {
     return [...result].sort((a, b) => {
       if (sort === 'title') return a.title.localeCompare(b.title)
       if (sort === 'oldest') return a.id - b.id
-      return b.id - a.id // newest
+      return b.id - a.id // TODO: sort by createdAt once available in API response
     })
   }, [search, category, condition, sort, radius, userLat, userLng])
 

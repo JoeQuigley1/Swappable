@@ -17,6 +17,8 @@ function ProfilePage() {
   const [successMessage, setSuccessMessage] = useState('')
   // tracks if browser is currently getting location
   const [locating, setLocating] = useState(false)
+  // stores original profile data so we can restore it if user cancels
+  const [originalProfile, setOriginalProfile] = useState({})
   // message shown after location is detected
   const [locationMessage, setLocationMessage] = useState('')
 
@@ -40,8 +42,6 @@ function ProfilePage() {
     const selectedCounty = IRISH_COUNTIES.find(c => c.name === e.target.value)
     if (selectedCounty) {
       setProfile({ ...profile, location: selectedCounty.name })
-      localStorage.setItem('lat', selectedCounty.lat)
-      localStorage.setItem('lng', selectedCounty.lng)
       setLocationMessage('')
     } else {
       setProfile({ ...profile, location: '' })
@@ -97,6 +97,12 @@ function ProfilePage() {
   const handleSave = () => {
     console.log('Saving profile:', profile)
     localStorage.setItem('location', profile.location)
+    // save coordinates only when user confirms save
+    const selectedCounty = IRISH_COUNTIES.find(c => c.name === profile.location)
+    if (selectedCounty) {
+      localStorage.setItem('lat', selectedCounty.lat)
+      localStorage.setItem('lng', selectedCounty.lng)
+    }
     setEditMode(false)
     setSuccessMessage('Profile updated successfully!')
     setTimeout(() => setSuccessMessage(''), 3000)
@@ -204,7 +210,11 @@ function ProfilePage() {
                 </button>
                 <button
                   className="btn btn-outline-secondary flex-fill"
-                  onClick={() => setEditMode(false)}
+                  onClick={() => {
+                     setProfile(originalProfile)
+                     setLocationMessage('')
+                     setEditMode(false)
+                     }}
                 >
                   Cancel
                 </button>
@@ -212,7 +222,10 @@ function ProfilePage() {
             ) : (
               <button
                 className="btn btn-primary w-100"
-                onClick={() => setEditMode(true)}
+                onClick={() => {
+                    setOriginalProfile(profile)
+                    setEditMode(true)
+                }}
               >
                 Edit profile
               </button>
