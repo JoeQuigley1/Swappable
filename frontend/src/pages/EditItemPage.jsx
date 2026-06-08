@@ -196,7 +196,7 @@ function EditItemPage() {
                       onChange={handleChange}
                       required
                   >
-                    <option value="">Select a category</option>
+                    <option value="" disabled>Select a category</option>
                     {categories.map(cat => (
                         <option key={cat.id} value={cat.id}>
                           {cat.name}
@@ -214,7 +214,7 @@ function EditItemPage() {
                     onChange={handleChange}
                     required
                   >
-                    <option value="">Select condition</option>
+                    <option value="" disabled>Select condition</option>
                     {CONDITIONS.map(con => (
                       <option key={con} value={con}>{con}</option>
                     ))}
