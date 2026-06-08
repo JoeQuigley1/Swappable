@@ -36,6 +36,7 @@ public class ItemController {
                         item.getCondition(),
                         item.getImageUrl(),
                         item.getStatus(),
+                        item.getCategory().getId(),
                         item.getCategory().getName(),
                         item.getUser().getUsername(),
                         item.getUser().getLocation()
@@ -53,6 +54,7 @@ public class ItemController {
                         item.getCondition(),
                         item.getImageUrl(),
                         item.getStatus(),
+                        item.getCategory().getId(),
                         item.getCategory().getName(),
                         item.getUser().getUsername(),
                         item.getUser().getLocation()
@@ -78,6 +80,7 @@ public class ItemController {
                         item.getCondition(),
                         item.getImageUrl(),
                         item.getStatus(),
+                        item.getCategory().getId(),
                         item.getCategory().getName(),
                         item.getUser().getUsername(),
                         item.getUser().getLocation()
@@ -122,6 +125,7 @@ public class ItemController {
                 savedItem.getCondition(),
                 savedItem.getImageUrl(),
                 savedItem.getStatus(),
+                item.getCategory().getId(),
                 savedItem.getCategory().getName(),
                 savedItem.getUser().getUsername(),
                 savedItem.getUser().getLocation()
@@ -175,6 +179,7 @@ public class ItemController {
                 savedItem.getCondition(),
                 savedItem.getImageUrl(),
                 savedItem.getStatus(),
+                item.getCategory().getId(),
                 savedItem.getCategory().getName(),
                 savedItem.getUser().getUsername(),
                 savedItem.getUser().getLocation()

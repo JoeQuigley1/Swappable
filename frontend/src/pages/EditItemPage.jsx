@@ -71,7 +71,7 @@ function EditItemPage() {
         setFormData({
           title: item.title || '',
           description: item.description || '',
-          categoryId: item.categoryId || '',
+          categoryId: item.categoryId ? String(item.categoryId) : '',
           condition: item.condition || ''
         })
       } catch (err) {
