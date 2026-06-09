@@ -9,6 +9,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 
 @Configuration
@@ -20,7 +21,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
@@ -28,10 +29,13 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/health").permitAll()
-                       // Need to update this when we have proper web pages and JWT filtering
-                        .anyRequest().permitAll()
-                )
+                        .requestMatchers("/api/auth/register",
+                                "/api/auth/login",
+                                "/api/health",
+                                "/api/items",
+                                "/api/categories").permitAll()
+                        .anyRequest().authenticated()
+                ).addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .httpBasic(httpBasic -> httpBasic.disable())
                 .formLogin(formLogin -> formLogin.disable())
                 .build();

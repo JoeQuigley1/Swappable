@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 
 // shown when user visits a URL that does not exist
-function NotFound() {
+function NotFoundPage() {
 
   const navigate = useNavigate()
 
@@ -22,4 +22,4 @@ function NotFound() {
   )
 }
 
-export default NotFound
+export default NotFoundPage
