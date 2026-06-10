@@ -125,7 +125,7 @@ public class ItemController {
                 savedItem.getCondition(),
                 savedItem.getImageUrl(),
                 savedItem.getStatus(),
-                item.getCategory().getId(),
+                savedItem.getCategory().getId(),
                 savedItem.getCategory().getName(),
                 savedItem.getUser().getUsername(),
                 savedItem.getUser().getLocation()
