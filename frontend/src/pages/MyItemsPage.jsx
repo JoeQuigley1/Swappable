@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { BRAND_COLOR } from '../lib/constants'
 
 // page showing all items listed by the logged in user
-function MyItems() {
+function MyItemsPage() {
 
   const navigate = useNavigate()
 
@@ -15,51 +16,75 @@ function MyItems() {
    // holds the id of item waiting for delete confirmation
    const [deleteConfirm, setDeleteConfirm] = useState(null)
 
-   // load items when page opens
-   // TODO: replace with real API call to GET /api/items/my-items
   useEffect(() => {
-    setItems([
-      {
-        id: 1,
-        title: 'Blue mountain bike',
-        description: 'Barely used, great condition. 26 inch wheels.',
-        category: 'Sports',
-        condition: 'Like New',
-        imageUrl: null
-      },
-      {
-        id: 2,
-        title: 'Monstera plant',
-        description: 'Large healthy monstera in a terracotta pot.',
-        category: 'Plants',
-        condition: 'Good',
-        imageUrl: null
-      },
-      {
-        id: 3,
-        title: 'Acoustic guitar',
-        description: 'Yamaha F310, comes with a case and extra strings.',
-        category: 'Music',
-        condition: 'Good',
-        imageUrl: null
+    const fetchMyItems = async () => {
+      try {
+        const token = localStorage.getItem('token')
+
+        const response = await fetch('http://localhost:8080/api/items/my-items', {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Please login to view your items')
+        }
+
+        if (!response.ok) {
+          throw new Error('Failed to load your items')
+        }
+
+        const data = await response.json()
+
+
+        setItems(data)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
       }
-    ])
-    setLoading(false)
+    }
+
+    fetchMyItems()
   }, [])
 
-  // removes item from the list
-  // TODO: replace with real API call to DELETE /api/items/:id
-  const handleDelete = (id) => {
-    console.log('Deleting item:', id)
-    setItems(items.filter(item => item.id !== id))
-    setDeleteConfirm(null)
-  }
+    const handleDelete = async (id) => {
+        setError('')
+
+        try {
+            const token = localStorage.getItem('token')
+
+            const response = await fetch(`http://localhost:8080/api/items/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            })
+
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('You can only delete your own items.')
+            }
+
+            if (!response.ok) {
+                throw new Error('Failed to delete item.')
+            }
+
+            setItems(currentItems =>
+                currentItems.filter(item => item.id !== id)
+            )
+            setDeleteConfirm(null)
+        } catch (err) {
+            setError(err.message)
+        }
+    }
 
   // Show a spinner while loading
   if (loading) {
     return (
       <div className="text-center mt-5">
-        <div className="spinner-border" style={{ color: '#1a6eb5' }}></div>
+        <div className="spinner-border" style={{ color: BRAND_COLOR }}></div>
         <p className="mt-2 text-muted">Loading your items...</p>
       </div>
     )
@@ -76,7 +101,7 @@ function MyItems() {
         </div>
         <button
           className="btn"
-          style={{ backgroundColor: '#1a6eb5', color: 'white' }}
+          style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
           onClick={() => navigate('/items/create')}
         >
           + List new item
@@ -94,7 +119,7 @@ function MyItems() {
           <p className="text-muted fs-5">You haven't listed any items yet.</p>
           <button
             className="btn mt-2"
-            style={{ backgroundColor: '#1a6eb5', color: 'white' }}
+            style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
             onClick={() => navigate('/items/create')}
           >
             List your first item
@@ -131,9 +156,8 @@ function MyItems() {
                   {item.description}
                 </p>
 
-                {/* category and condition badges */}
                 <div className="mb-3">
-                  <span className="badge bg-secondary me-2">{item.category}</span>
+                  <span className="badge bg-secondary me-2">{item.categoryName}</span>
                   <span className="badge bg-light text-dark border">{item.condition}</span>
                 </div>
 
@@ -185,4 +209,4 @@ function MyItems() {
   )
 }
 
-export default MyItems
+export default MyItemsPage
