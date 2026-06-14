@@ -1,6 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import ItemFilterBar from '../components/ItemFilterBar.jsx'
 import ItemGrid from '../components/ItemGrid.jsx'
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+
+// fix leaflet's default marker icon not loading in vite
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+})
 
 // map a backend item (ItemResponse) onto the shape ItemCard expects
 function toCardItem(item) {
@@ -12,6 +23,9 @@ function toCardItem(item) {
     condition: item.condition,
     owner: item.ownerUsername,
     location: item.ownerLocation,
+    lat: item.ownerLatitude,
+    lng: item.ownerLongitude,
+    imageUrl: item.imageUrl,
   }
 }
 
@@ -41,6 +55,9 @@ export default function BrowseItemsPage() {
 // get logged in user's coordinates from localStorage
   const userLat = parseFloat(localStorage.getItem('lat'))
   const userLng = parseFloat(localStorage.getItem('lng'))
+
+// tracks which item pin is being hovered on the map
+  const [hoveredItem, setHoveredItem] = useState(null)
 
   useEffect(() => {
     fetch('/api/items')
@@ -107,6 +124,74 @@ export default function BrowseItemsPage() {
         radius={radius}
         onRadiusChange={setRadius}
       />
+
+
+  {/* leaflet map showing item locations */}
+  <div className="mb-4 position-relative" style={{ height: '400px', borderRadius: '12px', overflow: 'hidden' }}>
+      <MapContainer
+         center={[53.4, -8.2]}
+          zoom={7}
+          style={{ height: '100%', width: '100%' }}
+      >
+           <TileLayer
+             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+           />
+           {visibleItems
+              .filter(item => item.lat && item.lng)
+              .map(item => (
+                <Marker
+                  key={item.id}
+                  position={[item.lat, item.lng]}
+                  eventHandlers={{
+                    mouseover: () => setHoveredItem(item),
+                    mouseout: () => setHoveredItem(null),
+                    click: () => window.location.href = `/items/${item.id}`
+                  }}
+                >
+                </Marker>
+              ))}
+          </MapContainer>
+
+  {/* hover preview card shown in top right corner of map */}
+  {hoveredItem && (
+      <div style={{
+          position: 'absolute',
+          top: '12px',
+          right: '12px',
+          zIndex: 1000,
+          background: 'white',
+          borderRadius: '12px',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+          width: '200px',
+          overflow: 'hidden',
+          pointerEvents: 'none'
+      }}>
+        {hoveredItem.imageUrl && (
+            <img
+               src={hoveredItem.imageUrl}
+               alt={hoveredItem.title}
+               style={{ width: '100%', height: '120px', objectFit: 'cover' }}
+            />
+        )}
+        <div style={{ padding: '10px' }}>
+            <div style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '4px' }}>
+                {hoveredItem.title}
+            </div>
+            <div style={{ fontSize: '12px', color: '#666' }}>
+                {hoveredItem.condition} · {hoveredItem.category}
+             </div>
+             <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>
+                  by {hoveredItem.owner}
+             </div>
+             <div style={{ fontSize: '11px', color: '#00aaff', marginTop: '4px' }}>
+                 Click to view →
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
 
       <p className="text-muted small mb-3">
         {visibleItems.length} {visibleItems.length === 1 ? 'item' : 'items'} found
