@@ -33,7 +33,8 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/health",
                                 "/api/items",
-                                "/api/categories").permitAll()
+                                "/api/categories",
+                                "/error").permitAll()
                         .anyRequest().authenticated()
                 ).addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .httpBasic(httpBasic -> httpBasic.disable())
