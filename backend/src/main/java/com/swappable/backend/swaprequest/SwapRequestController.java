@@ -18,6 +18,10 @@ public class SwapRequestController {
     private final SwapRequestRepository swapRequestRepository;
     private final ItemRepository itemRepository;
 
+    private static final String STATUS_PENDING = "pending";
+    private static final String STATUS_ACCEPTED = "accepted";
+    private static final String STATUS_DECLINED = "declined";
+
     public SwapRequestController(
             SwapRequestRepository swapRequestRepository,
             ItemRepository itemRepository
@@ -57,12 +61,19 @@ public class SwapRequestController {
             );
         }
 
+        if (request.requestedItemId().equals(request.offeredItemId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Requested item and offered item cannot be the same"
+            );
+        }
+
         SwapRequest swapRequest = new SwapRequest();
         swapRequest.setRequester(requester);
         swapRequest.setOwner(requestedItem.getUser());
         swapRequest.setRequestedItem(requestedItem);
         swapRequest.setOfferedItem(offeredItem);
-        swapRequest.setStatus("pending");
+        swapRequest.setStatus(STATUS_PENDING);
         swapRequest.setMessage(request.message());
 
         SwapRequest savedSwapRequest = swapRequestRepository.save(swapRequest);
@@ -104,6 +115,68 @@ public class SwapRequestController {
         }
 
         return user;
+    }
+
+    @PostMapping("/{id}/accept")
+    public SwapRequestResponse acceptSwapRequest(@PathVariable Integer id) {
+        User owner = getAuthenticatedUser();
+
+        SwapRequest swapRequest = swapRequestRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Swap request not found"
+                ));
+
+        if (!swapRequest.getOwner().getId().equals(owner.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can only accept swap requests for your own items"
+            );
+        }
+
+        if (!swapRequest.getStatus().equals(STATUS_PENDING)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Swap request has already been processed"
+            );
+        }
+
+        swapRequest.setStatus(STATUS_ACCEPTED);
+
+        SwapRequest savedSwapRequest = swapRequestRepository.save(swapRequest);
+
+        return toResponse(savedSwapRequest);
+    }
+
+    @PostMapping("/{id}/decline")
+    public SwapRequestResponse declineSwapRequest(@PathVariable Integer id) {
+        User owner = getAuthenticatedUser();
+
+        SwapRequest swapRequest = swapRequestRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Swap request not found"
+                ));
+
+        if (!swapRequest.getOwner().getId().equals(owner.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can only decline swap requests for your own items"
+            );
+        }
+
+        if (!swapRequest.getStatus().equals(STATUS_PENDING)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Swap request has already been processed"
+            );
+        }
+
+        swapRequest.setStatus(STATUS_DECLINED);
+
+        SwapRequest savedSwapRequest = swapRequestRepository.save(swapRequest);
+
+        return toResponse(savedSwapRequest);
     }
 
     private SwapRequestResponse toResponse(SwapRequest swapRequest) {
