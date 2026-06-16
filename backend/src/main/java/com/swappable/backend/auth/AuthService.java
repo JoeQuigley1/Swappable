@@ -34,6 +34,8 @@ public class AuthService {
         // Add real encoder password
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setLocation(request.location());
+        user.setLatitude(request.lat());
+        user.setLongitude(request.lng());
 
         // Save to database
         User savedUser = userRepository.save(user);

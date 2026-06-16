@@ -4,6 +4,8 @@ public record RegisterRequest(
         String username,
         String email,
         String password,
-        String location
+        String location,
+        Double lat,
+        Double lng
 ) {
 }
