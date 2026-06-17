@@ -30,6 +30,30 @@ public class JwtService {
                 .compact();
     }
 
+    public String generateTempToken(User user) {
+        return Jwts.builder()
+                .subject(user.getEmail())
+                .claim("type", "2fa-pending")
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 5 * 60 * 1000)) // 5 minutes
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    public boolean isTempToken(String token) {
+        try {
+            String type = (String) Jwts.parser()
+                    .verifyWith(getSigningKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload()
+                    .get("type");
+            return "2fa-pending".equals(type);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     private SecretKey getSigningKey() {
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
@@ -57,6 +81,7 @@ public class JwtService {
                 .getPayload()
                 .getExpiration();
     }
+
 
     private boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());

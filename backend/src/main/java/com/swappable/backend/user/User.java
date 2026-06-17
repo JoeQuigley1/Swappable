@@ -35,6 +35,9 @@ public class User {
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(name = "totp_enabled", nullable = false)
+    private boolean totpEnabled = false;
+
     // ===== Getters & Setters =====
 
     public Integer getId() {
@@ -84,4 +87,8 @@ public class User {
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
+
+    public boolean isTotpEnabled() { return totpEnabled; }
+
+    public void setTotpEnabled(boolean totpEnabled) { this.totpEnabled = totpEnabled; }
 }
