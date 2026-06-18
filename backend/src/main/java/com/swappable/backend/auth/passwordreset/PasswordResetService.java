@@ -1,4 +1,4 @@
-package com.swappable.backend.auth;
+package com.swappable.backend.auth.passwordreset;
 
 import com.swappable.backend.user.User;
 import com.swappable.backend.user.UserRepository;
@@ -7,6 +7,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.swappable.backend.auth.passwordreset.PasswordResetToken;
+import com.swappable.backend.auth.passwordreset.PasswordResetTokenRepository;
+import com.swappable.backend.auth.passwordreset.EmailService;
 
 import java.util.Optional;
 import java.util.UUID;

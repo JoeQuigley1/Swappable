@@ -1,4 +1,4 @@
-package com.swappable.backend.auth;
+package com.swappable.backend.auth.dto;
 
 public record LoginRequest(
         String email,

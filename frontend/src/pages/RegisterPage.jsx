@@ -17,7 +17,7 @@ function RegisterPage() {
     lat: '',
     lng: ''
   })
-
+  const [showPassword, setShowPassword] = useState(false)
   // error message shown to user if something goes wrong
   const [error, setError] = useState('')
   // tracks if browser is currently getting location
@@ -169,15 +169,24 @@ function RegisterPage() {
               {/* password field */}
               <div className="mb-3">
                 <label className="form-label fw-semibold">Password</label>
-                <input
-                  type="password"
-                  className="form-control"
-                  name="password"
-                  placeholder="Choose a password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                />
+                <div className="input-group">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    className="form-control"
+                    name="password"
+                    placeholder="Choose a password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
               </div>
 
               {/* location section - county dropdown and use my location button */}

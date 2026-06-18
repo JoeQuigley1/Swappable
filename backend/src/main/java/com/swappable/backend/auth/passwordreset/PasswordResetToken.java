@@ -1,4 +1,4 @@
-package com.swappable.backend.auth;
+package com.swappable.backend.auth.passwordreset;
 
 import com.swappable.backend.user.User;
 import jakarta.persistence.*;
