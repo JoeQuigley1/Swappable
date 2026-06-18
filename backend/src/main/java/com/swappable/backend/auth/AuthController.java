@@ -1,11 +1,19 @@
 package com.swappable.backend.auth;
 
-import jakarta.validation.Valid;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+
+import com.swappable.backend.auth.dto.AuthResponse;
+import com.swappable.backend.auth.dto.LoginRequest;
+import com.swappable.backend.auth.dto.RegisterRequest;
+import com.swappable.backend.auth.dto.ForgotPasswordRequest;
+import com.swappable.backend.auth.dto.ResetPasswordRequest;
+import com.swappable.backend.auth.security.JwtService;
+import com.swappable.backend.auth.passwordreset.PasswordResetService;
 import com.swappable.backend.user.User;
 import com.swappable.backend.user.UserRepository;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import java.util.Map;
 

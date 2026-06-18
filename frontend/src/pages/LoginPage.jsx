@@ -7,6 +7,7 @@ function LoginPage() {
 
   const navigate = useNavigate()
 
+  const [showPassword, setShowPassword] = useState(false)
   // form fields
   const [formData, setFormData] = useState({
     email: '',
@@ -94,15 +95,27 @@ function LoginPage() {
               {/* password field */}
               <div className="mb-4">
                 <label className="form-label fw-semibold">Password</label>
-                <input
-                  type="password"
-                  className="form-control"
-                  name="password"
-                  placeholder="Your password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                />
+                <div className="input-group">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    className="form-control"
+                    name="password"
+                    placeholder="Your password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                <div className="text-end mt-1">
+                  <Link to="/forgot-password" className="text-muted small">Forgot password?</Link>
+                </div>
               </div>
 
               <div className="text-end mt-1">
