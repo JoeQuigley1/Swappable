@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { QRCodeSVG } from 'qrcode.react'
 
 // profile page where user can view and edit their account details
 function ProfilePage() {
@@ -26,6 +27,16 @@ function ProfilePage() {
   const [locationSearch, setLocationSearch] = useState('')
   // tracks if nominatim search is in progress
   const [searching, setSearching] = useState(false)
+  // 2FA state
+  const [totpEnabled, setTotpEnabled] = useState(false)
+  const [qrCodeUrl, setQrCodeUrl] = useState('')
+  const [totpSecret, setTotpSecret] = useState('')
+  const [totpCode, setTotpCode] = useState('')
+  const [showSetup, setShowSetup] = useState(false)
+  const [totpError, setTotpError] = useState('')
+  const [totpSuccess, setTotpSuccess] = useState('')
+  const [disablePassword, setDisablePassword] = useState('')
+  const [showDisable, setShowDisable] = useState(false)
 
   // load profile data from localStorage when page opens
   // TODO: replace with real API call to GET /api/users/me
@@ -35,6 +46,18 @@ function ProfilePage() {
       email: localStorage.getItem('email') || '',
       location: localStorage.getItem('location') || ''
     })
+  }, [])
+
+  // load 2FA status when page opens
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+    fetch('http://localhost:8080/api/users/me/2fa/status', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => setTotpEnabled(data.totpEnabled))
+      .catch(err => console.error('Could not load 2FA status', err))
   }, [])
 
   // updates profile data when user types in any field
@@ -110,6 +133,81 @@ function ProfilePage() {
       setSuccessMessage('Profile updated successfully!')
       setTimeout(() => setSuccessMessage(''), 3000)
       setLocationMessage('')
+    }
+
+
+    // starts 2FA setup - fetches secret and QR code from backend
+    const handleSetup2FA = async () => {
+      const token = localStorage.getItem('token')
+      try {
+        const response = await fetch('http://localhost:8080/api/users/me/2fa/setup', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (!response.ok) {
+          setTotpError('Could not start 2FA setup. Please try again.')
+          return
+        }
+        const data = await response.json()
+        setQrCodeUrl(data.qrCodeUrl)
+        setTotpSecret(data.secret)
+        setShowSetup(true)
+        setTotpError('')
+      } catch (err) {
+        setTotpError('Something went wrong. Please try again.')
+      }
+    }
+
+    // verifies the code entered by user to confirm 2FA setup
+    const handleVerifySetup = async () => {
+      const token = localStorage.getItem('token')
+      try {
+        const response = await fetch('http://localhost:8080/api/users/me/2fa/verify-setup', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ code: totpCode })
+        })
+        if (!response.ok) {
+          setTotpError('Invalid code. Please try again.')
+          return
+        }
+        setTotpEnabled(true)
+        setShowSetup(false)
+        setTotpSuccess('2FA enabled successfully!')
+        setTotpCode('')
+        setTimeout(() => setTotpSuccess(''), 3000)
+      } catch (err) {
+        setTotpError('Something went wrong. Please try again.')
+      }
+    }
+
+    // disables 2FA after password confirmation
+    const handleDisable2FA = async () => {
+      const token = localStorage.getItem('token')
+      try {
+        const response = await fetch('http://localhost:8080/api/users/me/2fa', {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ password: disablePassword })
+        })
+        if (!response.ok) {
+          setTotpError('Incorrect password. Please try again.')
+          return
+        }
+        setTotpEnabled(false)
+        setShowDisable(false)
+        setDisablePassword('')
+        setTotpSuccess('2FA disabled successfully!')
+        setTimeout(() => setTotpSuccess(''), 3000)
+      } catch (err) {
+        setTotpError('Something went wrong. Please try again.')
+      }
     }
 
   return (
@@ -234,6 +332,109 @@ function ProfilePage() {
                 Edit profile
               </button>
             )}
+
+          </div>
+        </div>
+        {/* 2FA security card */}
+        <div className="card shadow-sm mt-4">
+            <div className="card-body p-4">
+                <h5 className="card-title mb-1">Two-Factor Authentication</h5>
+                <p className="text-muted mb-3">
+                    Add an extra layer of security to your account.
+                </p>
+
+                {totpSuccess && <div className="alert alert-success">{totpSuccess}</div>}
+                {totpError && <div className="alert alert-danger">{totpError}</div>}
+
+                {/* 2FA is enabled - show disable option */}
+                {totpEnabled && !showDisable && (
+                    <div>
+                        <div className="alert alert-success mb-3">
+                          ✓ Two-factor authentication is enabled
+                        </div>
+                        <button
+                          className="btn btn-outline-danger"
+                          onClick={() => setShowDisable(true)}
+                        >
+                          Disable 2FA
+                        </button>
+                      </div>
+                    )}
+
+                    {/* disable 2FA confirmation */}
+                    {totpEnabled && showDisable && (
+                      <div>
+                        <p className="text-muted small mb-2">Enter your password to confirm:</p>
+                        <input
+                          type="password"
+                          className="form-control mb-2"
+                          placeholder="Your password"
+                          value={disablePassword}
+                          onChange={(e) => setDisablePassword(e.target.value)}
+                        />
+                        <div className="d-flex gap-2">
+                          <button
+                            className="btn btn-danger flex-fill"
+                            onClick={handleDisable2FA}
+                          >
+                            Confirm disable
+                          </button>
+                          <button
+                            className="btn btn-outline-secondary flex-fill"
+                            onClick={() => { setShowDisable(false); setDisablePassword(''); setTotpError('') }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 2FA is not enabled - show setup option */}
+                    {!totpEnabled && !showSetup && (
+                      <button
+                        className="btn btn-primary"
+                        onClick={handleSetup2FA}
+                      >
+                        Enable 2FA
+                      </button>
+                    )}
+
+                    {/* 2FA setup - show QR code and verification */}
+                    {!totpEnabled && showSetup && (
+                      <div>
+                        <p className="fw-semibold mb-2">Scan this QR code with Google Authenticator:</p>
+                        <div className="mb-3">
+                          <QRCodeSVG value={qrCodeUrl} size={180} />
+                        </div>
+                        <p className="text-muted small mb-1">
+                          Can't scan? Enter this key manually:
+                        </p>
+                        <code className="d-block mb-3 p-2 bg-light rounded">{totpSecret}</code>
+                        <p className="fw-semibold mb-2">Enter the 6-digit code from the app:</p>
+                        <input
+                          type="text"
+                          className="form-control mb-2"
+                          placeholder="123456"
+                          maxLength={6}
+                          value={totpCode}
+                          onChange={(e) => setTotpCode(e.target.value)}
+                    />
+                   <div className="d-flex gap-2">
+                       <button
+                       className="btn btn-primary flex-fill"
+                       onClick={handleVerifySetup}
+                     >
+                       Verify and enable
+                     </button>
+                     <button
+                     className="btn btn-outline-secondary flex-fill"
+                     onClick={() => { setShowSetup(false); setTotpError('') }}
+                    >
+                     Cancel
+                   </button>
+                 </div>
+               </div>
+             )}
 
           </div>
         </div>
