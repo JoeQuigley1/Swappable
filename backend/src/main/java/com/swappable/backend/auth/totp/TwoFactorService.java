@@ -1,4 +1,4 @@
-package com.swappable.backend.auth;
+package com.swappable.backend.auth.totp;
 
 import com.swappable.backend.user.User;
 import com.swappable.backend.user.UserRepository;
@@ -15,6 +15,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.swappable.backend.auth.totp.TotpSecret;
+import com.swappable.backend.auth.totp.TotpSecretRepository;
 
 import java.util.Optional;
 

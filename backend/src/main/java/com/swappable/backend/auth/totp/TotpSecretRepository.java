@@ -1,4 +1,4 @@
-package com.swappable.backend.auth;
+package com.swappable.backend.auth.totp;
 
 import com.swappable.backend.user.User;
 import org.springframework.data.jpa.repository.JpaRepository;
