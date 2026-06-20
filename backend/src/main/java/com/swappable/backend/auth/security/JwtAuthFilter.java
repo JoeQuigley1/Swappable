@@ -1,4 +1,4 @@
-package com.swappable.backend.auth;
+package com.swappable.backend.auth.security;
 
 import com.swappable.backend.user.User;
 import com.swappable.backend.user.UserRepository;
