@@ -39,7 +39,9 @@ public class ItemController {
                         item.getCategory().getId(),
                         item.getCategory().getName(),
                         item.getUser().getUsername(),
-                        item.getUser().getLocation()
+                        item.getUser().getLocation(),
+                        item.getUser().getLatitude(),
+                        item.getUser().getLongitude()
                 ))
                 .toList();
     }
@@ -57,7 +59,9 @@ public class ItemController {
                         item.getCategory().getId(),
                         item.getCategory().getName(),
                         item.getUser().getUsername(),
-                        item.getUser().getLocation()
+                        item.getUser().getLocation(),
+                        item.getUser().getLatitude(),
+                        item.getUser().getLongitude()
                 ))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -83,7 +87,9 @@ public class ItemController {
                         item.getCategory().getId(),
                         item.getCategory().getName(),
                         item.getUser().getUsername(),
-                        item.getUser().getLocation()
+                        item.getUser().getLocation(),
+                        item.getUser().getLatitude(),
+                        item.getUser().getLongitude()
                 ))
                 .toList();
     }
@@ -128,7 +134,9 @@ public class ItemController {
                 savedItem.getCategory().getId(),
                 savedItem.getCategory().getName(),
                 savedItem.getUser().getUsername(),
-                savedItem.getUser().getLocation()
+                savedItem.getUser().getLocation(),
+                savedItem.getUser().getLatitude(),
+                savedItem.getUser().getLongitude()
         );
     }
 
@@ -182,7 +190,9 @@ public class ItemController {
                 item.getCategory().getId(),
                 savedItem.getCategory().getName(),
                 savedItem.getUser().getUsername(),
-                savedItem.getUser().getLocation()
+                savedItem.getUser().getLocation(),
+                savedItem.getUser().getLatitude(),
+                savedItem.getUser().getLongitude()
         );
     }
 
