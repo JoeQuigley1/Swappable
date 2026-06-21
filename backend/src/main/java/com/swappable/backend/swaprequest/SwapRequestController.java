@@ -21,6 +21,7 @@ public class SwapRequestController {
     private static final String STATUS_PENDING = "pending";
     private static final String STATUS_ACCEPTED = "accepted";
     private static final String STATUS_DECLINED = "declined";
+    private static final String ITEM_STATUS_AVAILABLE = "available";
 
     public SwapRequestController(
             SwapRequestRepository swapRequestRepository,
@@ -68,6 +69,35 @@ public class SwapRequestController {
             );
         }
 
+        if (!ITEM_STATUS_AVAILABLE.equalsIgnoreCase(requestedItem.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Requested item is not available"
+            );
+        }
+
+        if (!ITEM_STATUS_AVAILABLE.equalsIgnoreCase(offeredItem.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Offered item is not available"
+            );
+        }
+
+        boolean duplicateRequestExists = swapRequestRepository
+                .existsByRequesterIdAndRequestedItemIdAndOfferedItemIdAndStatus(
+                        requester.getId(),
+                        requestedItem.getId(),
+                        offeredItem.getId(),
+                        STATUS_PENDING
+                );
+
+        if (duplicateRequestExists) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "You already have a pending swap request for these items"
+            );
+        }
+
         SwapRequest swapRequest = new SwapRequest();
         swapRequest.setRequester(requester);
         swapRequest.setOwner(requestedItem.getUser());
@@ -99,22 +129,6 @@ public class SwapRequestController {
                 .stream()
                 .map(this::toResponse)
                 .toList();
-    }
-
-    private User getAuthenticatedUser() {
-        Object principal = SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getPrincipal();
-
-        if (!(principal instanceof User user)) {
-            throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED,
-                    "You must be logged in"
-            );
-        }
-
-        return user;
     }
 
     @PostMapping("/{id}/accept")
@@ -179,12 +193,30 @@ public class SwapRequestController {
         return toResponse(savedSwapRequest);
     }
 
+    private User getAuthenticatedUser() {
+        Object principal = SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        if (!(principal instanceof User user)) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "You must be logged in"
+            );
+        }
+
+        return user;
+    }
+
     private SwapRequestResponse toResponse(SwapRequest swapRequest) {
         return new SwapRequestResponse(
                 swapRequest.getId(),
                 swapRequest.getRequester().getUsername(),
                 swapRequest.getOwner().getUsername(),
+                swapRequest.getRequestedItem().getId(),
                 swapRequest.getRequestedItem().getTitle(),
+                swapRequest.getOfferedItem().getId(),
                 swapRequest.getOfferedItem().getTitle(),
                 swapRequest.getStatus(),
                 swapRequest.getMessage()
