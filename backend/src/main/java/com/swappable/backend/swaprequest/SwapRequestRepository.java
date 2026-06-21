@@ -10,4 +10,11 @@ public interface SwapRequestRepository extends JpaRepository<SwapRequest, Intege
     List<SwapRequest> findByRequester(User requester);
 
     List<SwapRequest> findByOwner(User owner);
+
+    boolean existsByRequesterIdAndRequestedItemIdAndOfferedItemIdAndStatus(
+            Integer requesterId,
+            Integer requestedItemId,
+            Integer offeredItemId,
+            String status
+    );
 }

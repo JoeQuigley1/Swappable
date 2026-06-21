@@ -57,6 +57,35 @@ public class SwapRequestController {
             );
         }
 
+        if (!"available".equalsIgnoreCase(requestedItem.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Requested item is not available"
+            );
+        }
+
+        if (!"available".equalsIgnoreCase(offeredItem.getStatus())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Offered item is not available"
+            );
+        }
+
+        boolean duplicateRequestExists = swapRequestRepository
+                .existsByRequesterIdAndRequestedItemIdAndOfferedItemIdAndStatus(
+                        requester.getId(),
+                        requestedItem.getId(),
+                        offeredItem.getId(),
+                        "pending"
+                );
+
+        if (duplicateRequestExists) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "You already have a pending swap request for these items"
+            );
+        }
+
         SwapRequest swapRequest = new SwapRequest();
         swapRequest.setRequester(requester);
         swapRequest.setOwner(requestedItem.getUser());
@@ -111,7 +140,9 @@ public class SwapRequestController {
                 swapRequest.getId(),
                 swapRequest.getRequester().getUsername(),
                 swapRequest.getOwner().getUsername(),
+                swapRequest.getRequestedItem().getId(),
                 swapRequest.getRequestedItem().getTitle(),
+                swapRequest.getOfferedItem().getId(),
                 swapRequest.getOfferedItem().getTitle(),
                 swapRequest.getStatus(),
                 swapRequest.getMessage()
