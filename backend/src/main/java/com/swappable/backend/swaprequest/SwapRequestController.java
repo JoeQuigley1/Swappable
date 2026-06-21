@@ -22,6 +22,8 @@ public class SwapRequestController {
     private static final String STATUS_ACCEPTED = "accepted";
     private static final String STATUS_DECLINED = "declined";
     private static final String ITEM_STATUS_AVAILABLE = "available";
+    private static final String ITEM_STATUS_SWAPPED = "swapped";
+
 
     public SwapRequestController(
             SwapRequestRepository swapRequestRepository,
@@ -156,7 +158,8 @@ public class SwapRequestController {
         }
 
         swapRequest.setStatus(STATUS_ACCEPTED);
-
+        swapRequest.getRequestedItem().setStatus(ITEM_STATUS_SWAPPED);
+        swapRequest.getOfferedItem().setStatus(ITEM_STATUS_SWAPPED);
         SwapRequest savedSwapRequest = swapRequestRepository.save(swapRequest);
 
         return toResponse(savedSwapRequest);
