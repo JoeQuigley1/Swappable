@@ -23,7 +23,8 @@ function ItemDetailPage() {
   useEffect(() => {
     const loadItem = async () => {
       try {
-        const response = await fetch(`http://localhost:8080/api/items/${id}`)
+        const response = await fetch(`/api/items/${id}`)
+
 
         if (response.status === 404) {
           setError('Item not found.')

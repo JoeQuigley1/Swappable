@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BRAND_COLOR } from '../lib/constants'
-import { IRISH_COUNTIES } from '../lib/counties'
+
 
 // registration page for new users
 function RegisterPage() {
@@ -17,7 +17,7 @@ function RegisterPage() {
     lat: '',
     lng: ''
   })
-
+  const [showPassword, setShowPassword] = useState(false)
   // error message shown to user if something goes wrong
   const [error, setError] = useState('')
   // tracks if browser is currently getting location
@@ -25,74 +25,71 @@ function RegisterPage() {
   // message shown after location is detected
   const [locationMessage, setLocationMessage] = useState('')
 
+  const [locationSearch, setLocationSearch] = useState('')
+  const [searching, setSearching] = useState(false)
+
   // updates form data when user types in any field
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  // handles county selection - saves county name and coordinates
-  const handleCountyChange = (e) => {
-    const selectedCounty = IRISH_COUNTIES.find(c => c.name === e.target.value)
-    if (selectedCounty) {
-      setFormData({
-        ...formData,
-        location: selectedCounty.name,
-        lat: selectedCounty.lat,
-        lng: selectedCounty.lng
-      })
-      setLocationMessage('')
-    } else {
-      setFormData({ ...formData, location: '', lat: '', lng: '' })
-      setLocationMessage('')
-    }
-  }
+ // handles nominatim location search
+ const handleLocationSearch = async () => {
+    if (!locationSearch.trim()) return
+    setSearching(true)
+    setError('')
+    try {
+        const response = await fetch(
+         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationSearch)},Ireland&format=json&limit=1`,
+         { headers: { 'Accept-Language': 'en' } }
+       )
+       const results = await response.json()
+       if (results.length === 0) {
+         setError('Location not found. Try a different town or county.')
+         setSearching(false)
+         return
+       }
+       const place = results[0]
+       setFormData({
+         ...formData,
+         location: place.display_name.split(',')[0],
+         lat: parseFloat(place.lat),
+         lng: parseFloat(place.lon)
+       })
+       setLocationMessage(`Location found: ${place.display_name.split(',')[0]}`)
+     } catch (err) {
+       setError('Could not search for location. Please try again.')
+     }
+     setSearching(false)
+   }
 
-  // asks browser for user's exact GPS coordinates
-  // finds the closest county to those coordinates
-  const handleUseMyLocation = () => {
-    if (!navigator.geolocation) {
-      setError('Geolocation is not supported by your browser.')
-      return
-    }
-    setLocating(true)
-    setLocationMessage('')
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const userLat = position.coords.latitude
-        const userLng = position.coords.longitude
-
-        // find the closest county to the user's coordinates
-        let closestCounty = null
-        let shortestDistance = Infinity
-
-        IRISH_COUNTIES.forEach(county => {
-          const distance = Math.sqrt(
-            Math.pow(county.lat - userLat, 2) +
-            Math.pow(county.lng - userLng, 2)
-          )
-          if (distance < shortestDistance) {
-            shortestDistance = distance
-            closestCounty = county
-          }
-        })
-
-        if (closestCounty) {
-          setFormData({
-            ...formData,
-            location: closestCounty.name,
-            lat: userLat,
-            lng: userLng
-          })
-          setLocationMessage(`Location detected: ${closestCounty.name}`)
-        }
-        setLocating(false)
-      },
-      (err) => {
-        setError('Could not get your location. Please select your county manually.')
-        setLocating(false)
-      }
-    )
-  }
+ // asks browser for user's exact GPS coordinates
+ const handleUseMyLocation = () => {
+     if (!navigator.geolocation) {
+       setError('Geolocation is not supported by your browser.')
+       return
+     }
+     setLocating(true)
+     setLocationMessage('')
+     navigator.geolocation.getCurrentPosition(
+       (position) => {
+         const userLat = position.coords.latitude
+         const userLng = position.coords.longitude
+         setFormData({
+           ...formData,
+           location: 'My Location',
+           lat: userLat,
+           lng: userLng
+         })
+         setLocationMessage(`Location detected using GPS`)
+         setLocating(false)
+       },
+       () => {
+         setError('Could not get your location. Please type it instead.')
+         setLocating(false)
+       }
+     )
+   }
 
   // runs when user clicks Register
   // sends data to backend and saves token on success
@@ -172,15 +169,24 @@ function RegisterPage() {
               {/* password field */}
               <div className="mb-3">
                 <label className="form-label fw-semibold">Password</label>
-                <input
-                  type="password"
-                  className="form-control"
-                  name="password"
-                  placeholder="Choose a password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                />
+                <div className="input-group">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    className="form-control"
+                    name="password"
+                    placeholder="Choose a password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
               </div>
 
               {/* location section - county dropdown and use my location button */}
@@ -195,32 +201,37 @@ function RegisterPage() {
                     onClick={handleUseMyLocation}
                     disabled={locating}
                   >
-                    {locating ? 'Detecting location...' : '📍 Use my exact location'}
+                    {locating ? 'Detecting location...' : '📍 Use my location'}
                   </button>
                 </div>
 
-                {/* show success message if location was detected */}
-                {locationMessage && (
-                  <div className="alert alert-success py-2 mb-2 small">
-                    {locationMessage}
-                  </div>
-                )}
+                {/* town/city search */}
+                <div className="input-group mb-2">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Or type your town or city..."
+                    value={locationSearch}
+                    onChange={(e) => setLocationSearch(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleLocationSearch()}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={handleLocationSearch}
+                    disabled={searching}
+                  >
+                    {searching ? 'Searching...' : 'Search'}
+                  </button>
+                </div>
 
-                {/* county dropdown as fallback */}
-                <select
-                  className="form-select"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleCountyChange}
-                  required
-                >
-                  <option value="">Select your county manually</option>
-                  {IRISH_COUNTIES.map(county => (
-                    <option key={county.name} value={county.name}>
-                      {county.name}
-                    </option>
-                  ))}
-                </select>
+                {/* confirmation message */}
+                {locationMessage && (
+                  <div className="text-success small">{locationMessage}</div>
+                )}
+                {formData.location && (
+                  <div className="text-muted small">📍 {formData.location}</div>
+                )}
               </div>
 
               {/* submit button */}

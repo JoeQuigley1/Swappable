@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { IRISH_COUNTIES } from '../lib/counties'
 
 // profile page where user can view and edit their account details
 function ProfilePage() {
@@ -8,7 +7,9 @@ function ProfilePage() {
   const [profile, setProfile] = useState({
     username: '',
     email: '',
-    location: ''
+    location: '',
+    lat: '',
+    lng: ''
   })
 
   // controls whether the form fields are editable or just displayed as text
@@ -21,6 +22,10 @@ function ProfilePage() {
   const [originalProfile, setOriginalProfile] = useState({})
   // message shown after location is detected
   const [locationMessage, setLocationMessage] = useState('')
+  // search term typed by user for location lookup
+  const [locationSearch, setLocationSearch] = useState('')
+  // tracks if nominatim search is in progress
+  const [searching, setSearching] = useState(false)
 
   // load profile data from localStorage when page opens
   // TODO: replace with real API call to GET /api/users/me
@@ -37,77 +42,75 @@ function ProfilePage() {
     setProfile({ ...profile, [e.target.name]: e.target.value })
   }
 
-  // handles county selection - saves county name and coordinates
-  const handleCountyChange = (e) => {
-    const selectedCounty = IRISH_COUNTIES.find(c => c.name === e.target.value)
-    if (selectedCounty) {
-      setProfile({ ...profile, location: selectedCounty.name })
-      setLocationMessage('')
-    } else {
-      setProfile({ ...profile, location: '' })
-      setLocationMessage('')
-    }
-  }
-
   // asks browser for user's exact GPS coordinates
-  const handleUseMyLocation = () => {
-    if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser.')
-      return
-    }
-    setLocating(true)
-    setLocationMessage('')
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const userLat = position.coords.latitude
-        const userLng = position.coords.longitude
-
-        // find the closest county to the user's coordinates
-        let closestCounty = null
-        let shortestDistance = Infinity
-
-        IRISH_COUNTIES.forEach(county => {
-          const distance = Math.sqrt(
-            Math.pow(county.lat - userLat, 2) +
-            Math.pow(county.lng - userLng, 2)
-          )
-          if (distance < shortestDistance) {
-            shortestDistance = distance
-            closestCounty = county
-          }
-        })
-
-        if (closestCounty) {
-          setProfile({ ...profile, location: closestCounty.name })
+    const handleUseMyLocation = () => {
+      if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser.')
+        return
+      }
+      setLocating(true)
+      setLocationMessage('')
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const userLat = position.coords.latitude
+          const userLng = position.coords.longitude
+          setProfile({ ...profile, location: 'My Location', lat: userLat, lng: userLng })
           localStorage.setItem('lat', userLat)
           localStorage.setItem('lng', userLng)
-          setLocationMessage(`Location detected: ${closestCounty.name}`)
+          setLocationMessage('Location detected using GPS')
+          setLocating(false)
+        },
+        () => {
+          alert('Could not get your location. Please type it instead.')
+          setLocating(false)
         }
-        setLocating(false)
-      },
-      () => {
-        alert('Could not get your location. Please select your county manually.')
-        setLocating(false)
-      }
-    )
-  }
-
-  // runs when user clicks Save changes
-  // TODO: replace with real API call to PUT /api/users/me
-  const handleSave = () => {
-    console.log('Saving profile:', profile)
-    localStorage.setItem('location', profile.location)
-    // save coordinates only when user confirms save
-    const selectedCounty = IRISH_COUNTIES.find(c => c.name === profile.location)
-    if (selectedCounty) {
-      localStorage.setItem('lat', selectedCounty.lat)
-      localStorage.setItem('lng', selectedCounty.lng)
+      )
     }
-    setEditMode(false)
-    setSuccessMessage('Profile updated successfully!')
-    setTimeout(() => setSuccessMessage(''), 3000)
-    setLocationMessage('')
-  }
+
+    // searches nominatim for coordinates of typed location
+      const handleLocationSearch = async () => {
+        if (!locationSearch.trim()) return
+        setSearching(true)
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationSearch)},Ireland&format=json&limit=1`,
+            { headers: { 'Accept-Language': 'en' } }
+          )
+          const results = await response.json()
+          if (results.length === 0) {
+            alert('Location not found. Try a different town or county.')
+            setSearching(false)
+            return
+          }
+          const place = results[0]
+          const locationName = place.display_name.split(',')[0]
+          setProfile({
+            ...profile,
+            location: locationName,
+            lat: parseFloat(place.lat),
+            lng: parseFloat(place.lon)
+          })
+          localStorage.setItem('lat', parseFloat(place.lat))
+          localStorage.setItem('lng', parseFloat(place.lon))
+          setLocationMessage(`Location found: ${locationName}`)
+        } catch (err) {
+          alert('Could not search for location. Please try again.')
+        }
+        setSearching(false)
+      }
+
+    // runs when user clicks Save changes
+    // TODO: replace with real API call to PUT /api/users/me
+    const handleSave = () => {
+      console.log('Saving profile:', profile)
+      localStorage.setItem('location', profile.location)
+      if (profile.lat) localStorage.setItem('lat', profile.lat)
+      if (profile.lng) localStorage.setItem('lng', profile.lng)
+      setEditMode(false)
+      setSuccessMessage('Profile updated successfully!')
+      setTimeout(() => setSuccessMessage(''), 3000)
+      setLocationMessage('')
+    }
 
   return (
     <div className="row justify-content-center">
@@ -159,41 +162,42 @@ function ProfilePage() {
             <div className="mb-4">
               <label className="form-label fw-semibold">Location</label>
               {editMode ? (
-                <div>
-                  {/* use my location button */}
-                  <div className="mb-2">
-                    <button
-                      type="button"
-                      className="btn btn-outline-primary btn-sm"
-                      onClick={handleUseMyLocation}
-                      disabled={locating}
-                    >
-                      {locating ? 'Detecting location...' : '📍 Use my exact location'}
-                    </button>
-                  </div>
-
-                  {/* show success message if location was detected */}
-                  {locationMessage && (
-                    <div className="alert alert-success py-2 mb-2 small">
-                      {locationMessage}
-                    </div>
-                  )}
-
-                  {/* county dropdown as fallback */}
-                  <select
-                    className="form-select"
-                    name="location"
-                    value={profile.location}
-                    onChange={handleCountyChange}
-                  >
-                    <option value="">Select your county manually</option>
-                    {IRISH_COUNTIES.map(county => (
-                      <option key={county.name} value={county.name}>
-                        {county.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+               <div>
+                   <div className="mb-2">
+                       <button
+                         type="button"
+                         className="btn btn-outline-primary btn-sm"
+                         onClick={handleUseMyLocation}
+                         disabled={locating}
+                       >
+                         {locating ? 'Detecting location...' : '📍 Use my location'}
+                        </button>
+                       </div>
+                       <div className="input-group mb-2">
+                           <input
+                             type="text"
+                             className="form-control"
+                             placeholder="Or type your town or city..."
+                             value={locationSearch}
+                             onChange={(e) => setLocationSearch(e.target.value)}
+                             onKeyDown={(e) => e.key === 'Enter' && handleLocationSearch()}
+                           />
+                           <button
+                             type="button"
+                             className="btn btn-outline-secondary"
+                             onClick={handleLocationSearch}
+                             disabled={searching}
+                           >
+                             {searching ? 'Searching...' : 'Search'}
+                           </button>
+                          </div>
+                          {locationMessage && (
+                              <div className="text-success small">{locationMessage}</div>
+                          )}
+                            {profile.location && (
+                                <div className="text-muted small">📍 {profile.location}</div>
+                            )}
+                        </div>
               ) : (
                 <p className="form-control-plaintext">{profile.location}</p>
               )}
