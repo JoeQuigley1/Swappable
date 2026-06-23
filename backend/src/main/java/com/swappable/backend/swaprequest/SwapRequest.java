@@ -5,11 +5,13 @@ import com.swappable.backend.user.User;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.envers.Audited;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "swap_requests")
+@Audited
 @Getter
 @Setter
 public class SwapRequest {
