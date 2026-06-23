@@ -1,9 +1,12 @@
 package com.swappable.backend.user;
 
 import jakarta.persistence.*;
+import org.hibernate.envers.Audited;
+
 import java.time.LocalDateTime;
 
 @Entity
+@Audited
 @Table(name = "users")
 public class User {
 

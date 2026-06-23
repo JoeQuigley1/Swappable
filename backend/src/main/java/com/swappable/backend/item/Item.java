@@ -3,8 +3,10 @@ import com.swappable.backend.user.User;
 import com.swappable.backend.category.Category;
 
 import jakarta.persistence.*;
+import org.hibernate.envers.Audited;
 
 @Entity
+@Audited
 @Table(name="items")
 public class Item {
 
