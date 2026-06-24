@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 
@@ -134,7 +136,20 @@ public class SwapRequestController {
                 .map(this::toResponse)
                 .toList();
     }
+    @PatchMapping("/{id}/cancel")
+    public ResponseEntity<Void> cancelSwapRequest(@PathVariable Integer id) {
+        // Finds the request from the DB
+        SwapRequest request = swapRequestRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Request not found"));
 
+        // Changes the status to "cancelled"
+        request.setStatus("cancelled");
+
+        // Saves the changes
+        swapRequestRepository.save(request);
+
+        return ResponseEntity.ok().build();
+    }
     @PostMapping("/{id}/accept")
     public SwapRequestResponse acceptSwapRequest(@PathVariable Integer id) {
         User owner = getAuthenticatedUser();
