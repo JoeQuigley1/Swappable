@@ -36,11 +36,11 @@ export function createSwapRequest(requestedItemId, offeredItemId, message) {
 }
 
 export function acceptSwapRequest(id) {
-  return fetch(`${BASE}/swap-requests/${id}/accept`, { method: 'PUT', headers: authHeaders() }).then(handle)
+  return fetch(`${BASE}/swap-requests/${id}/accept`, { method: 'POST', headers: authHeaders() }).then(handle)
 }
 
 export function declineSwapRequest(id) {
-  return fetch(`${BASE}/swap-requests/${id}/decline`, { method: 'PUT', headers: authHeaders() }).then(handle)
+  return fetch(`${BASE}/swap-requests/${id}/decline`, { method: 'POST', headers: authHeaders() }).then(handle)
 }
 
 export function cancelSwapRequest(id) {
