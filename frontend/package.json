@@ -10,9 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "bootstrap": "^5.3.8",
+    "bootstrap-icons": "^1.13.1",
+    "leaflet": "^1.9.4",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "react-router-dom": "^7.14.1"
+    "react-leaflet": "^5.0.0",
+    "react-router-dom": "^7.15.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
