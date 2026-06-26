@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.http.ResponseEntity;
+import java.util.Optional
 
 import java.util.List;
 
@@ -136,6 +137,7 @@ public class SwapRequestController {
                 .map(this::toResponse)
                 .toList();
     }
+
     @PostMapping("/{id}/cancel")
     public ResponseEntity<Void> cancelSwapRequest(@PathVariable Integer id) {
         // Finds the request from the DB
@@ -150,6 +152,7 @@ public class SwapRequestController {
 
         return ResponseEntity.ok().build();
     }
+
     @PostMapping("/{id}/accept")
     public SwapRequestResponse acceptSwapRequest(@PathVariable Integer id) {
         User owner = getAuthenticatedUser();
@@ -228,7 +231,19 @@ public class SwapRequestController {
 
         return user;
     }
+    @PostMapping ("/{id}/status")
+    public ResponseEntity<String> updateStatus(@PathVariable Integer id, @RequestParam String status) {
+        Optional<SwapRequest> requestOptional = swapRequestRepository.findById(id);
 
+        if (requestOptional.isPresent()) {
+            SwapRequest request = requestOptional.get();
+            request.setStatus(status);
+            swapRequestRepository.save(request);
+            return ResponseEntity.ok("Swap request " + id + " is now " + status);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
     private SwapRequestResponse toResponse(SwapRequest swapRequest) {
         return new SwapRequestResponse(
                 swapRequest.getId(),
