@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "swap_requests")
-@Audited
 @Getter
 @Setter
 public class SwapRequest {

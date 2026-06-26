@@ -136,7 +136,7 @@ public class SwapRequestController {
                 .map(this::toResponse)
                 .toList();
     }
-    @PatchMapping("/{id}/cancel")
+    @PostMapping("/{id}/cancel")
     public ResponseEntity<Void> cancelSwapRequest(@PathVariable Integer id) {
         // Finds the request from the DB
         SwapRequest request = swapRequestRepository.findById(id)
