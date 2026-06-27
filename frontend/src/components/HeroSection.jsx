@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import heroImage from '../assets/swappable-hero.jpg'
 
-export default function HeroSection() {
+export default function HeroSection({ itemCount = 0 }) {
   return (
     <section className="hero-section text-white">
       <div className="container py-4">
@@ -31,7 +31,7 @@ export default function HeroSection() {
                 <i className="bi bi-people-fill me-1 text-warning"></i> 1,200+ members
               </span>
               <span>
-                <i className="bi bi-box-seam me-1 text-warning"></i> 4,500+ items listed
+                <i className="bi bi-box-seam me-1 text-warning"></i> {itemCount} item{itemCount === 1 ? '' : 's'} listed
               </span>
               <span>
                 <i className="bi bi-arrow-left-right me-1 text-warning"></i> 800+ swaps completed
