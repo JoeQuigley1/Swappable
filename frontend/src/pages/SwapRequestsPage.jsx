@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { BRAND_COLOR } from '../lib/constants'
 import {
   getReceivedSwapRequests, getSentSwapRequests,
-  acceptSwapRequest, declineSwapRequest,
+  acceptSwapRequest, declineSwapRequest,cancelSwapRequest,
 } from '../api/swapRequests'
 
 // backend sends lowercase status (pending/accepted/declined/cancelled)
@@ -48,7 +48,10 @@ function SwapRequestsPage() {
       try { await declineSwapRequest(id); await load() }
       catch (err) { setError('Could not decline the request. Please try again.') }
     }
-
+    const handleCancel = async (id) => {
+        try { await cancelSwapRequest(id); await load() }
+         catch (err) { setError('Could not cancel the request. Please try again.') }
+    }
 
   // pick badge colour based on status
   const statusBadge = (status) => {
@@ -112,6 +115,16 @@ function SwapRequestsPage() {
                       <p className="mb-3 text-muted small">
                         They want: <strong>{request.requestedItemTitle}</strong>
                       </p>
+                       {norm(request.status) === 'pending' && (
+                           <div className="mt-2">
+                               <button
+                                 className="btn btn-sm btn-outline-danger"
+                                 onClick={() => handleCancel(request.id)}
+                               >
+                                 Cancel request
+                               </button>
+                              </div>
+                            )}
                       {/* only show buttons if request is still pending */}
                       {norm(request.status) === 'pending' && (
                         <div className="d-flex gap-2">
@@ -130,6 +143,22 @@ function SwapRequestsPage() {
                           </button>
                         </div>
                       )}
+
+                         {request.contactDetails && (
+                             <div className="alert alert-success mt-3 mb-0 p-2 small">
+                                 <strong>Swap accepted — contact {request.contactDetails.username} to arrange it:</strong>
+                                 <div className="mt-1">
+                                     Email: <a href={`mailto:${request.contactDetails.email}`}>{request.contactDetails.email}</a>
+                                 </div>
+                                 {request.contactDetails.phoneNumber && (
+                                     <div>
+                                         Phone: <a href={`tel:${request.contactDetails.phoneNumber}`}>{request.contactDetails.phoneNumber}</a>
+                                     </div>
+                                 )}
+                             </div>
+                           )}
+
+
                     </div>
                   </div>
                 ))}
@@ -157,6 +186,20 @@ function SwapRequestsPage() {
                       <p className="mb-0 text-muted small">
                         You want: <strong>{request.requestedItemTitle}</strong>
                       </p>
+
+                      {request.contactDetails && (
+                          <div className="alert alert-success mt-3 mb-0 p-2 small">
+                              <strong>Swap accepted — contact {request.contactDetails.username} to arrange it:</strong>
+                              <div className="mt-1">
+                                  Email: <a href={`mailto:${request.contactDetails.email}`}>{request.contactDetails.email}</a>
+                              </div>
+                              {request.contactDetails.phoneNumber && (
+                                  <div>
+                                      Phone: <a href={`tel:${request.contactDetails.phoneNumber}`}>{request.contactDetails.phoneNumber}</a>
+                                  </div>
+                              )}
+                          </div>
+                        )}
                     </div>
                   </div>
                 ))}

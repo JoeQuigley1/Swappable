@@ -49,8 +49,6 @@ export function cancelSwapRequest(id) {
 
 // Used by ItemDetailPage to fill the "what do you offer" dropdown.
 export async function getMyAvailableItems() {
-  const userId = localStorage.getItem('userId')
-  if (!userId) return []
-  const items = await fetch(`${BASE}/users/${userId}/items`).then(handle)
+  const items = await fetch(`${BASE}/items/my-items`, { headers: authHeaders() }).then(handle)
   return items.filter((i) => (i.status || 'available').toLowerCase() !== 'swapped')
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { getMyProfile, updateMyProfile } from '../api/users'
 
 // profile page where user can view and edit their account details
 function ProfilePage() {
@@ -7,6 +8,7 @@ function ProfilePage() {
   const [profile, setProfile] = useState({
     username: '',
     email: '',
+    phoneNumber: '',
     location: '',
     lat: '',
     lng: ''
@@ -27,15 +29,21 @@ function ProfilePage() {
   // tracks if nominatim search is in progress
   const [searching, setSearching] = useState(false)
 
-  // load profile data from localStorage when page opens
-  // TODO: replace with real API call to GET /api/users/me
-  useEffect(() => {
-    setProfile({
-      username: localStorage.getItem('username') || '',
-      email: localStorage.getItem('email') || '',
-      location: localStorage.getItem('location') || ''
-    })
-  }, [])
+ // load profile data from the backend when page opens
+   useEffect(() => {
+     getMyProfile()
+       .then(data => {
+         setProfile({
+           username: data.username || '',
+           email: data.email || '',
+           location: data.location || '',
+           phoneNumber: data.phoneNumber || ''
+         })
+       })
+       .catch(() => {
+         setSuccessMessage('') // could not load profile
+       })
+   }, [])
 
   // updates profile data when user types in any field
   const handleChange = (e) => {
@@ -51,15 +59,34 @@ function ProfilePage() {
       setLocating(true)
       setLocationMessage('')
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const userLat = position.coords.latitude
-          const userLng = position.coords.longitude
-          setProfile({ ...profile, location: 'My Location', lat: userLat, lng: userLng })
-          localStorage.setItem('lat', userLat)
-          localStorage.setItem('lng', userLng)
-          setLocationMessage('Location detected using GPS')
-          setLocating(false)
-        },
+        async (position) => {
+            const userLat = position.coords.latitude
+            const userLng = position.coords.longitude
+            try {
+              const response = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?lat=${userLat}&lon=${userLng}&format=json`,
+                { headers: { 'Accept-Language': 'en' } }
+              )
+              const data = await response.json()
+              // pick the town/city/village from the address, fall back sensibly
+              const addr = data.address || {}
+              const placeName =
+                addr.city || addr.town || addr.village || addr.county ||
+                (data.display_name ? data.display_name.split(',')[0] : 'My Location')
+
+              setProfile({ ...profile, location: placeName, lat: userLat, lng: userLng })
+              localStorage.setItem('lat', userLat)
+              localStorage.setItem('lng', userLng)
+              setLocationMessage(`Location detected: ${placeName}`)
+            } catch (err) {
+              // if the name lookup fails, still keep the coordinates
+              setProfile({ ...profile, location: 'My Location', lat: userLat, lng: userLng })
+              localStorage.setItem('lat', userLat)
+              localStorage.setItem('lng', userLng)
+              setLocationMessage('Location detected (could not get place name)')
+            }
+            setLocating(false)
+          },
         () => {
           alert('Could not get your location. Please type it instead.')
           setLocating(false)
@@ -100,17 +127,28 @@ function ProfilePage() {
       }
 
     // runs when user clicks Save changes
-    // TODO: replace with real API call to PUT /api/users/me
-    const handleSave = () => {
-      console.log('Saving profile:', profile)
-      localStorage.setItem('location', profile.location)
-      if (profile.lat) localStorage.setItem('lat', profile.lat)
-      if (profile.lng) localStorage.setItem('lng', profile.lng)
-      setEditMode(false)
-      setSuccessMessage('Profile updated successfully!')
-      setTimeout(() => setSuccessMessage(''), 3000)
-      setLocationMessage('')
-    }
+      const handleSave = async () => {
+        try {
+          const updated = await updateMyProfile({
+            username: profile.username,
+            location: profile.location,
+            phoneNumber: profile.phoneNumber
+          })
+          setProfile({
+            username: updated.username || '',
+            email: updated.email || '',
+            location: updated.location || '',
+            phoneNumber: updated.phoneNumber || ''
+          })
+          setEditMode(false)
+          setSuccessMessage('Profile updated successfully!')
+          setTimeout(() => setSuccessMessage(''), 3000)
+          setLocationMessage('')
+        } catch (err) {
+          setSuccessMessage('')
+          alert('Could not save profile. Please try again.')
+        }
+      }
 
   return (
     <div className="row justify-content-center">
@@ -156,6 +194,25 @@ function ProfilePage() {
               ) : (
                 <p className="form-control-plaintext">{profile.email}</p>
               )}
+            </div>
+
+            {/* phone number field - shows input in edit mode, plain text otherwise */}
+            <div className="mb-3">
+                <label className="form-label fw-semibold">Phone number</label>
+                {editMode ? (
+                    <input
+                        type="tel"
+                        className="form-control"
+                        name="phoneNumber"
+                        placeholder="e.g. 087 123 4567"
+                        value={profile.phoneNumber}
+                        onChange={handleChange}
+                    />
+                ) : (
+                    <p className="form-control-plaintext">
+                          {profile.phoneNumber || <span className="text-muted">Not set</span>}
+                    </p>
+                )}
             </div>
 
             {/* location field - shows dropdown in edit mode, plain text otherwise */}
