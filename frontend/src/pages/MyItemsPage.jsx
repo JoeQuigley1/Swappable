@@ -50,13 +50,35 @@ function MyItemsPage() {
     fetchMyItems()
   }, [])
 
-  // removes item from the list
-  // TODO: replace with real API call to DELETE /api/items/:id
-  const handleDelete = (id) => {
-    console.log('Deleting item:', id)
-    setItems(items.filter(item => item.id !== id))
-    setDeleteConfirm(null)
-  }
+    const handleDelete = async (id) => {
+        setError('')
+
+        try {
+            const token = localStorage.getItem('token')
+
+            const response = await fetch(`http://localhost:8080/api/items/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            })
+
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('You can only delete your own items.')
+            }
+
+            if (!response.ok) {
+                throw new Error('Failed to delete item.')
+            }
+
+            setItems(currentItems =>
+                currentItems.filter(item => item.id !== id)
+            )
+            setDeleteConfirm(null)
+        } catch (err) {
+            setError(err.message)
+        }
+    }
 
   // Show a spinner while loading
   if (loading) {

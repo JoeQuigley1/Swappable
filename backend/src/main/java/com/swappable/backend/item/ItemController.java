@@ -36,9 +36,12 @@ public class ItemController {
                         item.getCondition(),
                         item.getImageUrl(),
                         item.getStatus(),
+                        item.getCategory().getId(),
                         item.getCategory().getName(),
                         item.getUser().getUsername(),
-                        item.getUser().getLocation()
+                        item.getUser().getLocation(),
+                        item.getUser().getLatitude(),
+                        item.getUser().getLongitude()
                 ))
                 .toList();
     }
@@ -53,12 +56,42 @@ public class ItemController {
                         item.getCondition(),
                         item.getImageUrl(),
                         item.getStatus(),
+                        item.getCategory().getId(),
                         item.getCategory().getName(),
                         item.getUser().getUsername(),
-                        item.getUser().getLocation()
+                        item.getUser().getLocation(),
+                        item.getUser().getLatitude(),
+                        item.getUser().getLongitude()
                 ))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/my-items")
+    public List<ItemResponse> getMyItems() {
+
+        User user = (User) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        return itemRepository.findByUserId(user.getId())
+                .stream()
+                .map(item -> new ItemResponse(
+                        item.getId(),
+                        item.getTitle(),
+                        item.getDescription(),
+                        item.getCondition(),
+                        item.getImageUrl(),
+                        item.getStatus(),
+                        item.getCategory().getId(),
+                        item.getCategory().getName(),
+                        item.getUser().getUsername(),
+                        item.getUser().getLocation(),
+                        item.getUser().getLatitude(),
+                        item.getUser().getLongitude()
+                ))
+                .toList();
     }
 
     @PostMapping
@@ -98,33 +131,93 @@ public class ItemController {
                 savedItem.getCondition(),
                 savedItem.getImageUrl(),
                 savedItem.getStatus(),
+                savedItem.getCategory().getId(),
                 savedItem.getCategory().getName(),
                 savedItem.getUser().getUsername(),
-                savedItem.getUser().getLocation()
+                savedItem.getUser().getLocation(),
+                savedItem.getUser().getLatitude(),
+                savedItem.getUser().getLongitude()
         );
     }
 
-    @GetMapping("/my-items")
-    public List<ItemResponse> getMyItems() {
+    @PutMapping("/{id}")
+    public ItemResponse updateItem(
+            @PathVariable Integer id,
+            @Valid @RequestBody CreateItemRequest request
+    ) {
+        User user = (User) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        Item item = itemRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Item not found"
+                ));
+
+        if (!item.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can only update your own items"
+            );
+        }
+
+        Category category = categoryRepository.findById(request.categoryId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Invalid CategoryId"
+                ));
+
+        item.setCategory(category);
+        item.setTitle(request.title());
+        item.setDescription(request.description());
+        item.setCondition(request.condition());
+
+        if (request.imageUrl() != null) {
+            item.setImageUrl(request.imageUrl());
+        }
+
+        Item savedItem = itemRepository.save(item);
+
+        return new ItemResponse(
+                savedItem.getId(),
+                savedItem.getTitle(),
+                savedItem.getDescription(),
+                savedItem.getCondition(),
+                savedItem.getImageUrl(),
+                savedItem.getStatus(),
+                item.getCategory().getId(),
+                savedItem.getCategory().getName(),
+                savedItem.getUser().getUsername(),
+                savedItem.getUser().getLocation(),
+                savedItem.getUser().getLatitude(),
+                savedItem.getUser().getLongitude()
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteItem(@PathVariable Integer id) {
 
         User user = (User) SecurityContextHolder
                 .getContext()
                 .getAuthentication()
                 .getPrincipal();
 
-        return itemRepository.findByUserId(user.getId())
-                .stream()
-                .map(item -> new ItemResponse(
-                        item.getId(),
-                        item.getTitle(),
-                        item.getDescription(),
-                        item.getCondition(),
-                        item.getImageUrl(),
-                        item.getStatus(),
-                        item.getCategory().getName(),
-                        item.getUser().getUsername(),
-                        item.getUser().getLocation()
-                ))
-                .toList();
+        Item item = itemRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Item not found"
+                ));
+
+        if (!item.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can only delete your own items"
+            );
+        }
+
+        itemRepository.delete(item);
     }
 }

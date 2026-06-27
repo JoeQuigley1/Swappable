@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { BRAND_COLOR } from '../lib/constants'
 
 // profile page where user can view and edit their account details
 function ProfilePage() {
@@ -8,19 +7,29 @@ function ProfilePage() {
   const [profile, setProfile] = useState({
     username: '',
     email: '',
-    location: ''
+    location: '',
+    lat: '',
+    lng: ''
   })
 
   // controls whether the form fields are editable or just displayed as text
   const [editMode, setEditMode] = useState(false)
-
   // success message shown after saving
   const [successMessage, setSuccessMessage] = useState('')
+  // tracks if browser is currently getting location
+  const [locating, setLocating] = useState(false)
+  // stores original profile data so we can restore it if user cancels
+  const [originalProfile, setOriginalProfile] = useState({})
+  // message shown after location is detected
+  const [locationMessage, setLocationMessage] = useState('')
+  // search term typed by user for location lookup
+  const [locationSearch, setLocationSearch] = useState('')
+  // tracks if nominatim search is in progress
+  const [searching, setSearching] = useState(false)
 
-  // load profile data when page opens
+  // load profile data from localStorage when page opens
   // TODO: replace with real API call to GET /api/users/me
   useEffect(() => {
-       const loc = localStorage.getItem('location')
     setProfile({
       username: localStorage.getItem('username') || '',
       email: localStorage.getItem('email') || '',
@@ -33,15 +42,75 @@ function ProfilePage() {
     setProfile({ ...profile, [e.target.name]: e.target.value })
   }
 
-  // runs when user clicks Save changes
-  // TODO: replace with real API call to PUT /api/users/me
-  const handleSave = () => {
-    console.log('Saving profile:', profile)
-    setEditMode(false)
-    setSuccessMessage('Profile updated successfully!')
-    // Hide the success message after 3 seconds
-    setTimeout(() => setSuccessMessage(''), 3000)
-  }
+  // asks browser for user's exact GPS coordinates
+    const handleUseMyLocation = () => {
+      if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser.')
+        return
+      }
+      setLocating(true)
+      setLocationMessage('')
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const userLat = position.coords.latitude
+          const userLng = position.coords.longitude
+          setProfile({ ...profile, location: 'My Location', lat: userLat, lng: userLng })
+          localStorage.setItem('lat', userLat)
+          localStorage.setItem('lng', userLng)
+          setLocationMessage('Location detected using GPS')
+          setLocating(false)
+        },
+        () => {
+          alert('Could not get your location. Please type it instead.')
+          setLocating(false)
+        }
+      )
+    }
+
+    // searches nominatim for coordinates of typed location
+      const handleLocationSearch = async () => {
+        if (!locationSearch.trim()) return
+        setSearching(true)
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationSearch)},Ireland&format=json&limit=1`,
+            { headers: { 'Accept-Language': 'en' } }
+          )
+          const results = await response.json()
+          if (results.length === 0) {
+            alert('Location not found. Try a different town or county.')
+            setSearching(false)
+            return
+          }
+          const place = results[0]
+          const locationName = place.display_name.split(',')[0]
+          setProfile({
+            ...profile,
+            location: locationName,
+            lat: parseFloat(place.lat),
+            lng: parseFloat(place.lon)
+          })
+          localStorage.setItem('lat', parseFloat(place.lat))
+          localStorage.setItem('lng', parseFloat(place.lon))
+          setLocationMessage(`Location found: ${locationName}`)
+        } catch (err) {
+          alert('Could not search for location. Please try again.')
+        }
+        setSearching(false)
+      }
+
+    // runs when user clicks Save changes
+    // TODO: replace with real API call to PUT /api/users/me
+    const handleSave = () => {
+      console.log('Saving profile:', profile)
+      localStorage.setItem('location', profile.location)
+      if (profile.lat) localStorage.setItem('lat', profile.lat)
+      if (profile.lng) localStorage.setItem('lng', profile.lng)
+      setEditMode(false)
+      setSuccessMessage('Profile updated successfully!')
+      setTimeout(() => setSuccessMessage(''), 3000)
+      setLocationMessage('')
+    }
 
   return (
     <div className="row justify-content-center">
@@ -89,17 +158,46 @@ function ProfilePage() {
               )}
             </div>
 
-            {/* location field - shows input in edit mode, plain text otherwise */}
+            {/* location field - shows dropdown in edit mode, plain text otherwise */}
             <div className="mb-4">
               <label className="form-label fw-semibold">Location</label>
               {editMode ? (
-                <input
-                  type="text"
-                  className="form-control"
-                  name="location"
-                  value={profile.location}
-                  onChange={handleChange}
-                />
+               <div>
+                   <div className="mb-2">
+                       <button
+                         type="button"
+                         className="btn btn-outline-primary btn-sm"
+                         onClick={handleUseMyLocation}
+                         disabled={locating}
+                       >
+                         {locating ? 'Detecting location...' : '📍 Use my location'}
+                        </button>
+                       </div>
+                       <div className="input-group mb-2">
+                           <input
+                             type="text"
+                             className="form-control"
+                             placeholder="Or type your town or city..."
+                             value={locationSearch}
+                             onChange={(e) => setLocationSearch(e.target.value)}
+                             onKeyDown={(e) => e.key === 'Enter' && handleLocationSearch()}
+                           />
+                           <button
+                             type="button"
+                             className="btn btn-outline-secondary"
+                             onClick={handleLocationSearch}
+                             disabled={searching}
+                           >
+                             {searching ? 'Searching...' : 'Search'}
+                           </button>
+                          </div>
+                          {locationMessage && (
+                              <div className="text-success small">{locationMessage}</div>
+                          )}
+                            {profile.location && (
+                                <div className="text-muted small">📍 {profile.location}</div>
+                            )}
+                        </div>
               ) : (
                 <p className="form-control-plaintext">{profile.location}</p>
               )}
@@ -109,24 +207,29 @@ function ProfilePage() {
             {editMode ? (
               <div className="d-flex gap-2">
                 <button
-                  className="btn flex-fill"
-                  style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
+                  className="btn btn-primary flex-fill"
                   onClick={handleSave}
                 >
                   Save changes
                 </button>
                 <button
                   className="btn btn-outline-secondary flex-fill"
-                  onClick={() => setEditMode(false)}
+                  onClick={() => {
+                     setProfile(originalProfile)
+                     setLocationMessage('')
+                     setEditMode(false)
+                     }}
                 >
                   Cancel
                 </button>
               </div>
             ) : (
               <button
-                className="btn w-100"
-                style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
-                onClick={() => setEditMode(true)}
+                className="btn btn-primary w-100"
+                onClick={() => {
+                    setOriginalProfile(profile)
+                    setEditMode(true)
+                }}
               >
                 Edit profile
               </button>

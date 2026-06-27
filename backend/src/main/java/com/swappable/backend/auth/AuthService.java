@@ -6,6 +6,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import com.swappable.backend.auth.dto.AuthResponse;
+import com.swappable.backend.auth.dto.LoginRequest;
+import com.swappable.backend.auth.dto.RegisterRequest;
+import com.swappable.backend.auth.security.JwtService;
 
 @Service
 public class AuthService {
@@ -34,6 +38,8 @@ public class AuthService {
         // Add real encoder password
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setLocation(request.location());
+        user.setLatitude(request.lat());
+        user.setLongitude(request.lng());
 
         // Save to database
         User savedUser = userRepository.save(user);

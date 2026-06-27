@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { BRAND_COLOR, CATEGORIES, CONDITIONS } from '../lib/constants'
+import { BRAND_COLOR, CONDITIONS } from '../lib/constants'
 
 // page for editing an existing item listing
 function EditItemPage() {
@@ -13,9 +13,11 @@ function EditItemPage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: '',
+    categoryId: '',
     condition: ''
   })
+
+  const [categories, setCategories] = useState([])
 
   // new image file selected by user
   const [imageFile, setImageFile] = useState(null)
@@ -28,16 +30,58 @@ function EditItemPage() {
   // error message if something goes wrong
   const [error, setError] = useState('')
 
-  // load existing item data when page opens and fill the form
-  // TODO: replace with real API call to GET /api/items/:id
   useEffect(() => {
-    setFormData({
-      title: 'Blue mountain bike',
-      description: 'Barely used, great condition. 26 inch wheels.',
-      category: 'Sports',
-      condition: 'Like New'
-    })
-    setLoading(false)
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('http://localhost:8080/api/categories')
+
+        if (!response.ok) {
+          setError('Failed to load categories.')
+          return
+        }
+
+        const data = await response.json()
+        setCategories(data)
+      } catch (err) {
+        setError('Failed to load categories.')
+      }
+    }
+    fetchCategories()
+  }, [])
+
+
+  useEffect(() => {
+    const fetchItem = async () => {
+      try {
+        const token = localStorage.getItem('token')
+
+        const response = await fetch(`http://localhost:8080/api/items/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+
+        if (!response.ok) {
+          setError('Failed to load item.')
+          return
+        }
+
+        const item = await response.json()
+
+        setFormData({
+          title: item.title || '',
+          description: item.description || '',
+          categoryId: item.categoryId ? String(item.categoryId) : '',
+          condition: item.condition || ''
+        })
+      } catch (err) {
+        setError('Failed to load item.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchItem()
   }, [id])
 
   // updates form data when user types in any field
@@ -54,21 +98,41 @@ function EditItemPage() {
     }
   }
 
-  // runs when user clicks Save changes
-  // TODO: if new image selected, upload to POST /api/images first
-  // TODO: send updated data to PUT /api/items/:id
-  // on success: navigate('/my-items')
-  // on failure: setError('Failed to update item.')
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setSaving(true)
-    console.log('Updating item:', id, formData)
-    console.log('New image file:', imageFile)
-    setSaving(false)
-    navigate('/my-items')
-  }
 
+    try {
+      const token = localStorage.getItem('token')
+
+      const response = await fetch(`http://localhost:8080/api/items/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          description: formData.description,
+          categoryId: parseInt(formData.categoryId),
+          condition: formData.condition,
+          imageUrl: null
+        })
+      })
+
+      if (!response.ok) {
+        setError('Failed to update item.')
+        return
+      }
+
+      navigate('/my-items')
+    } catch (err) {
+      setError('Failed to update item.')
+    } finally {
+      setSaving(false)
+    }
+  }
   // show spinner while loading
   if (loading) {
     return (
@@ -126,15 +190,17 @@ function EditItemPage() {
                 <div className="col-md-6 mb-3">
                   <label className="form-label fw-semibold">Category</label>
                   <select
-                    className="form-select"
-                    name="category"
-                    value={formData.category}
-                    onChange={handleChange}
-                    required
+                      className="form-select"
+                      name="categoryId"
+                      value={formData.categoryId}
+                      onChange={handleChange}
+                      required
                   >
-                    <option value="">Select a category</option>
-                    {CATEGORIES.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
+                    <option value="" disabled>Select a category</option>
+                    {categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
                     ))}
                   </select>
                 </div>
@@ -142,13 +208,13 @@ function EditItemPage() {
                 <div className="col-md-6 mb-3">
                   <label className="form-label fw-semibold">Condition</label>
                   <select
-                    className="form-select"
-                    name="condition"
-                    value={formData.condition}
+                      className="form-select"
+                      name="condition"
+                      value={formData.condition}
                     onChange={handleChange}
                     required
                   >
-                    <option value="">Select condition</option>
+                    <option value="" disabled>Select condition</option>
                     {CONDITIONS.map(con => (
                       <option key={con} value={con}>{con}</option>
                     ))}

@@ -7,8 +7,11 @@ public record ItemResponse(
         String condition,
         String imageUrl,
         String status,
+        Integer categoryId,
         String categoryName,
         String ownerUsername,
-        String ownerLocation
+        String ownerLocation,
+        Double ownerLatitude,
+        Double ownerLongitude
 ) {
 }
