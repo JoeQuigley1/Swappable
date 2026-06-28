@@ -71,7 +71,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Start Docker
-        run: docker compose up --build -d
+        run: |
+          cd backend
+          docker compose up --build -d
         env:
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
