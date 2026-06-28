@@ -96,3 +96,11 @@ ruleset checks
 - git pull origin develop
 - git checkout feature/name
 - git merge develop
+
+## Running with Docker
+
+- From the backend directory run:
+   docker compose up --build 
+- Access the backend at http://localhost:8080. 
+- Connect to PostgreSQL on localhost:5433 (if using the Docker port mapping).
+- To stop docker run docker compose down 
