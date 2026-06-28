@@ -46,6 +46,12 @@ jobs:
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
 
+      - name: Upload backend jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar
+          path: backend/target/*.jar
+
   frontend:
     name: Frontend Build
     runs-on: ubuntu-latest
@@ -69,6 +75,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Download backend jar
+        uses: actions/download-artifact@v4
+        with:
+            name: backend-jar
+            path: backend/target
 
       - name: Start Docker
         run: |
@@ -108,4 +120,6 @@ jobs:
 
       - name: Stop Docker services
         if: always()
-        run: docker compose down
+        run: |
+          cd backend
+          docker compose down
