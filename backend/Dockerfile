@@ -1,5 +1,5 @@
-#Step one: Use Java 23 runtime as base imagine
-FROM openjdk:17-jdk-slim
+#Step one: Use Java 17
+FROM eclipse-temurin:17-jdk
 
 #Step two: Set working directory inside container
 WORKDIR /app
