@@ -113,7 +113,7 @@ public class SwapRequestController {
         return toResponse(savedSwapRequest);
     }
 
-    @GetMapping("/incoming")
+    @GetMapping("/received")
     public List<SwapRequestResponse> getIncomingSwapRequests() {
         User owner = getAuthenticatedUser();
 
@@ -123,7 +123,7 @@ public class SwapRequestController {
                 .toList();
     }
 
-    @GetMapping("/outgoing")
+    @GetMapping("/sent")
     public List<SwapRequestResponse> getOutgoingSwapRequests() {
         User requester = getAuthenticatedUser();
 
