@@ -18,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.Map;
 import com.swappable.backend.auth.totp.TwoFactorService;
 
+
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -36,6 +37,7 @@ public class AuthController {
         this.twoFactorService = twoFactorService;
         this.userRepository = userRepository;
         this.jwtService = jwtService;
+
     }
 
     @PostMapping("/register")
@@ -66,6 +68,7 @@ public class AuthController {
             }
 
         }
+
 
     @PostMapping("/2fa/validate")
     public ResponseEntity<?> validate2Fa(@RequestBody Map<String, String> body) {
@@ -98,5 +101,6 @@ public class AuthController {
                 null
         ));
     }
+
 
 }

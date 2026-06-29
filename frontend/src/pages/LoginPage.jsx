@@ -116,10 +116,7 @@ function LoginPage() {
                 <div className="text-end mt-1">
                   <Link to="/forgot-password" className="text-muted small">Forgot password?</Link>
                 </div>
-              </div>
 
-              <div className="text-end mt-1">
-                <Link to="/forgot-password" className="text-muted small">Forgot password?</Link>
               </div>
 
               {/* submit button */}
