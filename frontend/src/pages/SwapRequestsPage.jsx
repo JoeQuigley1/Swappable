@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { BRAND_COLOR } from '../lib/constants'
 import {
   getReceivedSwapRequests, getSentSwapRequests,
-  acceptSwapRequest, declineSwapRequest,cancelSwapRequest,
+
+  acceptSwapRequest, declineSwapRequest,
+
 } from '../api/swapRequests'
 
 // backend sends lowercase status (pending/accepted/declined/cancelled)
@@ -36,6 +38,7 @@ function SwapRequestsPage() {
       }
     }
 
+
     useEffect(() => { load() }, [])
 
     // act, then refetch so the lists reflect the new status
@@ -48,10 +51,7 @@ function SwapRequestsPage() {
       try { await declineSwapRequest(id); await load() }
       catch (err) { setError('Could not decline the request. Please try again.') }
     }
-    const handleCancel = async (id) => {
-        try { await cancelSwapRequest(id); await load() }
-         catch (err) { setError('Could not cancel the request. Please try again.') }
-    }
+
 
   // pick badge colour based on status
   const statusBadge = (status) => {
@@ -115,16 +115,7 @@ function SwapRequestsPage() {
                       <p className="mb-3 text-muted small">
                         They want: <strong>{request.requestedItemTitle}</strong>
                       </p>
-                       {norm(request.status) === 'pending' && (
-                           <div className="mt-2">
-                               <button
-                                 className="btn btn-sm btn-outline-danger"
-                                 onClick={() => handleCancel(request.id)}
-                               >
-                                 Cancel request
-                               </button>
-                              </div>
-                            )}
+
                       {/* only show buttons if request is still pending */}
                       {norm(request.status) === 'pending' && (
                         <div className="d-flex gap-2">
