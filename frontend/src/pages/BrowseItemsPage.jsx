@@ -55,7 +55,7 @@ export default function BrowseItemsPage() {
 // get logged in user's coordinates from localStorage
   const userLat = parseFloat(localStorage.getItem('lat'))
   const userLng = parseFloat(localStorage.getItem('lng'))
-
+  const isLoggedIn = !!localStorage.getItem('token')
 // tracks which item pin is being hovered on the map
   const [hoveredItem, setHoveredItem] = useState(null)
 
@@ -123,6 +123,7 @@ export default function BrowseItemsPage() {
         onSortChange={setSort}
         radius={radius}
         onRadiusChange={setRadius}
+        showRadius={isLoggedIn}
       />
 
 
