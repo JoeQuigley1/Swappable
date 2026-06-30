@@ -153,11 +153,11 @@ function ItemDetailPage() {
                   {item.ownerUsername}
                 </p>
                 <p className="mb-1">
-                  <span className="fw-semibold">Location: (PENDING IMPLEMENTATION) </span>
+                  <span className="fw-semibold">Location: </span>
                   {item.ownerLocation}
                 </p>
                 <p className="mb-0 text-muted small">
-                  Listed on (PENDING IMPLEMENTATION){item.createdAt}
+                  Listed on {item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-IE') : ''}
                 </p>
               </div>
 

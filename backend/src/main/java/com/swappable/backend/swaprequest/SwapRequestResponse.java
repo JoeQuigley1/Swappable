@@ -9,6 +9,7 @@ public record SwapRequestResponse(
         Integer offeredItemId,
         String offeredItemTitle,
         String status,
-        String message
+        String message,
+        ContactDetails contactDetails
 ) {
 }

@@ -35,6 +35,9 @@ public class User {
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(name = "phone_number")
+    private String phoneNumber;
+
     // ===== Getters & Setters =====
 
     public Integer getId() {
@@ -80,6 +83,10 @@ public class User {
     public Double getLongitude() { return longitude; }
 
     public void setLongitude(Double longitude) { this.longitude = longitude; }
+
+    public String getPhoneNumber() { return phoneNumber; }
+
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
 
     public LocalDateTime getCreatedAt() {
         return createdAt;

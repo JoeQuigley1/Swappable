@@ -1,6 +1,7 @@
 package com.swappable.backend.item;
 import com.swappable.backend.user.User;
 import com.swappable.backend.category.Category;
+import java.time.LocalDateTime;
 
 import jakarta.persistence.*;
 
@@ -30,6 +31,9 @@ public class Item {
     private String imageUrl;
 
     private String status;
+
+    @Column(name = "created_at", insertable = false, updatable = false)
+    private LocalDateTime createdAt;
 
     public Integer getId() {
         return id;
@@ -62,6 +66,8 @@ public class Item {
     public String getStatus() {
         return status;
     }
+
+    public LocalDateTime getCreatedAt() {return createdAt; }
 
     public void setUser(User user) {
         this.user = user;
