@@ -40,11 +40,12 @@ function CreateItem() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // handles image selection and creates a preview
   const handleImageChange = (e) => {
-    const files = Array.from(e.target.files).slice(0, 3);
-    setImageFiles(files);
-    setImagePreviews(files.map((file) => URL.createObjectURL(file)));
+    const files = Array.from(e.target.files);
+    setError(files.length > 3 ? 'You can upload at most 3 photos. Only the first 3 were kept.' : '');
+    const selected = files.slice(0, 3);
+    setImageFiles(selected);
+    setImagePreviews(selected.map((file) => URL.createObjectURL(file)));
   };
   const handleSubmit = async (e) => {
     e.preventDefault();

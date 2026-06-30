@@ -150,8 +150,7 @@ function EditItemPage() {
           title: formData.title,
           description: formData.description,
           categoryId: parseInt(formData.categoryId),
-          condition: formData.condition,
-          imageUrl: null
+          condition: formData.condition
         })
       })
 
