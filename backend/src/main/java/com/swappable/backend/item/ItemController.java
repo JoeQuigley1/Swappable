@@ -10,6 +10,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.ArrayList;
 
 import java.util.List;
 
@@ -19,10 +23,19 @@ public class ItemController {
 
     private final ItemRepository itemRepository;
     private final CategoryRepository categoryRepository;
+    private final ItemImageRepository itemImageRepository;
+    private final ImageService imageService;
 
-    public ItemController(ItemRepository itemRepository, CategoryRepository categoryRepository) {
+    public ItemController(
+            ItemRepository itemRepository,
+            CategoryRepository categoryRepository,
+            ItemImageRepository itemImageRepository,
+            ImageService imageService
+    ) {
         this.itemRepository = itemRepository;
         this.categoryRepository = categoryRepository;
+        this.itemImageRepository = itemImageRepository;
+        this.imageService = imageService;
     }
 
     @GetMapping
@@ -220,4 +233,65 @@ public class ItemController {
 
         itemRepository.delete(item);
     }
+
+    @PostMapping("/{id}/images")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Transactional
+    public List<ItemImageResponse> uploadImages(
+            @PathVariable Integer id,
+            @RequestParam("files") List<MultipartFile> files
+    ) {
+        User user = (User) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        Item item = itemRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Item not found"
+                ));
+
+        if (!item.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can only add images to your own items"
+            );
+        }
+
+        if (files == null || files.isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "No files provided"
+            );
+        }
+
+        long existingCount = itemImageRepository.countByItemId(id);
+        if (existingCount + files.size() > 3) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "An item can have at most 3 images"
+            );
+        }
+
+        int nextOrder = (int) existingCount;
+        List<ItemImageResponse> created = new ArrayList<>();
+
+        for (MultipartFile file : files) {
+            byte[] webp = imageService.toWebp(file);
+
+            ItemImage image = new ItemImage();
+            image.setItem(item);
+            image.setData(webp);
+            image.setContentType(ImageService.WEBP_CONTENT_TYPE);
+            image.setDisplayOrder(nextOrder++);
+
+            ItemImage saved = itemImageRepository.save(image);
+            created.add(new ItemImageResponse(saved.getId(), "/api/images/" + saved.getId()));
+        }
+
+        return created;
+    }
 }
+
+ 
