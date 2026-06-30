@@ -44,3 +44,22 @@ export function createItem({
     body: form,
   }).then(handle);
 }
+
+export function addItemImages(id, files) {
+  const form = new FormData();
+  for (const file of files) {
+    form.append('files', file);
+  }
+  return fetch(`${BASE}/items/${id}/images`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: form,
+  }).then(handle);
+}
+
+export function deleteItemImage(id, imageId) {
+  return fetch(`${BASE}/items/${id}/images/${imageId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  }).then(handle);
+}
