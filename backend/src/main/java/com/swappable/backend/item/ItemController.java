@@ -6,6 +6,7 @@ import com.swappable.backend.category.CategoryRepository;
 import com.swappable.backend.user.User;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -94,7 +95,7 @@ public class ItemController {
                 .toList();
     }
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ItemResponse createItem(
            @Valid @RequestBody CreateItemRequest request
     ) {
@@ -123,6 +124,43 @@ public class ItemController {
         item.setStatus("available");
 
         Item savedItem = itemRepository.save(item);
+
+        return toResponse(savedItem);
+    }
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Transactional
+    public ItemResponse createItemWithImages(
+            @RequestParam("categoryId") Integer categoryId,
+            @RequestParam("title") String title,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam("condition") String condition,
+            @RequestParam(value = "images", required = false) List<MultipartFile> images
+    ) {
+        User user = (User) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Invalid CategoryId"
+                ));
+
+        Item item = new Item();
+        item.setUser(user);
+        item.setCategory(category);
+        item.setTitle(title);
+        item.setDescription(description);
+        item.setCondition(condition);
+        item.setStatus("available");
+
+        Item savedItem = itemRepository.save(item);
+
+        if (images != null && !images.isEmpty()) {
+            saveImages(savedItem, images);
+        }
 
         return toResponse(savedItem);
     }
@@ -227,7 +265,11 @@ public class ItemController {
             );
         }
 
-        long existingCount = itemImageRepository.countByItemId(id);
+        return saveImages(item, files);
+    }
+
+    private List<ItemImageResponse> saveImages(Item item, List<MultipartFile> files) {
+        long existingCount = itemImageRepository.countByItemId(item.getId());
         if (existingCount + files.size() > 3) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
