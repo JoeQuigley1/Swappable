@@ -61,7 +61,8 @@ public class ItemController {
                 item.getUser().getLocation(),
                 item.getUser().getLatitude(),
                 item.getUser().getLongitude(),
-                imageUrls
+                imageUrls,
+                item.getCreatedAt()
         );
     }
 

@@ -1,5 +1,6 @@
 package com.swappable.backend.swaprequest;
 
+import com.swappable.backend.auth.AuthUtils;
 import com.swappable.backend.item.Item;
 import com.swappable.backend.item.ItemRepository;
 import com.swappable.backend.user.User;
@@ -36,7 +37,7 @@ public class SwapRequestController {
     @PostMapping
     public SwapRequestResponse createSwapRequest(@Valid @RequestBody CreateSwapRequest request) {
 
-        User requester = getAuthenticatedUser();
+        User requester = AuthUtils.getAuthenticatedUser();
 
         Item requestedItem = itemRepository.findById(request.requestedItemId())
                 .orElseThrow(() -> new ResponseStatusException(
@@ -110,32 +111,32 @@ public class SwapRequestController {
 
         SwapRequest savedSwapRequest = swapRequestRepository.save(swapRequest);
 
-        return toResponse(savedSwapRequest);
+        return toResponse(savedSwapRequest, requester.getId());
     }
 
-    @GetMapping("/incoming")
+    @GetMapping("/received")
     public List<SwapRequestResponse> getIncomingSwapRequests() {
-        User owner = getAuthenticatedUser();
+        User owner = AuthUtils.getAuthenticatedUser();
 
         return swapRequestRepository.findByOwner(owner)
                 .stream()
-                .map(this::toResponse)
+                .map(swapRequest -> toResponse(swapRequest, owner.getId()))
                 .toList();
     }
 
-    @GetMapping("/outgoing")
+    @GetMapping("/sent")
     public List<SwapRequestResponse> getOutgoingSwapRequests() {
-        User requester = getAuthenticatedUser();
+        User requester = AuthUtils.getAuthenticatedUser();
 
         return swapRequestRepository.findByRequester(requester)
                 .stream()
-                .map(this::toResponse)
+                .map(swapRequest -> toResponse(swapRequest, requester.getId()))
                 .toList();
     }
 
     @PostMapping("/{id}/accept")
     public SwapRequestResponse acceptSwapRequest(@PathVariable Integer id) {
-        User owner = getAuthenticatedUser();
+        User owner = AuthUtils.getAuthenticatedUser();
 
         SwapRequest swapRequest = swapRequestRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -162,12 +163,12 @@ public class SwapRequestController {
         swapRequest.getOfferedItem().setStatus(ITEM_STATUS_SWAPPED);
         SwapRequest savedSwapRequest = swapRequestRepository.save(swapRequest);
 
-        return toResponse(savedSwapRequest);
+        return toResponse(savedSwapRequest, owner.getId());
     }
 
     @PostMapping("/{id}/decline")
     public SwapRequestResponse declineSwapRequest(@PathVariable Integer id) {
-        User owner = getAuthenticatedUser();
+        User owner = AuthUtils.getAuthenticatedUser();
 
         SwapRequest swapRequest = swapRequestRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -193,26 +194,28 @@ public class SwapRequestController {
 
         SwapRequest savedSwapRequest = swapRequestRepository.save(swapRequest);
 
-        return toResponse(savedSwapRequest);
+        return toResponse(savedSwapRequest, owner.getId());
     }
 
-    private User getAuthenticatedUser() {
-        Object principal = SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getPrincipal();
 
-        if (!(principal instanceof User user)) {
-            throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED,
-                    "You must be logged in"
+
+    private SwapRequestResponse toResponse(SwapRequest swapRequest, Integer currentUserId) {
+        ContactDetails contactDetails = null;
+
+        if (STATUS_ACCEPTED.equals(swapRequest.getStatus())) {
+            // show the OTHER person's details, not your own
+            User counterparty =
+                    swapRequest.getRequester().getId().equals(currentUserId)
+                            ? swapRequest.getOwner()
+                            : swapRequest.getRequester();
+
+            contactDetails = new ContactDetails(
+                    counterparty.getUsername(),
+                    counterparty.getEmail(),
+                    counterparty.getPhoneNumber()
             );
         }
 
-        return user;
-    }
-
-    private SwapRequestResponse toResponse(SwapRequest swapRequest) {
         return new SwapRequestResponse(
                 swapRequest.getId(),
                 swapRequest.getRequester().getUsername(),
@@ -222,7 +225,8 @@ public class SwapRequestController {
                 swapRequest.getOfferedItem().getId(),
                 swapRequest.getOfferedItem().getTitle(),
                 swapRequest.getStatus(),
-                swapRequest.getMessage()
+                swapRequest.getMessage(),
+                contactDetails
         );
     }
 }

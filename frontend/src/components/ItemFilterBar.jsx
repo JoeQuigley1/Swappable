@@ -13,6 +13,7 @@ export default function ItemFilterBar({
   onSortChange,
   radius,
   onRadiusChange,
+  showRadius,
 }) {
   return (
     <div className="card border-0 shadow-sm mb-4 brand-gradient text-white">
@@ -76,7 +77,8 @@ export default function ItemFilterBar({
               <option value="title">Title (A-Z)</option>
             </select>
           </div>
-          {/* distance radius filter */}
+          {/* distance radius filter - only when logged in (needs user coordinates) */}
+           {showRadius && (
            <div className="col-sm-4 col-lg-2">
                <label className="form-label fw-semibold small mb-1">Distance</label>
                <select
@@ -91,6 +93,7 @@ export default function ItemFilterBar({
                   <option value="100">Within 100km</option>
                </select>
            </div>
+        )}
         </div>
       </div>
     </div>
