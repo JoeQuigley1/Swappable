@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
-
 import java.util.List;
 
 @RestController
@@ -38,44 +37,45 @@ public class ItemController {
         this.imageService = imageService;
     }
 
+    private ItemResponse toResponse(Item item) {
+        List<String> imageUrls = itemImageRepository.findIdsByItemId(item.getId())
+                .stream()
+                .map(imageId -> "/api/images/" + imageId)
+                .toList();
+
+        String cover = !imageUrls.isEmpty()
+                ? imageUrls.get(0)
+                : item.getImageUrl();
+
+        return new ItemResponse(
+                item.getId(),
+                item.getTitle(),
+                item.getDescription(),
+                item.getCondition(),
+                cover,
+                item.getStatus(),
+                item.getCategory().getId(),
+                item.getCategory().getName(),
+                item.getUser().getUsername(),
+                item.getUser().getLocation(),
+                item.getUser().getLatitude(),
+                item.getUser().getLongitude(),
+                imageUrls
+        );
+    }
+
     @GetMapping
     public List<ItemResponse> getAllItems() {
         return itemRepository.findAll()
                 .stream()
-                .map(item -> new ItemResponse(
-                        item.getId(),
-                        item.getTitle(),
-                        item.getDescription(),
-                        item.getCondition(),
-                        item.getImageUrl(),
-                        item.getStatus(),
-                        item.getCategory().getId(),
-                        item.getCategory().getName(),
-                        item.getUser().getUsername(),
-                        item.getUser().getLocation(),
-                        item.getUser().getLatitude(),
-                        item.getUser().getLongitude()
-                ))
+                .map(this::toResponse)
                 .toList();
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ItemResponse> getItemById(@PathVariable Integer id) {
         return itemRepository.findById(id)
-                .map(item -> new ItemResponse(
-                        item.getId(),
-                        item.getTitle(),
-                        item.getDescription(),
-                        item.getCondition(),
-                        item.getImageUrl(),
-                        item.getStatus(),
-                        item.getCategory().getId(),
-                        item.getCategory().getName(),
-                        item.getUser().getUsername(),
-                        item.getUser().getLocation(),
-                        item.getUser().getLatitude(),
-                        item.getUser().getLongitude()
-                ))
+                .map(this::toResponse)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -90,20 +90,7 @@ public class ItemController {
 
         return itemRepository.findByUserId(user.getId())
                 .stream()
-                .map(item -> new ItemResponse(
-                        item.getId(),
-                        item.getTitle(),
-                        item.getDescription(),
-                        item.getCondition(),
-                        item.getImageUrl(),
-                        item.getStatus(),
-                        item.getCategory().getId(),
-                        item.getCategory().getName(),
-                        item.getUser().getUsername(),
-                        item.getUser().getLocation(),
-                        item.getUser().getLatitude(),
-                        item.getUser().getLongitude()
-                ))
+                .map(this::toResponse)
                 .toList();
     }
 
@@ -137,20 +124,7 @@ public class ItemController {
 
         Item savedItem = itemRepository.save(item);
 
-        return new ItemResponse(
-                savedItem.getId(),
-                savedItem.getTitle(),
-                savedItem.getDescription(),
-                savedItem.getCondition(),
-                savedItem.getImageUrl(),
-                savedItem.getStatus(),
-                savedItem.getCategory().getId(),
-                savedItem.getCategory().getName(),
-                savedItem.getUser().getUsername(),
-                savedItem.getUser().getLocation(),
-                savedItem.getUser().getLatitude(),
-                savedItem.getUser().getLongitude()
-        );
+        return toResponse(savedItem);
     }
 
     @PutMapping("/{id}")
@@ -193,20 +167,7 @@ public class ItemController {
 
         Item savedItem = itemRepository.save(item);
 
-        return new ItemResponse(
-                savedItem.getId(),
-                savedItem.getTitle(),
-                savedItem.getDescription(),
-                savedItem.getCondition(),
-                savedItem.getImageUrl(),
-                savedItem.getStatus(),
-                item.getCategory().getId(),
-                savedItem.getCategory().getName(),
-                savedItem.getUser().getUsername(),
-                savedItem.getUser().getLocation(),
-                savedItem.getUser().getLatitude(),
-                savedItem.getUser().getLongitude()
-        );
+        return toResponse(savedItem);
     }
 
     @DeleteMapping("/{id}")
@@ -292,6 +253,44 @@ public class ItemController {
 
         return created;
     }
-}
 
- 
+    @DeleteMapping("/{id}/images/{imageId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteImage(
+            @PathVariable Integer id,
+            @PathVariable Integer imageId
+    ) {
+        User user = (User) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        Item item = itemRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Item not found"
+                ));
+
+        if (!item.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can only delete images from your own items"
+            );
+        }
+
+        ItemImage image = itemImageRepository.findById(imageId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Image not found"
+                ));
+
+        if (!image.getItem().getId().equals(id)) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Image not found"
+            );
+        }
+
+        itemImageRepository.delete(image);
+    }
+}

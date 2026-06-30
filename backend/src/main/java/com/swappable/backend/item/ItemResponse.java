@@ -1,5 +1,7 @@
 package com.swappable.backend.item;
 
+import java.util.List;
+
 public record ItemResponse(
         Integer id,
         String title,
@@ -12,6 +14,7 @@ public record ItemResponse(
         String ownerUsername,
         String ownerLocation,
         Double ownerLatitude,
-        Double ownerLongitude
+        Double ownerLongitude,
+        List<String> imageUrls
 ) {
 }
