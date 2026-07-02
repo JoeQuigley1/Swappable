@@ -41,7 +41,8 @@ public class ItemController {
                         item.getUser().getUsername(),
                         item.getUser().getLocation(),
                         item.getUser().getLatitude(),
-                        item.getUser().getLongitude()
+                        item.getUser().getLongitude(),
+                        item.getCreatedAt()
                 ))
                 .toList();
     }
@@ -61,7 +62,8 @@ public class ItemController {
                         item.getUser().getUsername(),
                         item.getUser().getLocation(),
                         item.getUser().getLatitude(),
-                        item.getUser().getLongitude()
+                        item.getUser().getLongitude(),
+                        item.getCreatedAt()
                 ))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -89,7 +91,9 @@ public class ItemController {
                         item.getUser().getUsername(),
                         item.getUser().getLocation(),
                         item.getUser().getLatitude(),
-                        item.getUser().getLongitude()
+                        item.getUser().getLongitude(),
+                        item.getCreatedAt()
+
                 ))
                 .toList();
     }
@@ -136,7 +140,8 @@ public class ItemController {
                 savedItem.getUser().getUsername(),
                 savedItem.getUser().getLocation(),
                 savedItem.getUser().getLatitude(),
-                savedItem.getUser().getLongitude()
+                savedItem.getUser().getLongitude(),
+                savedItem.getCreatedAt()
         );
     }
 
@@ -192,7 +197,8 @@ public class ItemController {
                 savedItem.getUser().getUsername(),
                 savedItem.getUser().getLocation(),
                 savedItem.getUser().getLatitude(),
-                savedItem.getUser().getLongitude()
+                savedItem.getUser().getLongitude(),
+                savedItem.getCreatedAt()
         );
     }
 

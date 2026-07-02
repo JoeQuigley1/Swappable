@@ -46,11 +46,14 @@ jobs:
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
 
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+
       - name: Upload backend jar
         uses: actions/upload-artifact@v4
         with:
           name: backend-jar
           path: backend/target/*.jar
+
 
   frontend:
     name: Frontend Build
