@@ -45,7 +45,6 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
-
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
 
       - name: Upload backend jar
@@ -95,9 +94,11 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
 
       - name: Backend wait
         run: |
+          cd backend 
           for i in {1..30}; do
             if curl --fail -s http://localhost:8080/api/health; then
               echo "Backend is up"
