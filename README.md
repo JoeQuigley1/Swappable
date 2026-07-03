@@ -99,8 +99,52 @@ ruleset checks
 
 ## Running with Docker
 
+- Ensure Docker Desktop is installed and running.
 - From the backend directory run:
    docker compose up --build 
 - Access the backend at http://localhost:8080. 
 - Connect to PostgreSQL on localhost:5433 (if using the Docker port mapping).
 - To stop docker run docker compose down 
+
+## Testing and CI
+
+The project uses GitHub Actions to run checks on pull requests and pushes to `develop` and `main`.
+
+The pipeline includes:
+
+- Backend Maven build and tests
+- Frontend build
+- Docker-based smoke test
+- Newman/Postman API smoke collection
+
+
+### Install Newman
+
+Newman is the command-line runner for Postman collections.
+
+Install globally with npm:
+
+```bash
+npm install -g newman
+```
+
+Verify the installation:
+
+```bash
+newman -v
+```
+
+### Run smoke tests locally
+
+Ensure the backend and PostgreSQL containers are running:
+
+```bash
+cd backend
+docker compose up --build -d
+```
+
+From the repository root:
+
+```bash
+newman run postman/swappable-smoke.postman_collection.json --env-var baseUrl=http://localhost:8080
+```
