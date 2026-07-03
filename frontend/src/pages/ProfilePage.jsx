@@ -32,6 +32,9 @@ function ProfilePage() {
   const [locationSearch, setLocationSearch] = useState('')
   // tracks if nominatim search is in progress
   const [searching, setSearching] = useState(false)
+  // matching locations returned by nominatim as the user types
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
   // 2FA state
   const [totpEnabled, setTotpEnabled] = useState(false)
   const [qrCodeUrl, setQrCodeUrl] = useState('')
@@ -119,38 +122,49 @@ function ProfilePage() {
         }
       )
     }
+    // debounced nominatim lookup - fires automatically as the user types,
+        // no click/Enter needed
+          useEffect(() => {
+            if (!locationSearch.trim()) {
+              setSuggestions([])
+              return
+            }
+            setSearching(true)
+            const timer = setTimeout(async () => {
+              try {
+                const response = await fetch(
+                  `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationSearch)},Ireland&format=json&limit=5`,
+                  { headers: { 'Accept-Language': 'en' } }
+                )
+                const results = await response.json()
+                setSuggestions(results)
+                setShowSuggestions(true)
+              } catch (err) {
+                setSuggestions([])
+              }
+              setSearching(false)
+            }, 400)
+            return () => clearTimeout(timer)
+          }, [locationSearch])
 
-    // searches nominatim for coordinates of typed location
-      const handleLocationSearch = async () => {
-        if (!locationSearch.trim()) return
-        setSearching(true)
-        try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationSearch)},Ireland&format=json&limit=1`,
-            { headers: { 'Accept-Language': 'en' } }
-          )
-          const results = await response.json()
-          if (results.length === 0) {
-            alert('Location not found. Try a different town or county.')
-            setSearching(false)
-            return
+          // runs when user picks a suggestion from the dropdown
+          const handleSelectLocation = (place) => {
+            const locationName = place.display_name.split(',')[0]
+            setProfile({
+              ...profile,
+              location: locationName,
+              lat: parseFloat(place.lat),
+              lng: parseFloat(place.lon)
+            })
+            localStorage.setItem('lat', parseFloat(place.lat))
+            localStorage.setItem('lng', parseFloat(place.lon))
+            setLocationSearch(locationName)
+            setLocationMessage(`Location selected: ${locationName}`)
+            setSuggestions([])
+            setShowSuggestions(false)
           }
-          const place = results[0]
-          const locationName = place.display_name.split(',')[0]
-          setProfile({
-            ...profile,
-            location: locationName,
-            lat: parseFloat(place.lat),
-            lng: parseFloat(place.lon)
-          })
-          localStorage.setItem('lat', parseFloat(place.lat))
-          localStorage.setItem('lng', parseFloat(place.lon))
-          setLocationMessage(`Location found: ${locationName}`)
-        } catch (err) {
-          alert('Could not search for location. Please try again.')
-        }
-        setSearching(false)
-      }
+
+
 
     // runs when user clicks Save changes
       const handleSave = async () => {
@@ -166,6 +180,8 @@ function ProfilePage() {
             location: updated.location || '',
             phoneNumber: updated.phoneNumber || ''
           })
+          localStorage.setItem('username', updated.username || '')
+          localStorage.setItem('location', updated.location || '')
           setEditMode(false)
           setSuccessMessage('Profile updated successfully!')
           setTimeout(() => setSuccessMessage(''), 3000)
@@ -331,24 +347,39 @@ function ProfilePage() {
                          {locating ? 'Detecting location...' : '📍 Use my location'}
                         </button>
                        </div>
-                       <div className="input-group mb-2">
+                       <div className="mb-2 position-relative">
                            <input
                              type="text"
                              className="form-control"
-                             placeholder="Or type your town or city..."
+                             placeholder="Type your town or city..."
                              value={locationSearch}
                              onChange={(e) => setLocationSearch(e.target.value)}
-                             onKeyDown={(e) => e.key === 'Enter' && handleLocationSearch()}
+                             onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                             onBlur={() => setShowSuggestions(false)}
+                             autoComplete="off"
                            />
-                           <button
-                             type="button"
-                             className="btn btn-outline-secondary"
-                             onClick={handleLocationSearch}
-                             disabled={searching}
-                           >
-                             {searching ? 'Searching...' : 'Search'}
-                           </button>
-                          </div>
+                           {searching && (
+                               <div className="text-muted small mt-1">Searching...</div>
+                           )}
+                            {showSuggestions && suggestions.length > 0 && (
+                                <ul
+                                  className="list-group position-absolute w-100 shadow-sm"
+                                  style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}
+                                >
+                                  {suggestions.map((place, idx) => (
+                                      <li
+                                        key={idx}
+                                        className="list-group-item list-group-item-action"
+                                        style={{ cursor: 'pointer' }}
+                                        onMouseDown={(e) => { e.preventDefault(); handleSelectLocation(place) }}
+                                      >
+                                        {place.display_name}
+                                      </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+
                           {locationMessage && (
                               <div className="text-success small">{locationMessage}</div>
                           )}
