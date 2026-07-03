@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BRAND_COLOR } from '../lib/constants'
 
@@ -27,41 +27,52 @@ function RegisterPage() {
 
   const [locationSearch, setLocationSearch] = useState('')
   const [searching, setSearching] = useState(false)
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
 
   // updates form data when user types in any field
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
- // handles nominatim location search
- const handleLocationSearch = async () => {
-    if (!locationSearch.trim()) return
-    setSearching(true)
-    setError('')
-    try {
-        const response = await fetch(
-         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationSearch)},Ireland&format=json&limit=1`,
+ // debounced nominatim lookup - turn on automatically as the user types
+ useEffect(() => {
+   if (!locationSearch.trim()) {
+     setSuggestions([])
+     return
+   }
+   setSearching(true)
+   const timer = setTimeout(async () => {
+     try {
+       const response = await fetch(
+         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationSearch)},Ireland&format=json&limit=5`,
          { headers: { 'Accept-Language': 'en' } }
        )
        const results = await response.json()
-       if (results.length === 0) {
-         setError('Location not found. Try a different town or county.')
-         setSearching(false)
-         return
-       }
-       const place = results[0]
-       setFormData({
-         ...formData,
-         location: place.display_name.split(',')[0],
-         lat: parseFloat(place.lat),
-         lng: parseFloat(place.lon)
-       })
-       setLocationMessage(`Location found: ${place.display_name.split(',')[0]}`)
+       setSuggestions(results)
+       setShowSuggestions(true)
      } catch (err) {
-       setError('Could not search for location. Please try again.')
+       setSuggestions([])
      }
      setSearching(false)
-   }
+   }, 400)
+   return () => clearTimeout(timer)
+ }, [locationSearch])
+
+ // runs when user picks a suggestion from the dropdown
+ const handleSelectLocation = (place) => {
+   const name = place.display_name.split(',')[0]
+   setFormData({
+     ...formData,
+     location: name,
+     lat: parseFloat(place.lat),
+     lng: parseFloat(place.lon)
+   })
+   setLocationSearch(name)
+   setLocationMessage(`Location selected: ${name}`)
+   setSuggestions([])
+   setShowSuggestions(false)
+ }
 
  // asks browser for user's exact GPS coordinates
  const handleUseMyLocation = () => {
@@ -104,10 +115,13 @@ function RegisterPage() {
         },
         body: JSON.stringify(formData)
       })
+
       if (!response.ok) {
-        setError('Registration failed.')
-        return
-      }
+              const data = await response.json().catch(() => null)
+              setError(data?.message || 'Registration failed.')
+              return
+            }
+
       const data = await response.json()
       localStorage.setItem('token', data.token)
       localStorage.setItem('userId', data.userId)
@@ -205,25 +219,39 @@ function RegisterPage() {
                   </button>
                 </div>
 
-                {/* town/city search */}
-                <div className="input-group mb-2">
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Or type your town or city..."
-                    value={locationSearch}
-                    onChange={(e) => setLocationSearch(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleLocationSearch()}
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary"
-                    onClick={handleLocationSearch}
-                    disabled={searching}
-                  >
-                    {searching ? 'Searching...' : 'Search'}
-                  </button>
-                </div>
+                {/* town/city search - type to see matching locations, click one to select */}
+                   <div className="mb-2 position-relative">
+                       <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Type your town or city..."
+                          value={locationSearch}
+                          onChange={(e) => setLocationSearch(e.target.value)}
+                          onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                          onBlur={() => setShowSuggestions(false)}
+                          autoComplete="off"
+                       />
+                       {searching && (
+                           <div className="text-muted small mt-1">Searching...</div>
+                       )}
+                        {showSuggestions && suggestions.length > 0 && (
+                            <ul
+                              className="list-group position-absolute w-100 shadow-sm"
+                              style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}
+                            >
+                               {suggestions.map((place, idx) => (
+                                   <li
+                                     key={idx}
+                                     className="list-group-item list-group-item-action"
+                                     style={{ cursor: 'pointer' }}
+                                     onMouseDown={(e) => { e.preventDefault(); handleSelectLocation(place) }}
+                                   >
+                                     {place.display_name}
+                                   </li>
+                                 ))}
+                                </ul>
+                              )}
+                          </div>
 
                 {/* confirmation message */}
                 {locationMessage && (
