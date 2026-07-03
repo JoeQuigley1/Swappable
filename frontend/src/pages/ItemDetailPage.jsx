@@ -64,6 +64,11 @@ function ItemDetailPage() {
 
   const handleRequestSwap = async () => {
       setSwapError('')
+       if (!localStorage.getItem('token')) {
+           navigate('/login')
+           return
+       }
+
       if (!offeredItemId) {
         setSwapError('Please choose one of your items to offer.')
         return

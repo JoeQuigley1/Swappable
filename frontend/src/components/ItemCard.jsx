@@ -15,6 +15,16 @@ export default function ItemCard({ item }) {
   // title and image open the item detail page
   const openDetail = () => navigate(`/items/${id}`)
 
+  // request swap: not logged in -> login page. logged in -> item detail,
+  // where the actual offer-item / message form lives.
+  const handleRequestSwap = () => {
+      if (!localStorage.getItem('token')) {
+        navigate('/login')
+        return
+      }
+      navigate(`/items/${id}`)
+   }
+
   // placeholders: the click targets exist now so they can be wired up later.
   const handleCategoryClick = () => {} // TODO: filter items by this category
   const handleLocationClick = () => {} // TODO: filter items by this location
@@ -66,7 +76,7 @@ export default function ItemCard({ item }) {
             <i className="bi bi-eye me-1"></i>
             View Item
           </button>
-          <button className="btn btn-primary btn-sm w-50">
+          <button className="btn btn-primary btn-sm w-50" onClick={handleRequestSwap}>
             <i className="bi bi-arrow-left-right me-1"></i>
             Request Swap
           </button>
