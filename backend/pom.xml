@@ -96,6 +96,13 @@
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>dev.samstevens.totp</groupId>
+            <artifactId>totp-spring-boot-starter</artifactId>
+            <version>1.7.1</version>
+        </dependency>
+
+
 		<dependency>
 			<groupId>com.sksamuel.scrimage</groupId>
 			<artifactId>scrimage-core</artifactId>
