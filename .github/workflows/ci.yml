@@ -120,7 +120,7 @@ jobs:
         run: npm install -g newman
 
       - name: Run Newman smoke tests
-        run: newman run postman/swappable-smoke.postman_collection.json --env-var baseUrl=http://localhost:8080
+        run: newman run postman/swappable-smoke.postman_collection.json --working-dir postman --env-var baseUrl=http://localhost:8080
 
       - name: Stop Docker services
         if: always()
