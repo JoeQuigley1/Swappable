@@ -25,6 +25,13 @@ public class ItemController {
     private final CategoryRepository categoryRepository;
     private final ItemImageRepository itemImageRepository;
     private final ImageService imageService;
+    private static final List<String> VALID_CONDITIONS = List.of(
+            "New",
+            "Like New",
+            "Good",
+            "Fair",
+            "Poor"
+    );
 
     public ItemController(
             ItemRepository itemRepository,
@@ -138,6 +145,28 @@ public class ItemController {
             @RequestParam("condition") String condition,
             @RequestParam(value = "images", required = false) List<MultipartFile> images
     ) {
+
+        if (title == null || title.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Title must not be blank"
+            );
+        }
+
+        if (condition == null || condition.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Condition must not be blank"
+            );
+        }
+
+        if (!VALID_CONDITIONS.contains(condition)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid condition"
+            );
+        }
+
         User user = (User) SecurityContextHolder
                 .getContext()
                 .getAuthentication()
