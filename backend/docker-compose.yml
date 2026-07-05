@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   postgres-db:
     image: postgres:15-alpine
@@ -21,8 +23,10 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       JWT_SECRET: 3c9c34a2a51d428bda4c56e25f822a16d594b2a514d82bfa8c716e251b1a43a2
-      MAIL_USERNAME: ${MAIL_USERNAME}
-      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_PASSWORD: xsmtpsib-6e24dd083cf14c3c278049adf30bda9419255b7e4d72fc82280852fd495781c5-6RPWjPLLg2cIErdqś
+      MAIL_FROM: swappable2026@gmail.com
+      MAIL_USERNAME: ${MAIL_USERNAME:-default_user}
+
     depends_on:
       - postgres-db
 
