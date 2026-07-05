@@ -45,6 +45,14 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+
+      - name: Upload backend jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar
+          path: backend/target/*.jar
+
 
   frontend:
     name: Frontend Build
@@ -61,3 +69,61 @@ jobs:
           cd frontend
           npm install
           npm run build
+
+  smoke:
+    name: Docker Smoke Test
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download backend jar
+        uses: actions/download-artifact@v4
+        with:
+            name: backend-jar
+            path: backend/target
+
+      - name: Start Docker
+        run: |
+          cd backend
+          docker compose up --build -d
+        env:
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+
+      - name: Backend wait
+        run: |
+          cd backend 
+          for i in {1..30}; do
+            if curl --fail -s http://localhost:8080/api/health; then
+              echo "Backend is up"
+              exit 0
+            fi
+            echo "Waiting for backend..."
+            sleep 5
+          done
+          
+          echo "Backend did not start"
+          docker compose logs
+          exit 1
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Newman
+        run: npm install -g newman
+
+      - name: Run Newman smoke tests
+        run: newman run postman/swappable-smoke.postman_collection.json --env-var baseUrl=http://localhost:8080
+
+      - name: Stop Docker services
+        if: always()
+        run: |
+          cd backend
+          docker compose down

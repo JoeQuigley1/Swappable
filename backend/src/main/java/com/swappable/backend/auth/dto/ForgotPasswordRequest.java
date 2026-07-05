@@ -11,4 +11,6 @@ public class ForgotPasswordRequest {
     @NotBlank
     @Email
     private String email;
+
 }
+

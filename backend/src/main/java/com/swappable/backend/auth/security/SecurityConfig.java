@@ -41,9 +41,13 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/forgot-password",
                                 "/api/auth/reset-password",
+
+                                "/api/auth/2fa/validate",
+
                                 "/api/health",
                                 "/api/items",
                                 "/api/items/*",
+                                "/api/images/*",
                                 "/api/categories",
                                 "/error").permitAll()
                         .anyRequest().authenticated()
