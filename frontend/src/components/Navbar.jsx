@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import logo from '../assets/swappable-logo.png';
 import { HERO_ROUTES } from '../lib/constants';
+import { isTokenValid } from '../lib/auth';
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -12,7 +14,23 @@ export default function Navbar() {
   // other (light) page the navbar needs a solid background so links show.
   const hasHero = HERO_ROUTES.includes(location.pathname);
 
-  const isLoggedIn = !!localStorage.getItem('token');
+  const [isLoggedIn, setIsLoggedIn] = useState(() =>
+     isTokenValid(localStorage.getItem('token'))
+    );
+
+    // re-check when this tab navigates
+    useEffect(() => {
+      setIsLoggedIn(isTokenValid(localStorage.getItem('token')));
+    }, [location]);
+
+    // re-check when another tab changes localStorage (e.g. logs out)
+    useEffect(() => {
+      const handleStorage = () => {
+        setIsLoggedIn(isTokenValid(localStorage.getItem('token')));
+      };
+      window.addEventListener('storage', handleStorage);
+      return () => window.removeEventListener('storage', handleStorage);
+    }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
