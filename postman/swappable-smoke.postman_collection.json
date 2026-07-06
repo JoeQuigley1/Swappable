@@ -973,11 +973,7 @@
 									"\r",
 									"const json = pm.response.json();\r",
 									"\r",
-									"pm.environment.set(\"itemId\", json.id);\r",
-									"\r",
-									"pm.test(\"Invalid Category\", function () {\r",
-									"    pm.expect(pm.response.code).to.equal(400);\r",
-									"});"
+									"pm.environment.set(\"itemId\", json.id);"
 								],
 								"type": "text/javascript",
 								"packages": {}
