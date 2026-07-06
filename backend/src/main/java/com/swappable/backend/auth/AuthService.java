@@ -31,6 +31,11 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
         }
 
+        // Check if username already exists
+        if (userRepository.existsByUsername(request.username())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
+        }
+
         // Create user object
         User user = new User();
         user.setUsername(request.username());

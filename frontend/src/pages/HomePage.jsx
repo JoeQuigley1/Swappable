@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
-import HeroSection from '../components/HeroSection.jsx'
-import ItemCard from '../components/ItemCard.jsx'
-import CategoryCard from '../components/CategoryCard.jsx'
-import HowItWorksSection from '../components/HowItWorksSection.jsx'
-import { CATEGORY_ICONS, DEFAULT_CATEGORY_ICON } from '../lib/constants.js'
+import { useEffect, useState } from 'react';
+import HeroSection from '../components/HeroSection.jsx';
+import ItemCard from '../components/ItemCard.jsx';
+import CategoryCard from '../components/CategoryCard.jsx';
+import HowItWorksSection from '../components/HowItWorksSection.jsx';
+import { CATEGORY_ICONS, DEFAULT_CATEGORY_ICON } from '../lib/constants.js';
 
 // map a backend item (ItemResponse) onto the shape ItemCard expects
 function toCardItem(item) {
@@ -15,36 +15,37 @@ function toCardItem(item) {
     condition: item.condition,
     owner: item.ownerUsername,
     location: item.ownerLocation,
-  }
+    imageUrl: item.imageUrl,
+  };
 }
 
 export default function HomePage() {
-  const [items, setItems] = useState([])
-  const [categories, setCategories] = useState([])
+  const [items, setItems] = useState([]);
+  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
     fetch('/api/items')
       .then((res) => res.json())
       .then(setItems)
-      .catch(() => setItems([]))
+      .catch(() => setItems([]));
 
     fetch('/api/categories')
       .then((res) => res.json())
       .then(setCategories)
-      .catch(() => setCategories([]))
-  }, [])
+      .catch(() => setCategories([]));
+  }, []);
 
   // live count of items per category name so each card shows a real total
   const itemsByCategory = items.reduce((acc, item) => {
-    acc[item.categoryName] = (acc[item.categoryName] ?? 0) + 1
-    return acc
-  }, {})
+    acc[item.categoryName] = (acc[item.categoryName] ?? 0) + 1;
+    return acc;
+  }, {});
 
   // show the six most recently listed items (highest id first)
   const featuredItems = [...items]
     .sort((a, b) => b.id - a.id)
     .slice(0, 6)
-    .map(toCardItem)
+    .map(toCardItem);
 
   return (
     <>
@@ -54,7 +55,9 @@ export default function HomePage() {
         <div className="container">
           <div className="mb-4">
             <h2 className="fw-bold mb-1">Browse by Category</h2>
-            <p className="text-muted mb-0">Find exactly what you&apos;re looking for</p>
+            <p className="text-muted mb-0">
+              Find exactly what you&apos;re looking for
+            </p>
           </div>
           <div className="row row-cols-2 row-cols-sm-4 row-cols-lg-8 g-3">
             {categories.map((cat) => (
@@ -77,7 +80,9 @@ export default function HomePage() {
           <div className="d-flex justify-content-between align-items-center mb-4">
             <div>
               <h2 className="fw-bold mb-1">Featured Items</h2>
-              <p className="text-muted mb-0">Recently listed and ready to swap</p>
+              <p className="text-muted mb-0">
+                Recently listed and ready to swap
+              </p>
             </div>
             <a href="/items" className="btn btn-outline-primary btn-sm">
               View all <i className="bi bi-arrow-right ms-1"></i>
@@ -95,5 +100,5 @@ export default function HomePage() {
 
       <HowItWorksSection />
     </>
-  )
+  );
 }
