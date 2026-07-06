@@ -8,6 +8,7 @@ import com.swappable.backend.user.UserRepository;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
+import jakarta.validation.Valid;
 
 
 @RestController
@@ -26,9 +27,14 @@ public class UserController {
     }
 
     @PutMapping("/me")
-    public MeResponse updateMe(@RequestBody UpdateProfileRequest request) {
+    public MeResponse updateMe(@Valid @RequestBody UpdateProfileRequest request) {
         User user = loadCurrentUser();
-        if (request.username() != null)    user.setUsername(request.username());
+        if (request.username() != null && !request.username().equals(user.getUsername())) {
+            if (userRepository.existsByUsername(request.username())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already taken");
+            }
+            user.setUsername(request.username());
+        }
         if (request.location() != null)    user.setLocation(request.location());
         if (request.phoneNumber() != null) user.setPhoneNumber(request.phoneNumber());
         userRepository.save(user);
