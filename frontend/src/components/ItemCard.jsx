@@ -1,19 +1,28 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom';
 
 const CONDITION_COLORS = {
   'Like New': 'success',
   Good: 'primary',
   Fair: 'warning',
   Poor: 'danger',
-}
+};
 
 export default function ItemCard({ item }) {
-  const { id, title, description, category, condition, owner, location } = item
-  const badgeColor = CONDITION_COLORS[condition] ?? 'secondary'
-  const navigate = useNavigate()
+  const {
+    id,
+    title,
+    description,
+    category,
+    condition,
+    owner,
+    location,
+    imageUrl,
+  } = item;
+  const badgeColor = CONDITION_COLORS[condition] ?? 'secondary';
+  const navigate = useNavigate();
 
   // title and image open the item detail page
-  const openDetail = () => navigate(`/items/${id}`)
+  const openDetail = () => navigate(`/items/${id}`);
 
   // request swap: not logged in -> login page. logged in -> item detail,
   // where the actual offer-item / message form lives.
@@ -26,20 +35,33 @@ export default function ItemCard({ item }) {
    }
 
   // placeholders: the click targets exist now so they can be wired up later.
-  const handleCategoryClick = () => {} // TODO: filter items by this category
-  const handleLocationClick = () => {} // TODO: filter items by this location
-  const handleOwnerClick = () => {} // TODO: open this owner's public listings
-
+  const handleCategoryClick = () => {}; // TODO: filter items by this category
+  const handleLocationClick = () => {}; // TODO: filter items by this location
+  const handleOwnerClick = () => {}; // TODO: open this owner's public listings
   return (
-    <div className="card h-100 shadow-sm">
-      <div
-        className="bg-light d-flex align-items-center justify-content-center clickable"
-        style={{ height: '180px' }}
-        role="button"
-        onClick={openDetail}
-      >
-        <i className="bi bi-image text-muted" style={{ fontSize: '3rem' }}></i>
-      </div>
+    <div className="card h-100">
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt={title}
+          className="card-img-top clickable"
+          style={{ height: '180px', objectFit: 'cover' }}
+          role="button"
+          onClick={openDetail}
+        />
+      ) : (
+        <div
+          className="bg-light d-flex align-items-center justify-content-center clickable"
+          style={{ height: '180px' }}
+          role="button"
+          onClick={openDetail}
+        >
+          <i
+            className="bi bi-image text-muted"
+            style={{ fontSize: '3rem' }}
+          ></i>
+        </div>
+      )}
       <div className="card-body d-flex flex-column">
         <div className="d-flex justify-content-between align-items-start mb-1">
           <h6
@@ -49,7 +71,9 @@ export default function ItemCard({ item }) {
           >
             {title}
           </h6>
-          <span className={`badge bg-${badgeColor} ms-2 text-nowrap`}>{condition}</span>
+          <span className={`badge bg-${badgeColor} ms-2 text-nowrap`}>
+            {condition}
+          </span>
         </div>
         <span
           className="badge bg-light text-secondary border mb-2 align-self-start clickable"
@@ -64,7 +88,11 @@ export default function ItemCard({ item }) {
             <i className="bi bi-person me-1"></i>
             {owner}
           </span>
-          <span className="clickable" role="button" onClick={handleLocationClick}>
+          <span
+            className="clickable"
+            role="button"
+            onClick={handleLocationClick}
+          >
             <i className="bi bi-geo-alt me-1"></i>
             {location}
           </span>
@@ -72,7 +100,10 @@ export default function ItemCard({ item }) {
       </div>
       <div className="card-footer bg-transparent border-top-0 pt-0 pb-3 px-3">
         <div className="d-flex gap-2">
-          <button className="btn btn-outline-primary btn-sm w-50" onClick={openDetail}>
+          <button
+            className="btn btn-outline-primary btn-sm w-50"
+            onClick={openDetail}
+          >
             <i className="bi bi-eye me-1"></i>
             View Item
           </button>
@@ -83,5 +114,5 @@ export default function ItemCard({ item }) {
         </div>
       </div>
     </div>
-  )
+  );
 }

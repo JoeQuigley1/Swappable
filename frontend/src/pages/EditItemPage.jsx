@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { BRAND_COLOR, CONDITIONS } from '../lib/constants'
+import { addItemImages, deleteItemImage } from '../api/items'
 
 // page for editing an existing item listing
 function EditItemPage() {
@@ -19,10 +20,10 @@ function EditItemPage() {
 
   const [categories, setCategories] = useState([])
 
-  // new image file selected by user
-  const [imageFile, setImageFile] = useState(null)
-  // temporary preview of the new image
-  const [imagePreview, setImagePreview] = useState(null)
+  // existing images as { id, url }
+  const [images, setImages] = useState([])
+  // true while an image add/delete request is in flight
+  const [imageBusy, setImageBusy] = useState(false)
   // shows spinner while item data is loading
   const [loading, setLoading] = useState(true)
   // shows saving state while form is submitting
@@ -74,6 +75,13 @@ function EditItemPage() {
           categoryId: item.categoryId ? String(item.categoryId) : '',
           condition: item.condition || ''
         })
+
+        setImages(
+          (item.imageUrls || []).map((url) => ({
+            url,
+            id: Number(url.split('/').pop())
+          }))
+        )
       } catch (err) {
         setError('Failed to load item.')
       } finally {
@@ -89,12 +97,38 @@ function EditItemPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  // handles new image selection and creates a preview
-  const handleImageChange = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      setImageFile(file)
-      setImagePreview(URL.createObjectURL(file))
+  const handleAddImages = async (e) => {
+    const files = Array.from(e.target.files)
+    e.target.value = ''
+    if (files.length === 0) return
+
+    if (images.length + files.length > 3) {
+      setError('An item can have at most 3 photos.')
+      return
+    }
+
+    setError('')
+    setImageBusy(true)
+    try {
+      const created = await addItemImages(id, files)
+      setImages((prev) => [...prev, ...created])
+    } catch (err) {
+      setError(err.message || 'Failed to add photos.')
+    } finally {
+      setImageBusy(false)
+    }
+  }
+
+  const handleDeleteImage = async (imageId) => {
+    setError('')
+    setImageBusy(true)
+    try {
+      await deleteItemImage(id, imageId)
+      setImages((prev) => prev.filter((img) => img.id !== imageId))
+    } catch (err) {
+      setError(err.message || 'Failed to delete photo.')
+    } finally {
+      setImageBusy(false)
     }
   }
 
@@ -116,8 +150,7 @@ function EditItemPage() {
           title: formData.title,
           description: formData.description,
           categoryId: parseInt(formData.categoryId),
-          condition: formData.condition,
-          imageUrl: null
+          condition: formData.condition
         })
       })
 
@@ -222,29 +255,50 @@ function EditItemPage() {
                 </div>
               </div>
 
-              {/* image upload - leave empty to keep existing photo */}
+              {/* photos are saved immediately, separate from the text fields */}
               <div className="mb-4">
-                <label className="form-label fw-semibold">Update photo</label>
-                <input
-                  type="file"
-                  className="form-control"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                />
-                <div className="form-text">
-                  Leave empty to keep the existing photo.
-                </div>
+                <label className="form-label fw-semibold">Photos</label>
+                <div className="form-text mb-2">{images.length} / 3 photos</div>
 
-                {/* show preview of newly selected image */}
-                {imagePreview && (
-                  <div className="mt-3">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="img-fluid rounded"
-                      style={{ maxHeight: '220px', objectFit: 'cover' }}
-                    />
+                {images.length > 0 && (
+                  <div className="d-flex gap-2 flex-wrap mb-2">
+                    {images.map((img) => (
+                      <div key={img.id} className="position-relative">
+                        <img
+                          src={img.url}
+                          alt="Item"
+                          className="rounded border"
+                          style={{ height: '100px', width: '100px', objectFit: 'cover' }}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-danger rounded-circle position-absolute top-0 end-0 m-1 d-flex align-items-center justify-content-center"
+                          style={{ width: '24px', height: '24px', padding: 0 }}
+                          onClick={() => handleDeleteImage(img.id)}
+                          disabled={imageBusy}
+                          aria-label="Delete photo"
+                        >
+                          <i className="bi bi-x"></i>
+                        </button>
+                      </div>
+                    ))}
                   </div>
+                )}
+
+                {images.length < 3 && (
+                  <>
+                    <input
+                      type="file"
+                      className="form-control"
+                      accept="image/jpeg,image/png,image/webp"
+                      multiple
+                      onChange={handleAddImages}
+                      disabled={imageBusy}
+                    />
+                    <div className="form-text">
+                      Add up to {3 - images.length} more. JPEG, PNG or WebP.
+                    </div>
+                  </>
                 )}
               </div>
 

@@ -47,6 +47,7 @@ public class SecurityConfig {
                                 "/api/health",
                                 "/api/items",
                                 "/api/items/*",
+                                "/api/images/*",
                                 "/api/categories",
                                 "/error").permitAll()
                         .anyRequest().authenticated()

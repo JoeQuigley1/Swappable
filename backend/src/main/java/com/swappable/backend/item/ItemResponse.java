@@ -1,6 +1,7 @@
 package com.swappable.backend.item;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record ItemResponse(
         Integer id,
@@ -15,6 +16,7 @@ public record ItemResponse(
         String ownerLocation,
         Double ownerLatitude,
         Double ownerLongitude,
+        List<String> imageUrls,
         LocalDateTime createdAt
 ) {
 }
