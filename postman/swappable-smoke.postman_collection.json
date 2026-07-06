@@ -2022,7 +2022,7 @@
 								{
 									"key": "images",
 									"type": "file",
-									"src": "/C:/Users/joeyj/_Programming/Swappable/postman/test-assets/swappable-logo.png"
+									"src": "test-assets/swappable-logo.png"
 								}
 							]
 						},
