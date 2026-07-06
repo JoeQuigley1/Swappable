@@ -73,6 +73,23 @@ public class ItemController {
         );
     }
 
+    private User getAuthenticatedUser() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null ||
+                !authentication.isAuthenticated() ||
+                !(authentication.getPrincipal() instanceof User user)) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Authentication required"
+            );
+        }
+
+        return user;
+    }
+
+
+
     @GetMapping
     public List<ItemResponse> getAllItems() {
         return itemRepository.findAll()
@@ -92,10 +109,7 @@ public class ItemController {
     @GetMapping("/my-items")
     public List<ItemResponse> getMyItems() {
 
-        User user = (User) SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getPrincipal();
+        User user = getAuthenticatedUser();
 
         return itemRepository.findByUserId(user.getId())
                 .stream()
@@ -108,10 +122,7 @@ public class ItemController {
            @Valid @RequestBody CreateItemRequest request
     ) {
 
-        User user = (User) SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getPrincipal();
+        User user = getAuthenticatedUser();
 
         Category category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() ->
@@ -167,10 +178,7 @@ public class ItemController {
             );
         }
 
-        User user = (User) SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getPrincipal();
+        User user = getAuthenticatedUser();
 
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -200,10 +208,7 @@ public class ItemController {
             @PathVariable Integer id,
             @Valid @RequestBody CreateItemRequest request
     ) {
-        User user = (User) SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getPrincipal();
+        User user = getAuthenticatedUser();
 
         Item item = itemRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -242,10 +247,7 @@ public class ItemController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteItem(@PathVariable Integer id) {
 
-        User user = (User) SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getPrincipal();
+        User user = getAuthenticatedUser();
 
         Item item = itemRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -270,10 +272,7 @@ public class ItemController {
             @PathVariable Integer id,
             @RequestParam("files") List<MultipartFile> files
     ) {
-        User user = (User) SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getPrincipal();
+        User user = getAuthenticatedUser();
 
         Item item = itemRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -332,10 +331,7 @@ public class ItemController {
             @PathVariable Integer id,
             @PathVariable Integer imageId
     ) {
-        User user = (User) SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getPrincipal();
+        User user = getAuthenticatedUser();
 
         Item item = itemRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
