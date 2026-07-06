@@ -148,3 +148,14 @@ From the repository root:
 ```bash
 newman run postman/swappable-smoke.postman_collection.json --env-var baseUrl=http://localhost:8080
 ```
+## Database Setup
+- You need PostgreSQL installed on your computer before running the backend.
+- Download and install PostgreSQL from https://www.postgresql.org/download.
+- During installation you will be asked to set a password for the postgres user (write this down as you will need it later).
+- Once installed, open pgAdminand create Database named "swappable".
+- Then open the file backend/src/main/resources/application.properties and replace your_postgres_password_here with the password you set during installation.
+- When you run the backend Flyway will automatically create all the tables in your database.
+
+
+
+
