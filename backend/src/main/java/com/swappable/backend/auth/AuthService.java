@@ -31,6 +31,11 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
         }
 
+        // Check if username already exists
+        if (userRepository.existsByUsername(request.username())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
+        }
+
         // Create user object
         User user = new User();
         user.setUsername(request.username());
@@ -55,8 +60,10 @@ public class AuthService {
         );
     }
 
+
+
     // Login existing user
-    public AuthResponse login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
         // Find user by email
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new ResponseStatusException(
@@ -71,13 +78,30 @@ public class AuthService {
             );
         }
 
+        // if 2FA is enabled, return temp token instead of full JWT
+        if (user.isTotpEnabled()) {
+            String tempToken = jwtService.generateTempToken(user);
+            return new LoginResponse(
+                    null,
+                    null,
+                    null,
+                    null,
+                    true,
+                    tempToken
+            );
+        }
+
+
+        // normal login - no 2FA
         String token = jwtService.generateToken(user);
         // Return response
-        return new AuthResponse(
+        return new LoginResponse(
                 token,
                 user.getId(),
                 user.getUsername(),
-                user.getEmail()
+                user.getEmail(),
+                false,
+                null
         );
     }
 }
