@@ -35,6 +35,14 @@ public class User {
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
+
+    @Column(name = "totp_enabled", nullable = false)
+    private boolean totpEnabled = false;
+
+    @Column(name = "phone_number")
+    private String phoneNumber;
+
+
     // ===== Getters & Setters =====
 
     public Integer getId() {
@@ -81,7 +89,15 @@ public class User {
 
     public void setLongitude(Double longitude) { this.longitude = longitude; }
 
+    public String getPhoneNumber() { return phoneNumber; }
+
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
+
+    public boolean isTotpEnabled() { return totpEnabled; }
+
+    public void setTotpEnabled(boolean totpEnabled) { this.totpEnabled = totpEnabled; }
 }

@@ -12,6 +12,9 @@ import ItemDetailPage from './pages/ItemDetailPage.jsx';
 import BrowseItemsPage from './pages/BrowseItemsPage.jsx';
 import HowItWorksPage from './pages/HowItWorksPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
+import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx'
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx'
+import TwoFactorPage from './pages/TwoFactorPage.jsx'
 
 function App() {
   return (
@@ -30,6 +33,9 @@ function App() {
           <Route path="/my-items" element={<MyItemsPage />} />
           <Route path="/items/:id" element={<ItemDetailPage />} />
           <Route path="*" element={<NotFoundPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/login/2fa" element={<TwoFactorPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -45,6 +45,13 @@ function LoginPage() {
 
       const data = await response.json()
 
+      // if 2FA is required, store temp token and redirect to 2FA page
+      if (data.requires2FA) {
+          localStorage.setItem('tempToken', data.tempToken)
+           navigate('/login/2fa')
+           return
+      }
+
       localStorage.setItem('token', data.token)
       localStorage.setItem('userId', data.userId)
       localStorage.setItem('username', data.username)
@@ -109,6 +116,7 @@ function LoginPage() {
                 <div className="text-end mt-1">
                   <Link to="/forgot-password" className="text-muted small">Forgot password?</Link>
                 </div>
+
               </div>
 
               {/* submit button */}
