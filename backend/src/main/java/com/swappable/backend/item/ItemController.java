@@ -25,6 +25,13 @@ public class ItemController {
     private final CategoryRepository categoryRepository;
     private final ItemImageRepository itemImageRepository;
     private final ImageService imageService;
+    private static final List<String> VALID_CONDITIONS = List.of(
+            "New",
+            "Like New",
+            "Good",
+            "Fair",
+            "Poor"
+    );
 
     public ItemController(
             ItemRepository itemRepository,
@@ -66,6 +73,23 @@ public class ItemController {
         );
     }
 
+    private User getAuthenticatedUser() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null ||
+                !authentication.isAuthenticated() ||
+                !(authentication.getPrincipal() instanceof User user)) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Authentication required"
+            );
+        }
+
+        return user;
+    }
+
+
+
     @GetMapping
     public List<ItemResponse> getAllItems() {
         return itemRepository.findAll()
@@ -85,10 +109,7 @@ public class ItemController {
     @GetMapping("/my-items")
     public List<ItemResponse> getMyItems() {
 
-        User user = (User) SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getPrincipal();
+        User user = getAuthenticatedUser();
 
         return itemRepository.findByUserId(user.getId())
                 .stream()
@@ -101,10 +122,7 @@ public class ItemController {
            @Valid @RequestBody CreateItemRequest request
     ) {
 
-        User user = (User) SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getPrincipal();
+        User user = getAuthenticatedUser();
 
         Category category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() ->
@@ -138,10 +156,29 @@ public class ItemController {
             @RequestParam("condition") String condition,
             @RequestParam(value = "images", required = false) List<MultipartFile> images
     ) {
-        User user = (User) SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getPrincipal();
+
+        if (title == null || title.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Title must not be blank"
+            );
+        }
+
+        if (condition == null || condition.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Condition must not be blank"
+            );
+        }
+
+        if (!VALID_CONDITIONS.contains(condition)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid condition"
+            );
+        }
+
+        User user = getAuthenticatedUser();
 
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -171,10 +208,7 @@ public class ItemController {
             @PathVariable Integer id,
             @Valid @RequestBody CreateItemRequest request
     ) {
-        User user = (User) SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getPrincipal();
+        User user = getAuthenticatedUser();
 
         Item item = itemRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -213,10 +247,7 @@ public class ItemController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteItem(@PathVariable Integer id) {
 
-        User user = (User) SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getPrincipal();
+        User user = getAuthenticatedUser();
 
         Item item = itemRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -241,10 +272,7 @@ public class ItemController {
             @PathVariable Integer id,
             @RequestParam("files") List<MultipartFile> files
     ) {
-        User user = (User) SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getPrincipal();
+        User user = getAuthenticatedUser();
 
         Item item = itemRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -303,10 +331,7 @@ public class ItemController {
             @PathVariable Integer id,
             @PathVariable Integer imageId
     ) {
-        User user = (User) SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getPrincipal();
+        User user = getAuthenticatedUser();
 
         Item item = itemRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
