@@ -1,0 +1,287 @@
+import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { BRAND_COLOR } from '../lib/constants'
+
+
+// registration page for new users
+function RegisterPage() {
+
+  const navigate = useNavigate()
+
+  // form fields
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    location: '',
+    lat: '',
+    lng: ''
+  })
+  const [showPassword, setShowPassword] = useState(false)
+  // error message shown to user if something goes wrong
+  const [error, setError] = useState('')
+  // tracks if browser is currently getting location
+  const [locating, setLocating] = useState(false)
+  // message shown after location is detected
+  const [locationMessage, setLocationMessage] = useState('')
+
+  const [locationSearch, setLocationSearch] = useState('')
+  const [searching, setSearching] = useState(false)
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+
+  // updates form data when user types in any field
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+ // debounced nominatim lookup - turn on automatically as the user types
+ useEffect(() => {
+   if (!locationSearch.trim()) {
+     setSuggestions([])
+     return
+   }
+   setSearching(true)
+   const timer = setTimeout(async () => {
+     try {
+       const response = await fetch(
+         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationSearch)},Ireland&format=json&limit=5`,
+         { headers: { 'Accept-Language': 'en' } }
+       )
+       const results = await response.json()
+       setSuggestions(results)
+       setShowSuggestions(true)
+     } catch (err) {
+       setSuggestions([])
+     }
+     setSearching(false)
+   }, 400)
+   return () => clearTimeout(timer)
+ }, [locationSearch])
+
+ // runs when user picks a suggestion from the dropdown
+ const handleSelectLocation = (place) => {
+   const name = place.display_name.split(',')[0]
+   setFormData({
+     ...formData,
+     location: name,
+     lat: parseFloat(place.lat),
+     lng: parseFloat(place.lon)
+   })
+   setLocationSearch(name)
+   setLocationMessage(`Location selected: ${name}`)
+   setSuggestions([])
+   setShowSuggestions(false)
+ }
+
+ // asks browser for user's exact GPS coordinates
+ const handleUseMyLocation = () => {
+     if (!navigator.geolocation) {
+       setError('Geolocation is not supported by your browser.')
+       return
+     }
+     setLocating(true)
+     setLocationMessage('')
+     navigator.geolocation.getCurrentPosition(
+       (position) => {
+         const userLat = position.coords.latitude
+         const userLng = position.coords.longitude
+         setFormData({
+           ...formData,
+           location: 'My Location',
+           lat: userLat,
+           lng: userLng
+         })
+         setLocationMessage(`Location detected using GPS`)
+         setLocating(false)
+       },
+       () => {
+         setError('Could not get your location. Please type it instead.')
+         setLocating(false)
+       }
+     )
+   }
+
+  // runs when user clicks Register
+  // sends data to backend and saves token on success
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      })
+
+      if (!response.ok) {
+              const data = await response.json().catch(() => null)
+              setError(data?.message || 'Registration failed.')
+              return
+            }
+
+      const data = await response.json()
+      localStorage.setItem('token', data.token)
+      localStorage.setItem('userId', data.userId)
+      localStorage.setItem('username', data.username)
+      localStorage.setItem('email', data.email)
+      localStorage.setItem('location', formData.location)
+      localStorage.setItem('lat', formData.lat)
+      localStorage.setItem('lng', formData.lng)
+      navigate('/login')
+    } catch (err) {
+      setError('Registration failed. Please try again.')
+    }
+  }
+
+  return (
+    <div className="row justify-content-center">
+      <div className="col-md-6 col-lg-5">
+        <div className="card shadow-sm mt-4">
+          <div className="card-body p-4">
+
+            <h2 className="card-title mb-1">Create an account</h2>
+            <p className="text-muted mb-4">Join Swappable and start swapping</p>
+
+            {/* show error if something goes wrong */}
+            {error && (
+              <div className="alert alert-danger">{error}</div>
+            )}
+
+            <form onSubmit={handleSubmit}>
+
+              {/* username field */}
+              <div className="mb-3">
+                <label className="form-label fw-semibold">Username</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  name="username"
+                  placeholder="Choose a username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              {/* email field */}
+              <div className="mb-3">
+                <label className="form-label fw-semibold">Email</label>
+                <input
+                  type="email"
+                  className="form-control"
+                  name="email"
+                  placeholder="your@email.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              {/* password field */}
+              <div className="mb-3">
+                <label className="form-label fw-semibold">Password</label>
+                <div className="input-group">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    className="form-control"
+                    name="password"
+                    placeholder="Choose a password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+              </div>
+
+              {/* location section - county dropdown and use my location button */}
+              <div className="mb-4">
+                <label className="form-label fw-semibold">Location</label>
+
+                {/* use my location button */}
+                <div className="mb-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline-primary btn-sm"
+                    onClick={handleUseMyLocation}
+                    disabled={locating}
+                  >
+                    {locating ? 'Detecting location...' : '📍 Use my location'}
+                  </button>
+                </div>
+
+                {/* town/city search - type to see matching locations, click one to select */}
+                   <div className="mb-2 position-relative">
+                       <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Type your town or city..."
+                          value={locationSearch}
+                          onChange={(e) => setLocationSearch(e.target.value)}
+                          onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                          onBlur={() => setShowSuggestions(false)}
+                          autoComplete="off"
+                       />
+                       {searching && (
+                           <div className="text-muted small mt-1">Searching...</div>
+                       )}
+                        {showSuggestions && suggestions.length > 0 && (
+                            <ul
+                              className="list-group position-absolute w-100 shadow-sm"
+                              style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}
+                            >
+                               {suggestions.map((place, idx) => (
+                                   <li
+                                     key={idx}
+                                     className="list-group-item list-group-item-action"
+                                     style={{ cursor: 'pointer' }}
+                                     onMouseDown={(e) => { e.preventDefault(); handleSelectLocation(place) }}
+                                   >
+                                     {place.display_name}
+                                   </li>
+                                 ))}
+                                </ul>
+                              )}
+                          </div>
+
+                {/* confirmation message */}
+                {locationMessage && (
+                  <div className="text-success small">{locationMessage}</div>
+                )}
+                {formData.location && (
+                  <div className="text-muted small">📍 {formData.location}</div>
+                )}
+              </div>
+
+              {/* submit button */}
+              <button
+                type="submit"
+                className="btn btn-primary w-100"
+              >
+                Register
+              </button>
+
+            </form>
+
+            {/* link to login page for users who already have an account */}
+            <p className="text-center text-muted mt-3 mb-0">
+              Already have an account? <Link to="/login">Log in</Link>
+            </p>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default RegisterPage
