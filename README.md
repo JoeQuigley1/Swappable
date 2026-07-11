@@ -156,4 +156,3 @@ From the repository root:
 ```bash
 newman run postman/swappable-smoke.postman_collection.json --env-var baseUrl=http://localhost:8080
 ```
-Repo is private
