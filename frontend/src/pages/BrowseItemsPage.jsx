@@ -60,9 +60,9 @@ export default function BrowseItemsPage() {
   const [hoveredItem, setHoveredItem] = useState(null)
 
   useEffect(() => {
-    fetch('/api/items')
+    fetch('/api/items?size=1000')
       .then((res) => res.json())
-      .then((data) => setItems(data.map(toCardItem)))
+      .then((data) => setItems((data.content ?? []).map(toCardItem)))
       .catch(() => setItems([]))
   }, [])
 
