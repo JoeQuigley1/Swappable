@@ -105,11 +105,6 @@ ruleset checks
 - Then open the file backend/src/main/resources/application.properties and replace your_postgres_password_here with the password you set during installation.
 - When you run the backend Flyway will automatically create all the tables in your database.
 
-
-
-
-Repo is private
-
 ## Running with Docker
 
 - Ensure Docker Desktop is installed and running.
