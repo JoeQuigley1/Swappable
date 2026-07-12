@@ -13,7 +13,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16
+        image: postgres:15
         env:
           POSTGRES_DB: swappable
           POSTGRES_USER: ${{ secrets.DB_USER }}
