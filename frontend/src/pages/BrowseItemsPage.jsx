@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import ItemFilterBar from '../components/ItemFilterBar.jsx'
 import ItemGrid from '../components/ItemGrid.jsx'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
@@ -58,6 +58,10 @@ export default function BrowseItemsPage() {
   const isLoggedIn = !!localStorage.getItem('token')
 // tracks which item pin is being hovered on the map
   const [hoveredItem, setHoveredItem] = useState(null)
+  const [page, setPage] = useState(0)
+  const PAGE_SIZE = 20
+  const gridRef = useRef(null)
+
 
   useEffect(() => {
     fetch('/api/items?size=1000')
@@ -65,6 +69,11 @@ export default function BrowseItemsPage() {
       .then((data) => setItems((data.content ?? []).map(toCardItem)))
       .catch(() => setItems([]))
   }, [])
+
+  useEffect(() => {
+  setPage(0)
+  }, [search, category, condition, sort, radius])
+
 
 // filter options are derived from the data so every choice yields results.
   const categories = useMemo(
@@ -102,6 +111,12 @@ export default function BrowseItemsPage() {
       return b.id - a.id // TODO: sort by createdAt once available in API response
     })
   }, [items, search, category, condition, sort, radius, userLat, userLng])
+
+const totalPages = Math.ceil(visibleItems.length / PAGE_SIZE)
+const pagedItems = useMemo(
+  () => visibleItems.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE),
+  [visibleItems, page]
+ )
 
   return (
     <div className="container pt-2 pb-5">
@@ -198,7 +213,35 @@ export default function BrowseItemsPage() {
         {visibleItems.length} {visibleItems.length === 1 ? 'item' : 'items'} found
       </p>
 
-      <ItemGrid items={visibleItems} />
+        <div ref={gridRef}>
+            <ItemGrid items={pagedItems} />
+        </div>
+
+        {totalPages > 1 && (
+            <div className="d-flex justify-content-center align-items-center gap-3 mt-4">
+               <button
+                 className="btn btn-outline-secondary btn-sm"
+                 onClick={() => {
+                     setPage((p) => Math.max(p - 1, 0))
+                     gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                   }}
+                   disabled={page === 0}
+                 >
+                    Previous
+                  </button>
+                  <span className="text-muted small">Page {page + 1} of {totalPages}</span>
+                  <button
+                    className="btn btn-outline-secondary btn-sm"
+                   onClick={() => {
+                        setPage((p) => Math.min(p + 1, totalPages - 1))
+                     gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }}
+                disabled={page + 1 >= totalPages}
+               >
+                 Next
+               </button>
+            </div>
+          )}
     </div>
   )
 }
