@@ -1,14 +1,23 @@
-#Step one: Use Java 17
-FROM eclipse-temurin:17-jdk
+FROM eclipse-temurin:17-jdk AS build
 
-#Step two: Set working directory inside container
 WORKDIR /app
 
-#Step three: Copy compiled jar file from the directory into container
-COPY target/*.jar app.jar
+COPY .mvn/ .mvn/
+COPY mvnw pom.xml ./
 
-#Step four: Expose port that the app runs on
+RUN chmod +x mvnw
+RUN ./mvnw dependency:go-offline -DskipTests
+
+COPY src/ src/
+
+RUN ./mvnw clean package -DskipTests
+
+FROM eclipse-temurin:17-jre
+
+WORKDIR /app
+
+COPY --from=build /app/target/*.jar app.jar
+
 EXPOSE 8080
 
-#Step five: Command to execute the application
 ENTRYPOINT ["java", "-jar", "app.jar"]
