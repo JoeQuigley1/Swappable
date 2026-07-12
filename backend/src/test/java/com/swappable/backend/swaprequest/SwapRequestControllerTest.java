@@ -1,0 +1,218 @@
+package com.swappable.backend.swaprequest;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.swappable.backend.auth.AuthUtils;
+import com.swappable.backend.item.Item;
+import com.swappable.backend.item.ItemRepository;
+import com.swappable.backend.user.User;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.MediaType;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.util.Optional;
+
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@ExtendWith(MockitoExtension.class)
+class SwapRequestControllerTest {
+
+    @Mock private SwapRequestRepository swapRequestRepository;
+    @Mock private ItemRepository itemRepository;
+
+    private SwapRequestController controller;
+    private MockMvc mockMvc;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @BeforeEach
+    void setUp() {
+        controller = new SwapRequestController(swapRequestRepository, itemRepository);
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+    }
+
+    private User user(int id, String username) {
+        User u = new User();
+        ReflectionTestUtils.setField(u, "id", id);
+        u.setUsername(username);
+        return u;
+    }
+
+    private Item item(int id, User owner, String status) {
+        Item i = new Item();
+        ReflectionTestUtils.setField(i, "id", id);
+        i.setUser(owner);
+        i.setStatus(status);
+        i.setTitle("Item " + id);
+        return i;
+    }
+
+    // ---------- createSwapRequest ----------
+
+    @Test
+    void createSwapRequest_returns400_whenRequestingOwnItem() throws Exception {
+        User requester = user(1, "requester");
+        Item requestedItem = item(100, requester, "available"); // requester owns the item they're requesting
+        Item offeredItem = item(200, requester, "available");   // and offers their own item too
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(requester);
+            when(itemRepository.findById(100)).thenReturn(Optional.of(requestedItem));
+            when(itemRepository.findById(200)).thenReturn(Optional.of(offeredItem));
+
+            CreateSwapRequest request = new CreateSwapRequest(100, 200, "hi");
+
+            mockMvc.perform(post("/api/swap-requests")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Test
+    void createSwapRequest_returns403_whenOfferingSomeoneElsesItem() throws Exception {
+        User requester = user(1, "requester");
+        User owner = user(2, "owner");
+        Item requestedItem = item(100, owner, "available");
+        Item offeredItem = item(200, owner, "available"); // NOT the requester's item
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(requester);
+            when(itemRepository.findById(100)).thenReturn(Optional.of(requestedItem));
+            when(itemRepository.findById(200)).thenReturn(Optional.of(offeredItem));
+
+            CreateSwapRequest request = new CreateSwapRequest(100, 200, "hi");
+
+            mockMvc.perform(post("/api/swap-requests")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    @Test
+    void createSwapRequest_returns400_whenRequestedItemNotAvailable() throws Exception {
+        User requester = user(1, "requester");
+        User owner = user(2, "owner");
+        Item requestedItem = item(100, owner, "swapped"); // not available
+        Item offeredItem = item(200, requester, "available");
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(requester);
+            when(itemRepository.findById(100)).thenReturn(Optional.of(requestedItem));
+            when(itemRepository.findById(200)).thenReturn(Optional.of(offeredItem));
+
+            CreateSwapRequest request = new CreateSwapRequest(100, 200, "hi");
+
+            mockMvc.perform(post("/api/swap-requests")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Test
+    void createSwapRequest_returns400_whenDuplicatePendingRequestExists() throws Exception {
+        User requester = user(1, "requester");
+        User owner = user(2, "owner");
+        Item requestedItem = item(100, owner, "available");
+        Item offeredItem = item(200, requester, "available");
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(requester);
+            when(itemRepository.findById(100)).thenReturn(Optional.of(requestedItem));
+            when(itemRepository.findById(200)).thenReturn(Optional.of(offeredItem));
+            when(swapRequestRepository.existsByRequesterIdAndRequestedItemIdAndOfferedItemIdAndStatus(
+                    1, 100, 200, "pending")).thenReturn(true);
+
+            CreateSwapRequest request = new CreateSwapRequest(100, 200, "hi");
+
+            mockMvc.perform(post("/api/swap-requests")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    // ---------- acceptSwapRequest / declineSwapRequest ----------
+
+    @Test
+    void acceptSwapRequest_returns403_whenNotOwner() throws Exception {
+        User requester = user(1, "requester");
+        User owner = user(2, "owner");
+        User someoneElse = user(3, "intruder");
+
+        SwapRequest swapRequest = new SwapRequest();
+        ReflectionTestUtils.setField(swapRequest, "id", 50);
+        swapRequest.setRequester(requester);
+        swapRequest.setOwner(owner);
+        swapRequest.setRequestedItem(item(100, owner, "available"));
+        swapRequest.setOfferedItem(item(200, requester, "available"));
+        swapRequest.setStatus("pending");
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(someoneElse);
+            when(swapRequestRepository.findById(50)).thenReturn(Optional.of(swapRequest));
+
+            mockMvc.perform(post("/api/swap-requests/50/accept"))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    @Test
+    void declineSwapRequest_returns400_whenAlreadyProcessed() throws Exception {
+        User requester = user(1, "requester");
+        User owner = user(2, "owner");
+
+        SwapRequest swapRequest = new SwapRequest();
+        ReflectionTestUtils.setField(swapRequest, "id", 50);
+        swapRequest.setRequester(requester);
+        swapRequest.setOwner(owner);
+        swapRequest.setRequestedItem(item(100, owner, "swapped"));
+        swapRequest.setOfferedItem(item(200, requester, "swapped"));
+        swapRequest.setStatus("accepted"); // already processed
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(owner);
+            when(swapRequestRepository.findById(50)).thenReturn(Optional.of(swapRequest));
+
+            mockMvc.perform(post("/api/swap-requests/50/decline"))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Test
+    void acceptSwapRequest_succeeds_forOwner_andMarksItemsSwapped() throws Exception {
+        User requester = user(1, "requester");
+        User owner = user(2, "owner");
+        Item requestedItem = item(100, owner, "available");
+        Item offeredItem = item(200, requester, "available");
+
+        SwapRequest swapRequest = new SwapRequest();
+        ReflectionTestUtils.setField(swapRequest, "id", 50);
+        swapRequest.setRequester(requester);
+        swapRequest.setOwner(owner);
+        swapRequest.setRequestedItem(requestedItem);
+        swapRequest.setOfferedItem(offeredItem);
+        swapRequest.setStatus("pending");
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(owner);
+            when(swapRequestRepository.findById(50)).thenReturn(Optional.of(swapRequest));
+            when(swapRequestRepository.save(swapRequest)).thenReturn(swapRequest);
+
+            mockMvc.perform(post("/api/swap-requests/50/accept"))
+                    .andExpect(status().isOk());
+        }
+
+        org.junit.jupiter.api.Assertions.assertEquals("swapped", requestedItem.getStatus());
+        org.junit.jupiter.api.Assertions.assertEquals("swapped", offeredItem.getStatus());
+    }
+}
