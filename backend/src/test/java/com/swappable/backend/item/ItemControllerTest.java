@@ -26,6 +26,11 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+
 @ExtendWith(MockitoExtension.class)
 class ItemControllerTest {
 
@@ -86,6 +91,36 @@ class ItemControllerTest {
         item.setStatus("available");
         return item;
     }
+
+     // ---------- getAllItems (category filter) ----------
+
+    @Test
+    void getAllItems_withoutCategoryId_returnsAll() throws Exception {
+        when(itemRepository.findAll())
+                .thenReturn(List.of(buildItem(1, owner), buildItem(2, owner)));
+
+        mockMvc.perform(get("/api/items"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+
+        verify(itemRepository).findAll();
+        verify(itemRepository, never()).findByCategoryId(anyInt());
+    }
+
+    @Test
+    void getAllItems_withCategoryId_filtersByCategory() throws Exception {
+        when(itemRepository.findByCategoryId(1))
+                .thenReturn(List.of(buildItem(1, owner)));
+
+        mockMvc.perform(get("/api/items").param("categoryId", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].categoryId").value(1));
+
+        verify(itemRepository).findByCategoryId(1);
+        verify(itemRepository, never()).findAll();
+    }
+
 
     // ---------- updateItem ----------
 

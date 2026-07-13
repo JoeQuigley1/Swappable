@@ -90,13 +90,18 @@ public class ItemController {
 
 
 
-    @GetMapping
-    public List<ItemResponse> getAllItems() {
-        return itemRepository.findAll()
-                .stream()
+        @GetMapping
+        public List<ItemResponse> getAllItems(
+                @RequestParam(required = false) Integer categoryId) {
+                List<Item> items = (categoryId == null)
+                ? itemRepository.findAll()
+                : itemRepository.findByCategoryId(categoryId);
+
+                return items.stream()
                 .map(this::toResponse)
                 .toList();
-    }
+        }
+
 
     @GetMapping("/{id}")
     public ResponseEntity<ItemResponse> getItemById(@PathVariable Integer id) {
