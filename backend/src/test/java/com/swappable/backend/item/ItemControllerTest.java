@@ -95,7 +95,7 @@ class ItemControllerTest {
         when(itemRepository.findById(10)).thenReturn(Optional.of(item));
         authenticateAs(otherUser);
 
-        CreateItemRequest request = new CreateItemRequest(1, "New title", "desc", "Good", null);
+        CreateItemRequest request = new CreateItemRequest(1, "New title", "desc", "Good");
 
         mockMvc.perform(put("/api/items/10")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -108,7 +108,7 @@ class ItemControllerTest {
         when(itemRepository.findById(999)).thenReturn(Optional.empty());
         authenticateAs(owner);
 
-        CreateItemRequest request = new CreateItemRequest(1, "New title", "desc", "Good", null);
+        CreateItemRequest request = new CreateItemRequest(1, "New title", "desc", "Good");
 
         mockMvc.perform(put("/api/items/999")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -124,7 +124,7 @@ class ItemControllerTest {
         when(itemRepository.save(item)).thenReturn(item);
         authenticateAs(owner);
 
-        CreateItemRequest request = new CreateItemRequest(1, "New title", "desc", "Good", null);
+        CreateItemRequest request = new CreateItemRequest(1, "New title", "desc", "Good");
 
         mockMvc.perform(put("/api/items/10")
                         .contentType(MediaType.APPLICATION_JSON)
