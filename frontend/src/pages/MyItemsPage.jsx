@@ -15,13 +15,18 @@ function MyItemsPage() {
    const [error, setError] = useState('')
    // holds the id of item waiting for delete confirmation
    const [deleteConfirm, setDeleteConfirm] = useState(null)
+   // current page (0-indexed) and total pages from the backend
+   const [page, setPage] = useState(0)
+   const [totalPages, setTotalPages] = useState(0)
+   const PAGE_SIZE = 18
 
   useEffect(() => {
     const fetchMyItems = async () => {
       try {
+          setLoading(true)
         const token = localStorage.getItem('token')
 
-        const response = await fetch('http://localhost:8080/api/items/my-items', {
+        const response = await fetch(`http://localhost:8080/api/items/my-items?page=${page}&size=${PAGE_SIZE}`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`
@@ -39,7 +44,8 @@ function MyItemsPage() {
         const data = await response.json()
 
 
-        setItems(data)
+        setItems(data.content ?? [])
+        setTotalPages(data.totalPages ?? 0)
       } catch (err) {
         setError(err.message)
       } finally {
@@ -48,7 +54,7 @@ function MyItemsPage() {
     }
 
     fetchMyItems()
-  }, [])
+   }, [page])
 
     const handleDelete = async (id) => {
         setError('')
@@ -71,9 +77,13 @@ function MyItemsPage() {
                 throw new Error('Failed to delete item.')
             }
 
-            setItems(currentItems =>
-                currentItems.filter(item => item.id !== id)
-            )
+             setItems(currentItems => {
+                 const remaining = currentItems.filter(item => item.id !== id)
+                 if (remaining.length === 0 && page > 0) {
+                     setPage(p => p - 1) // page just emptied out — step back
+                 }
+                return remaining
+             })
             setDeleteConfirm(null)
         } catch (err) {
             setError(err.message)
@@ -204,7 +214,25 @@ function MyItemsPage() {
           </div>
         ))}
       </div>
-
+      {totalPages > 1 && (
+        <div className="d-flex justify-content-center align-items-center gap-3 mt-4 mb-4">
+          <button
+            className="btn btn-outline-secondary btn-sm"
+            onClick={() => setPage((p) => Math.max(p - 1, 0))}
+            disabled={page === 0}
+          >
+            Previous
+          </button>
+          <span className="text-muted small">Page {page + 1} of {totalPages}</span>
+          <button
+            className="btn btn-outline-secondary btn-sm"
+            onClick={() => setPage((p) => Math.min(p + 1, totalPages - 1))}
+            disabled={page + 1 >= totalPages}
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   )
 }

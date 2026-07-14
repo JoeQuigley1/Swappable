@@ -19,12 +19,13 @@ async function handle(res) {
   return res.json()
 }
 
-export function getReceivedSwapRequests() {
-  return fetch(`${BASE}/swap-requests/received`, { headers: authHeaders() }).then(handle)
+
+export function getReceivedSwapRequests(page = 0, size = 20) {
+   return fetch(`${BASE}/swap-requests/received?page=${page}&size=${size}`, { headers: authHeaders() }).then(handle)
 }
 
-export function getSentSwapRequests() {
-  return fetch(`${BASE}/swap-requests/sent`, { headers: authHeaders() }).then(handle)
+export function getSentSwapRequests(page = 0, size = 20) {
+    return fetch(`${BASE}/swap-requests/sent?page=${page}&size=${size}`, { headers: authHeaders() }).then(handle)
 }
 
 export function createSwapRequest(requestedItemId, offeredItemId, message) {
@@ -50,7 +51,8 @@ export function cancelSwapRequest(id) {
 // Used by ItemDetailPage to fill the "what do you offer" dropdown.
 export async function getMyAvailableItems() {
 
-  const items = await fetch(`${BASE}/items/my-items`, { headers: authHeaders() }).then(handle)
+  const data = await fetch(`${BASE}/items/my-items?size=1000`, { headers: authHeaders() }).then(handle)
+  const items = data.content ?? []
 
   return items.filter((i) => (i.status || 'available').toLowerCase() !== 'swapped')
 }

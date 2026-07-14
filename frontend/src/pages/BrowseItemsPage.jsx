@@ -59,7 +59,7 @@ export default function BrowseItemsPage() {
 // tracks which item pin is being hovered on the map
   const [hoveredItem, setHoveredItem] = useState(null)
   const [page, setPage] = useState(0)
-  const PAGE_SIZE = 20
+  const PAGE_SIZE = 18
   const gridRef = useRef(null)
 
 
@@ -218,7 +218,7 @@ const pagedItems = useMemo(
         </div>
 
         {totalPages > 1 && (
-            <div className="d-flex justify-content-center align-items-center gap-3 mt-4">
+            <div className="d-flex justify-content-center align-items-center gap-3 mt-4 mb-4">
                <button
                  className="btn btn-outline-secondary btn-sm"
                  onClick={() => {

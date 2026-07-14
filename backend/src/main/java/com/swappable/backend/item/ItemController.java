@@ -112,14 +112,15 @@ public class ItemController {
     }
 
     @GetMapping("/my-items")
-    public List<ItemResponse> getMyItems() {
-
+    public PagedResponse<ItemResponse> getMyItems(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
         User user = getAuthenticatedUser();
 
-        return itemRepository.findByUserId(user.getId())
-                .stream()
-                .map(this::toResponse)
-                .toList();
+        Page<ItemResponse> page = itemRepository.findByUserId(user.getId(), pageable)
+                .map(this::toResponse);
+
+        return PagedResponse.from(page);
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
