@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BRAND_COLOR } from '../lib/constants'
+import {API_BASE_URL} from "../api/config.js";
 
 function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -11,7 +12,7 @@ function ForgotPasswordPage() {
     e.preventDefault()
     setError('')
     try {
-      await fetch('http://localhost:8080/api/auth/forgot-password', {
+      await fetch(`${API_BASE_URL}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })

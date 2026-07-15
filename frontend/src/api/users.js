@@ -1,7 +1,7 @@
 // src/api/users.js
 // Profile read/update, matching the fetch + JWT pattern in swapRequests.js
 
-const BASE = '/api'
+const BASE = import.meta.env.VITE_API_BASE_URL || '/api'
 
 function authHeaders() {
   const token = localStorage.getItem('token')
