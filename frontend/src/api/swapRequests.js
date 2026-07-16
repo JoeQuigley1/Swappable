@@ -1,7 +1,9 @@
 // src/api/swapRequests.js
 // Matches the fetch-based pattern in BrowseItemsPage; adds the JWT for protected calls.
 
-const BASE = import.meta.env.VITE_API_BASE_URL || '/api'
+import { API_BASE_URL } from './config.js'
+
+const BASE = API_BASE_URL
 
 function authHeaders() {
   const token = localStorage.getItem('token')
