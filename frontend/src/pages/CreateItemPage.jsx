@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createItem } from '../api/items';
+import {API_BASE_URL} from "../api/config.js";
 
 // condition options describe the physical state of the item
 //TODO remove conditions and store them in the DB
@@ -29,7 +30,7 @@ function CreateItem() {
   const [categories, setCategories] = useState([]);
 
   useEffect(() => {
-    fetch('http://localhost:8080/api/categories')
+    fetch(`${API_BASE_URL}/categories`)
       .then((response) => response.json())
       .then((data) => setCategories(data))
       .catch((error) => console.error(error));
