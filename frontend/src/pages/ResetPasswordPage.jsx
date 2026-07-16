@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { BRAND_COLOR } from '../lib/constants'
+import {API_BASE_URL} from "../api/config.js";
 
 function ResetPasswordPage() {
   const [searchParams] = useSearchParams()
@@ -33,7 +34,7 @@ function ResetPasswordPage() {
     }
 
     try {
-      const response = await fetch('http://localhost:8080/api/auth/reset-password', {
+      const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, newPassword: formData.newPassword })
