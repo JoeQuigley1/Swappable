@@ -76,7 +76,7 @@ function ItemDetailPage() {
             // ignore malformed storage
         } finally{
           sessionStorage.removeItem('swapIntent')
-        }
+        }q
       }, [id])
 
 
