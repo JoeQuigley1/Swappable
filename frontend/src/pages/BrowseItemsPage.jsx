@@ -65,7 +65,7 @@ export default function BrowseItemsPage() {
 
 
   useEffect(() => {
-fetch(`${API_BASE_URL}/items?size=1000`)
+  fetch(`${API_BASE_URL}/items?size=1000`)
       .then((res) => res.json())
       .then((data) => setItems((data.content ?? []).map(toCardItem)))
       .catch(() => setItems([]))
