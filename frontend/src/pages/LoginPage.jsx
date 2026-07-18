@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BRAND_COLOR } from '../lib/constants'
+import {API_BASE_URL} from "../api/config.js";
 
 // login page for existing users
 function LoginPage() {
@@ -40,7 +41,7 @@ function LoginPage() {
     e.preventDefault()
     setError('')
     try {
-      const response = await fetch('http://localhost:8080/api/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

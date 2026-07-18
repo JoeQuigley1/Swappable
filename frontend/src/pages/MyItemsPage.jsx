@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BRAND_COLOR } from '../lib/constants'
+import {API_BASE_URL} from "../api/config.js";
 
 // page showing all items listed by the logged in user
 function MyItemsPage() {
@@ -26,7 +27,7 @@ function MyItemsPage() {
           setLoading(true)
         const token = localStorage.getItem('token')
 
-        const response = await fetch(`http://localhost:8080/api/items/my-items?page=${page}&size=${PAGE_SIZE}`, {
+        const response = await fetch(`${API_BASE_URL}/items/my-items?page=${page}&size=${PAGE_SIZE}`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`
@@ -62,7 +63,7 @@ function MyItemsPage() {
         try {
             const token = localStorage.getItem('token')
 
-            const response = await fetch(`http://localhost:8080/api/items/${id}`, {
+            const response = await fetch(`${API_BASE_URL}/items/${id}`, {
                 method: 'DELETE',
                 headers: {
                     Authorization: `Bearer ${token}`

@@ -4,6 +4,7 @@ import ItemGrid from '../components/ItemGrid.jsx'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { API_BASE_URL } from '../api/config.js'
 
 // fix leaflet's default marker icon not loading in vite
 delete L.Icon.Default.prototype._getIconUrl
@@ -64,7 +65,7 @@ export default function BrowseItemsPage() {
 
 
   useEffect(() => {
-    fetch('/api/items?size=1000')
+fetch(`${API_BASE_URL}/items?size=1000`)
       .then((res) => res.json())
       .then((data) => setItems((data.content ?? []).map(toCardItem)))
       .catch(() => setItems([]))

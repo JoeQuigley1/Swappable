@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { BRAND_COLOR } from '../lib/constants'
 import { createSwapRequest, getMyAvailableItems } from '../api/swapRequests'
+import {API_BASE_URL} from "../api/config.js";
 
 // page showing full details of one item
 function ItemDetailPage() {
@@ -29,7 +30,7 @@ function ItemDetailPage() {
   useEffect(() => {
     const loadItem = async () => {
       try {
-        const response = await fetch(`/api/items/${id}`)
+        const response = await fetch(`${API_BASE_URL}/items/${id}`)
 
 
         if (response.status === 404) {
@@ -66,12 +67,15 @@ function ItemDetailPage() {
         if (!saved) return
         try {
           const intent = JSON.parse(saved)
-          if (String(intent.itemId) === String(id)) {+        if (intent.offeredItemId) setOfferedItemId(intent.offeredItemId)
-            if (intent.message) setMessage(intent.mesage)
-            setResumedSwap(true)    +      }
-        } catch {+      // ignore malformed storage
+         if (String(intent.itemId) === String(id)) {
+             if (intent.offeredItemId) setOfferedItemId(intent.offeredItemId)
+             if (intent.message) setMessage(intent.message)
+             setResumedSwap(true)
+         }
+        } catch {
+            // ignore malformed storage
         } finally{
-          sessioStorage.removeItem('swapIntent')
+          sessionStorage.removeItem('swapIntent')
         }
       }, [id])
 
