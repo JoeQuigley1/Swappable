@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BRAND_COLOR } from '../lib/constants'
+import {API_BASE_URL} from "../api/config.js";
 
 function TwoFactorPage() {
   const navigate = useNavigate()
@@ -18,7 +19,7 @@ function TwoFactorPage() {
     }
 
     try {
-      const response = await fetch('http://localhost:8080/api/auth/2fa/validate', {
+      const response = await fetch(`${API_BASE_URL}/auth/2fa/validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tempToken, code })
