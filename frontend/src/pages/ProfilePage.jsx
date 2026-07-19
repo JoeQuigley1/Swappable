@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 
 import { getMyProfile, updateMyProfile } from '../api/users'
+import {API_BASE_URL} from "../api/config.js";
 
 
 // profile page where user can view and edit their account details
@@ -66,7 +67,7 @@ function ProfilePage() {
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (!token) return
-    fetch('http://localhost:8080/api/users/me/2fa/status', {
+    fetch(`${API_BASE_URL}/users/me/2fa/status`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -197,7 +198,7 @@ function ProfilePage() {
     const handleSetup2FA = async () => {
       const token = localStorage.getItem('token')
       try {
-        const response = await fetch('http://localhost:8080/api/users/me/2fa/setup', {
+        const response = await fetch(`${API_BASE_URL}/users/me/2fa/setup`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }
         })
@@ -219,7 +220,7 @@ function ProfilePage() {
     const handleVerifySetup = async () => {
       const token = localStorage.getItem('token')
       try {
-        const response = await fetch('http://localhost:8080/api/users/me/2fa/verify-setup', {
+        const response = await fetch(`${API_BASE_URL}/users/me/2fa/verify-setup`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -245,7 +246,7 @@ function ProfilePage() {
     const handleDisable2FA = async () => {
       const token = localStorage.getItem('token')
       try {
-        const response = await fetch('http://localhost:8080/api/users/me/2fa', {
+        const response = await fetch(`${API_BASE_URL}/users/me/2fa`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`,
