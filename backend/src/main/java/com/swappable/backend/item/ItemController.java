@@ -51,9 +51,7 @@ public class ItemController {
                 .map(imageId -> "/api/images/" + imageId)
                 .toList();
 
-        String cover = !imageUrls.isEmpty()
-                ? imageUrls.get(0)
-                : item.getImageUrl();
+        String cover = imageUrls.isEmpty() ? null : imageUrls.get(0);
 
         return new ItemResponse(
                 item.getId(),
@@ -139,7 +137,6 @@ public class ItemController {
         item.setTitle(request.title());
         item.setDescription(request.description());
         item.setCondition(request.condition());
-        item.setImageUrl(request.imageUrl());
         item.setStatus("available");
 
         Item savedItem = itemRepository.save(item);
@@ -233,10 +230,6 @@ public class ItemController {
         item.setTitle(request.title());
         item.setDescription(request.description());
         item.setCondition(request.condition());
-
-        if (request.imageUrl() != null) {
-            item.setImageUrl(request.imageUrl());
-        }
 
         Item savedItem = itemRepository.save(item);
 
