@@ -15,6 +15,7 @@ function toCardItem(item) {
     category: item.categoryName,
     condition: item.condition,
     owner: item.ownerUsername,
+    ownerId: item.ownerId,
     location: item.ownerLocation,
     imageUrl: item.imageUrl,
   };

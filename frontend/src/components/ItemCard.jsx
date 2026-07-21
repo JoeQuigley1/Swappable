@@ -10,6 +10,7 @@ export default function ItemCard({ item }) {
     category,
     condition,
     owner,
+    ownerId,
     location,
     imageUrl,
   } = item;
@@ -32,7 +33,9 @@ export default function ItemCard({ item }) {
   // placeholders: the click targets exist now so they can be wired up later.
   const handleCategoryClick = () => {}; // TODO: filter items by this category
   const handleLocationClick = () => {}; // TODO: filter items by this location
-  const handleOwnerClick = () => {}; // TODO: open this owner's public listings
+  const handleOwnerClick = () => {
+    if (ownerId) navigate(`/users/${ownerId}`);
+  };
   return (
     <div className="card h-100">
       {imageUrl ? (
