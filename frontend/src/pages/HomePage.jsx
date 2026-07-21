@@ -26,7 +26,7 @@ export default function HomePage() {
   useEffect(() => {
     fetch('/api/items')
       .then((res) => res.json())
-      .then(setItems)
+      .then((data) => setItems(data.content ?? []))
       .catch(() => setItems([]));
 
     fetch('/api/categories')
