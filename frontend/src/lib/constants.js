@@ -23,3 +23,11 @@ export const DEFAULT_CATEGORY_ICON = 'bi-box';
 
 // condition options describe the physical state of the item
 export const CONDITIONS = ['New', 'Like New', 'Good', 'Fair', 'Poor'];
+
+// bootstrap badge color for each condition
+export const CONDITION_COLORS = {
+  'Like New': 'success',
+  Good: 'primary',
+  Fair: 'warning',
+  Poor: 'danger',
+};

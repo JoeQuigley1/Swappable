@@ -1,12 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-
-const CONDITION_COLORS = {
-  'Like New': 'success',
-  Good: 'primary',
-  Fair: 'warning',
-  Poor: 'danger',
-};
-import {resolveImageUrl} from "../api/config.js";
+import { resolveImageUrl } from '../api/config.js';
+import { CONDITION_COLORS } from '../lib/constants.js';
 
 export default function ItemCard({ item }) {
   const {
