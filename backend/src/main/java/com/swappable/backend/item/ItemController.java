@@ -13,6 +13,12 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import com.swappable.backend.common.PagedResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -89,11 +95,10 @@ public class ItemController {
 
 
     @GetMapping
-    public List<ItemResponse> getAllItems() {
-        return itemRepository.findAll()
-                .stream()
-                .map(this::toResponse)
-                .toList();
+    public PagedResponse<ItemResponse> getAllItems(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<ItemResponse> page = itemRepository.findAll(pageable).map(this::toResponse);
+
+        return PagedResponse.from(page);
     }
 
     @GetMapping("/{id}")
