@@ -33,6 +33,7 @@ class ItemControllerTest {
     @Mock private CategoryRepository categoryRepository;
     @Mock private ItemImageRepository itemImageRepository;
     @Mock private ImageService imageService;
+    @Mock private ItemMapper itemMapper;
 
     private ItemController itemController;
     private MockMvc mockMvc;
@@ -44,7 +45,7 @@ class ItemControllerTest {
 
     @BeforeEach
     void setUp() {
-        itemController = new ItemController(itemRepository, categoryRepository, itemImageRepository, imageService);
+        itemController = new ItemController(itemRepository, categoryRepository, itemImageRepository, imageService, itemMapper);
         mockMvc = MockMvcBuilders.standaloneSetup(itemController).build();
 
         owner = new User();
