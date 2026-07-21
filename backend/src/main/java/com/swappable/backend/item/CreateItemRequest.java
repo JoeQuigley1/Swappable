@@ -9,7 +9,6 @@ public record CreateItemRequest(
         @NotNull Integer categoryId,
         @NotBlank String title,
         String description,
-        @NotNull String condition,
-        String imageUrl
+        @NotNull String condition
 ) {
 }
