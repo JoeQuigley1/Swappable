@@ -1,6 +1,5 @@
 package com.swappable.backend.item;
 
-
 import com.swappable.backend.category.Category;
 import com.swappable.backend.category.CategoryRepository;
 import com.swappable.backend.user.User;
@@ -13,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -86,12 +86,24 @@ public class ItemController {
         return user;
     }
 
-
-
     @GetMapping
     public List<ItemResponse> getAllItems() {
         return itemRepository.findAll()
                 .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @GetMapping("/search")
+    public List<ItemResponse> searchItems(@RequestParam("query") String query) {
+        List<Item> items;
+        if (query == null || query.trim().isEmpty()) {
+            items = itemRepository.findAll();
+        } else {
+            items = itemRepository.findByTitleContainingIgnoreCase(query);
+        }
+
+        return items.stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -106,7 +118,6 @@ public class ItemController {
 
     @GetMapping("/my-items")
     public List<ItemResponse> getMyItems() {
-
         User user = getAuthenticatedUser();
 
         return itemRepository.findByUserId(user.getId())
@@ -117,9 +128,8 @@ public class ItemController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ItemResponse createItem(
-           @Valid @RequestBody CreateItemRequest request
+            @Valid @RequestBody CreateItemRequest request
     ) {
-
         User user = getAuthenticatedUser();
 
         Category category = categoryRepository.findById(request.categoryId())
@@ -131,7 +141,6 @@ public class ItemController {
                 );
 
         Item item = new Item();
-
         item.setUser(user);
         item.setCategory(category);
         item.setTitle(request.title());
@@ -153,7 +162,6 @@ public class ItemController {
             @RequestParam("condition") String condition,
             @RequestParam(value = "images", required = false) List<MultipartFile> images
     ) {
-
         if (title == null || title.isBlank()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -239,7 +247,6 @@ public class ItemController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteItem(@PathVariable Integer id) {
-
         User user = getAuthenticatedUser();
 
         Item item = itemRepository.findById(id)
