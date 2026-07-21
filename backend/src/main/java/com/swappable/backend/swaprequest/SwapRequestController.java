@@ -123,7 +123,28 @@ public class SwapRequestController {
                 .map(swapRequest -> toResponse(swapRequest, owner.getId()))
                 .toList();
     }
+    @GetMapping("/{id}")
+    public SwapRequestResponse getSwapRequestById(@PathVariable Integer id) {
+        User currentUser = AuthUtils.getAuthenticatedUser();
 
+        SwapRequest swapRequest = swapRequestRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Swap request not found"
+                ));
+
+        boolean isOwner = swapRequest.getOwner().getId().equals(currentUser.getId());
+        boolean isRequester = swapRequest.getRequester().getId().equals(currentUser.getId());
+
+        if (!isOwner && !isRequester) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You are not authorized to view this swap request"
+            );
+        }
+
+        return toResponse(swapRequest, currentUser.getId());
+    }
     @GetMapping("/sent")
     public List<SwapRequestResponse> getOutgoingSwapRequests() {
         User requester = AuthUtils.getAuthenticatedUser();
