@@ -2376,11 +2376,11 @@
 									"});\r",
 									"\r",
 									"pm.test(\"Every returned item is in category 2\", function () {\r",
-									"    json.forEach(i => pm.expect(i.categoryId).to.eql(2));\r",
+									"    json.content.forEach(i => pm.expect(i.categoryId).to.eql(2));\r",
 									"});\r",
 									"\r",
 									"pm.test(\"Includes the item we created\", function () {\r",
-									"    const ids = json.map(i => i.id);\r",
+									"    const ids = json.content.map(i => i.id);\r",
 									"    pm.expect(ids).to.include(Number(pm.collectionVariables.get(\"filterItemId\")));\r",
 									"});"
 								],
@@ -2413,7 +2413,7 @@
 									"});\r",
 									"\r",
 									"pm.test(\"Empty array\", function () {\r",
-									"    pm.expect(pm.response.json()).to.be.an(\"array\").that.is.empty;\r",
+									"    pm.expect(pm.response.json().content).to.be.an(\"array\").that.is.empty;\r",
 									"});"
 								],
 								"type": "text/javascript",
