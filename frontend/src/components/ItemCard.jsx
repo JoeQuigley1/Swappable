@@ -6,6 +6,8 @@ const CONDITION_COLORS = {
   Fair: 'warning',
   Poor: 'danger',
 };
+import { CONDITION_COLORS } from '../lib/constants.js';
+import {resolveImageUrl} from "../api/config.js";
 
 export default function ItemCard({ item }) {
   const {
@@ -37,12 +39,14 @@ export default function ItemCard({ item }) {
   // placeholders: the click targets exist now so they can be wired up later.
   const handleCategoryClick = () => {}; // TODO: filter items by this category
   const handleLocationClick = () => {}; // TODO: filter items by this location
-  const handleOwnerClick = () => {}; // TODO: open this owner's public listings
+  const handleOwnerClick = () => {
+    if (ownerId) navigate(`/users/${ownerId}`);
+  };
   return (
     <div className="card h-100">
       {imageUrl ? (
         <img
-          src={imageUrl}
+          src={resolveImageUrl(imageUrl)}
           alt={title}
           className="card-img-top clickable"
           style={{ height: '180px', objectFit: 'cover' }}
