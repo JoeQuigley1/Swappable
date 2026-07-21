@@ -13,6 +13,12 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import com.swappable.backend.common.PagedResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,9 +57,7 @@ public class ItemController {
                 .map(imageId -> "/api/images/" + imageId)
                 .toList();
 
-        String cover = !imageUrls.isEmpty()
-                ? imageUrls.get(0)
-                : item.getImageUrl();
+        String cover = imageUrls.isEmpty() ? null : imageUrls.get(0);
 
         return new ItemResponse(
                 item.getId(),
@@ -90,18 +94,16 @@ public class ItemController {
 
 
 
-        @GetMapping
-        public List<ItemResponse> getAllItems(
-                @RequestParam(required = false) Integer categoryId) {
-                List<Item> items = (categoryId == null)
-                ? itemRepository.findAll()
-                : itemRepository.findByCategoryId(categoryId);
+    @GetMapping
+    public PagedResponse<ItemResponse> getAllItems(
+            @RequestParam(required = false) Integer categoryId,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<ItemResponse> page = (categoryId == null
+                ? itemRepository.findAll(pageable)
+                : itemRepository.findByCategoryId(categoryId, pageable)).map(this::toResponse);
 
-                return items.stream()
-                .map(this::toResponse)
-                .toList();
-        }
-
+        return PagedResponse.from(page);
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<ItemResponse> getItemById(@PathVariable Integer id) {
@@ -144,7 +146,6 @@ public class ItemController {
         item.setTitle(request.title());
         item.setDescription(request.description());
         item.setCondition(request.condition());
-        item.setImageUrl(request.imageUrl());
         item.setStatus("available");
 
         Item savedItem = itemRepository.save(item);
@@ -238,10 +239,6 @@ public class ItemController {
         item.setTitle(request.title());
         item.setDescription(request.description());
         item.setCondition(request.condition());
-
-        if (request.imageUrl() != null) {
-            item.setImageUrl(request.imageUrl());
-        }
 
         Item savedItem = itemRepository.save(item);
 

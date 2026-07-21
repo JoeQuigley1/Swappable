@@ -17,6 +17,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 
 import java.util.List;
 import java.util.Optional;
@@ -28,7 +31,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,7 +54,9 @@ class ItemControllerTest {
     @BeforeEach
     void setUp() {
         itemController = new ItemController(itemRepository, categoryRepository, itemImageRepository, imageService);
-        mockMvc = MockMvcBuilders.standaloneSetup(itemController).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(itemController)
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .build();
 
         owner = new User();
         ReflectionTestUtils.setField(owner, "id", 1);
@@ -96,29 +102,29 @@ class ItemControllerTest {
 
     @Test
     void getAllItems_withoutCategoryId_returnsAll() throws Exception {
-        when(itemRepository.findAll())
-                .thenReturn(List.of(buildItem(1, owner), buildItem(2, owner)));
+        when(itemRepository.findAll(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(buildItem(1, owner), buildItem(2, owner))));
 
         mockMvc.perform(get("/api/items"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2));
+                .andExpect(jsonPath("$.content.length()").value(2));
 
-        verify(itemRepository).findAll();
-        verify(itemRepository, never()).findByCategoryId(anyInt());
+        verify(itemRepository).findAll(any(Pageable.class));
+        verify(itemRepository, never()).findByCategoryId(any(Integer.class), any(Pageable.class));
     }
 
     @Test
     void getAllItems_withCategoryId_filtersByCategory() throws Exception {
-        when(itemRepository.findByCategoryId(1))
-                .thenReturn(List.of(buildItem(1, owner)));
+        when(itemRepository.findByCategoryId(eq(1), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(buildItem(1, owner))));
 
         mockMvc.perform(get("/api/items").param("categoryId", "1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].categoryId").value(1));
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].categoryId").value(1));
 
-        verify(itemRepository).findByCategoryId(1);
-        verify(itemRepository, never()).findAll();
+        verify(itemRepository).findByCategoryId(eq(1), any(Pageable.class));
+        verify(itemRepository, never()).findAll(any(Pageable.class));
     }
 
 
@@ -130,7 +136,7 @@ class ItemControllerTest {
         when(itemRepository.findById(10)).thenReturn(Optional.of(item));
         authenticateAs(otherUser);
 
-        CreateItemRequest request = new CreateItemRequest(1, "New title", "desc", "Good", null);
+        CreateItemRequest request = new CreateItemRequest(1, "New title", "desc", "Good");
 
         mockMvc.perform(put("/api/items/10")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -143,7 +149,7 @@ class ItemControllerTest {
         when(itemRepository.findById(999)).thenReturn(Optional.empty());
         authenticateAs(owner);
 
-        CreateItemRequest request = new CreateItemRequest(1, "New title", "desc", "Good", null);
+        CreateItemRequest request = new CreateItemRequest(1, "New title", "desc", "Good");
 
         mockMvc.perform(put("/api/items/999")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -159,7 +165,7 @@ class ItemControllerTest {
         when(itemRepository.save(item)).thenReturn(item);
         authenticateAs(owner);
 
-        CreateItemRequest request = new CreateItemRequest(1, "New title", "desc", "Good", null);
+        CreateItemRequest request = new CreateItemRequest(1, "New title", "desc", "Good");
 
         mockMvc.perform(put("/api/items/10")
                         .contentType(MediaType.APPLICATION_JSON)
