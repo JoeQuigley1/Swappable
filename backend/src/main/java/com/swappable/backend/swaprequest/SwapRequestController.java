@@ -165,6 +165,35 @@ public class SwapRequestController {
 
         return toResponse(savedSwapRequest, owner.getId());
     }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> cancelSwapRequest(@PathVariable Integer id) {
+        User currentUser = AuthUtils.getAuthenticatedUser();
+
+        SwapRequest swapRequest = swapRequestRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Swap request not found"
+                ));
+
+        // Ensuring that only the user who created (requested) the swap can cancel/delete it
+        if (!swapRequest.getRequester().getId().equals(currentUser.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can only cancel your own swap requests"
+            );
+        }
+
+
+        if (!swapRequest.getStatus().equals(STATUS_PENDING)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Can only delete pending swap requests"
+            );
+        }
+
+        swapRequestRepository.delete(swapRequest);
+        return ResponseEntity.noContent().build();
+    }
 
     @PostMapping("/{id}/decline")
     public SwapRequestResponse declineSwapRequest(@PathVariable Integer id) {
