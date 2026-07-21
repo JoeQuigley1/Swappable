@@ -95,8 +95,12 @@ public class ItemController {
 
 
     @GetMapping
-    public PagedResponse<ItemResponse> getAllItems(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<ItemResponse> page = itemRepository.findAll(pageable).map(this::toResponse);
+    public PagedResponse<ItemResponse> getAllItems(
+            @RequestParam(required = false) Integer categoryId,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<ItemResponse> page = (categoryId == null
+                ? itemRepository.findAll(pageable)
+                : itemRepository.findByCategoryId(categoryId, pageable)).map(this::toResponse);
 
         return PagedResponse.from(page);
     }
