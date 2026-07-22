@@ -6,6 +6,7 @@ const CONDITION_COLORS = {
   Fair: 'warning',
   Poor: 'danger',
 };
+import {resolveImageUrl} from "../api/config.js";
 
 export default function ItemCard({ item }) {
   const {
@@ -42,7 +43,7 @@ export default function ItemCard({ item }) {
     <div className="card h-100">
       {imageUrl ? (
         <img
-          src={imageUrl}
+          src={resolveImageUrl(imageUrl)}
           alt={title}
           className="card-img-top clickable"
           style={{ height: '180px', objectFit: 'cover' }}
