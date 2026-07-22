@@ -52,6 +52,7 @@ public class SecurityConfig {
                                 "/api/images/*",
                                 "/api/categories",
                                 "/error").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/users/{id:[0-9]+}").permitAll()
                         .anyRequest().authenticated()
                 ).addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .httpBasic(httpBasic -> httpBasic.disable())

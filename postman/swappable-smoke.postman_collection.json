@@ -2311,6 +2311,190 @@
 					"response": []
 				}
 			]
+		},
+		{
+			"name": "Item Category Filter",
+			"item": [
+				{
+					"name": "Create item in category 2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();\r",
+									"\r",
+									"pm.test(\"Filter item created\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.collectionVariables.set(\"filterItemId\", json.id);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{ "key": "token", "value": "{{user1Token}}", "type": "string" }
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{ "key": "categoryId", "value": "2", "type": "text" },
+								{ "key": "title", "value": "Category Filter Test", "type": "text" },
+								{ "key": "description", "value": "Filter e2e", "type": "text" },
+								{ "key": "condition", "value": "Good", "type": "text" },
+								{ "key": "images", "type": "file", "src": [], "disabled": true }
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/items",
+							"host": [ "{{baseUrl}}" ],
+							"path": [ "api", "items" ]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Filter by category returns only that category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();\r",
+									"\r",
+									"pm.test(\"Filter returns 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Every returned item is in category 2\", function () {\r",
+									"    json.content.forEach(i => pm.expect(i.categoryId).to.eql(2));\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Includes the item we created\", function () {\r",
+									"    const ids = json.content.map(i => i.id);\r",
+									"    pm.expect(ids).to.include(Number(pm.collectionVariables.get(\"filterItemId\")));\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/items?categoryId=2",
+							"host": [ "{{baseUrl}}" ],
+							"path": [ "api", "items" ],
+							"query": [ { "key": "categoryId", "value": "2" } ]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Filter unknown category returns empty",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Returns 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Empty array\", function () {\r",
+									"    pm.expect(pm.response.json().content).to.be.an(\"array\").that.is.empty;\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/items?categoryId=999",
+							"host": [ "{{baseUrl}}" ],
+							"path": [ "api", "items" ],
+							"query": [ { "key": "categoryId", "value": "999" } ]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Filter non-numeric category returns 400",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Bad request\", function () {\r",
+									"    pm.response.to.have.status(400);\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/items?categoryId=abc",
+							"host": [ "{{baseUrl}}" ],
+							"path": [ "api", "items" ],
+							"query": [ { "key": "categoryId", "value": "abc" } ]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cleanup filter item",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Filter item deleted\", function () {\r",
+									"    pm.response.to.have.status(204);\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{ "key": "token", "value": "{{user1Token}}", "type": "string" }
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/items/{{filterItemId}}",
+							"host": [ "{{baseUrl}}" ],
+							"path": [ "api", "items", "{{filterItemId}}" ]
+						}
+					},
+					"response": []
+				}
+			]
 		}
 	],
 	"event": [
@@ -2403,6 +2587,10 @@
 		},
 		{
 			"key": "imageId",
+			"value": ""
+		},
+		{
+			"key": "filterItemId",
 			"value": ""
 		}
 	]
