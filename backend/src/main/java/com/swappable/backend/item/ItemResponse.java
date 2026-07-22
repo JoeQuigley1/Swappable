@@ -12,6 +12,7 @@ public record ItemResponse(
         String status,
         Integer categoryId,
         String categoryName,
+        Integer ownerId,
         String ownerUsername,
         String ownerLocation,
         Double ownerLatitude,
