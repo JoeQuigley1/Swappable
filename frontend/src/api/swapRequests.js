@@ -14,7 +14,7 @@ async function handle(res) {
   if (res.status === 401) throw new Error('unauthenticated')
   if (!res.ok) {
     let msg = 'Request failed'
-    try { msg = (await res.json()).error || msg } catch {}
+    try { msg = (await res.json()).error || msg } catch { /* response body was not json */ }
     throw new Error(msg)
   }
   if (res.status === 204) return null
@@ -51,10 +51,19 @@ export function cancelSwapRequest(id) {
 }
 
 // Used by ItemDetailPage to fill the "what do you offer" dropdown.
+// Pages through the paginated my-items endpoint (using the backend's own page
+// size) to gather every item, rather than requesting one huge page.
 export async function getMyAvailableItems() {
+  const items = []
+  let page = 0
+  let last = false
 
-  const data = await fetch(`${BASE}/items/my-items?size=1000`, { headers: authHeaders() }).then(handle)
-  const items = data.content ?? []
+  while (!last) {
+    const data = await fetch(`${BASE}/items/my-items?page=${page}`, { headers: authHeaders() }).then(handle)
+    items.push(...(data?.content ?? []))
+    last = data?.last ?? true
+    page += 1
+  }
 
   return items.filter((i) => (i.status || 'available').toLowerCase() !== 'swapped')
 }
