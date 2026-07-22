@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BRAND_COLOR } from '../lib/constants'
-import {API_BASE_URL} from "../api/config.js";
+import {API_BASE_URL, resolveImageUrl} from "../api/config.js";
 
 // page showing all items listed by the logged in user
 function MyItemsPage() {
@@ -137,7 +137,7 @@ function MyItemsPage() {
               {/* show image or placeholder if no image */}
               {item.imageUrl ? (
                 <img
-                  src={item.imageUrl}
+                  src={resolveImageUrl(item.imageUrl)}
                   alt={item.title}
                   className="card-img-top"
                   style={{ height: '180px', objectFit: 'cover' }}

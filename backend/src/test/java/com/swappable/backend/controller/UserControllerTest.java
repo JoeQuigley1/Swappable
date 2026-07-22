@@ -4,6 +4,8 @@ import com.swappable.backend.auth.AuthUtils;
 import com.swappable.backend.auth.dto.UpdateProfileRequest;
 import com.swappable.backend.user.User;
 import com.swappable.backend.user.UserRepository;
+import com.swappable.backend.item.ItemMapper;
+import com.swappable.backend.item.ItemRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -22,12 +25,14 @@ import static org.mockito.Mockito.*;
 class UserControllerTest {
 
     @Mock private UserRepository userRepository;
+    @Mock private ItemRepository itemRepository;
+    @Mock private ItemMapper itemMapper;
 
     private UserController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new UserController(userRepository);
+        controller = new UserController(userRepository, itemRepository, itemMapper);
     }
 
     private User user(int id, String username, String email, String location, String phoneNumber) {
@@ -121,5 +126,32 @@ class UserControllerTest {
             assertEquals("0879999999", response.phoneNumber());
             verify(userRepository).save(u);
         }
+    }
+
+    // ---------- getPublicProfile (#170) ----------
+
+    @Test
+    void getPublicProfile_returns404_whenUserNotFound() {
+        when(userRepository.findById(999)).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> controller.getPublicProfile(999));
+        assertEquals(404, ex.getStatusCode().value());
+    }
+
+    @Test
+    void getPublicProfile_returnsPublicFieldsAndOnlyAvailableItems() {
+        User u = user(1, "owner", "owner@test.com", "Galway", "0851234567");
+        when(userRepository.findById(1)).thenReturn(Optional.of(u));
+        when(itemRepository.findByUserIdAndStatus(1, "available")).thenReturn(List.of());
+
+        var response = controller.getPublicProfile(1);
+
+        assertEquals(1, response.id());
+        assertEquals("owner", response.username());
+        assertEquals("Galway", response.location());
+        assertTrue(response.items().isEmpty());
+        // PublicUserResponse has no email/phone accessor, so PII cannot leak
+        verify(itemRepository).findByUserIdAndStatus(1, "available");
     }
 }

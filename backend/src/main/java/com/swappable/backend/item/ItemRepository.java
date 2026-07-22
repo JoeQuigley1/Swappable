@@ -1,16 +1,16 @@
 package com.swappable.backend.item;
 
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface ItemRepository extends JpaRepository<Item, Integer> {
     List<Item> findByUserId(Integer user_id);
+    List<Item> findByUserIdNot(Integer userId);
+    List<Item> findByTitleContainingIgnoreCase(String titleKeyword);
 
-    Page<Item> findByUserIdNot(Integer userId, Pageable pageable);
+    List<Item> findByUserIdAndStatus(Integer userId, String status);
 
-    Page<Item> findByCategoryIdAndUserIdNot(Integer categoryId, Integer userId, Pageable pageable);
-
-    Page<Item> findByTitleContainingIgnoreCaseAndUserIdNot(String title, Integer userId, Pageable pageable);
+    Page<Item> findByCategoryId(Integer categoryId, Pageable pageable);
 }

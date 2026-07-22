@@ -31,9 +31,9 @@ services:
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
-      MAIL_USERNAME: ${MAIL_USERNAME}
-      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      BREVO_API_KEY: ${BREVO_API_KEY}
       MAIL_FROM: ${MAIL_FROM}
+      APP_FRONTEND_URL: ${APP_FRONTEND_URL}
     depends_on:
       postgres-db:
         condition: service_healthy
