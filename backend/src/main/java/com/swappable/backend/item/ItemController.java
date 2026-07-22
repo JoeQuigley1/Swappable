@@ -12,6 +12,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 
 
 import java.util.ArrayList;
@@ -105,33 +109,37 @@ public class ItemController {
                 .toList();
     }
     @GetMapping
-    public List<ItemResponse> getAllItems() {
+    public Page<ItemResponse> getAllItems(
+            @RequestParam(required = false) Integer categoryId,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+
         User currentUser = getAuthenticatedUser();
-        return itemRepository.findByUserIdNot(currentUser.getId())
-                .stream()
-                .map(this::toResponse)
-                .toList();
+        Page<Item> page;
+
+        if (categoryId == null) {
+            page = itemRepository.findByUserIdNot(currentUser.getId(), pageable);
+        } else {
+            page = itemRepository.findByCategoryIdAndUserIdNot(categoryId, currentUser.getId(), pageable);
+        }
+
+        return page.map(this::toResponse);
     }
 
     @GetMapping("/search")
-    public List<ItemResponse> searchItems(@RequestParam("query") String query) {
+    public Page<ItemResponse> searchItems(
+            @RequestParam("query") String query,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+
         User currentUser = getAuthenticatedUser();
-        List<Item> items;
+        Page<Item> page;
 
         if (query == null || query.trim().isEmpty()) {
-            items = itemRepository.findByUserIdNot(currentUser.getId());
+            page = itemRepository.findByUserIdNot(currentUser.getId(), pageable);
         } else {
-            //
-            // you can filte  results or use a combined query method in your repository.
-            items = itemRepository.findByTitleContainingIgnoreCase(query)
-                    .stream()
-                    .filter(item -> !item.getUser().getId().equals(currentUser.getId()))
-                    .toList();
+            page = itemRepository.findByTitleContainingIgnoreCaseAndUserIdNot(query, currentUser.getId(), pageable);
         }
 
-        return items.stream()
-                .map(this::toResponse)
-                .toList();
+        return page.map(this::toResponse);
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
