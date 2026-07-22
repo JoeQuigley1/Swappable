@@ -60,12 +60,17 @@ export default function BrowseItemsPage() {
 // tracks which item pin is being hovered on the map
   const [hoveredItem, setHoveredItem] = useState(null)
 
-  useEffect(() => {
-      fetch(`${API_BASE_URL}/items`)
-      .then((res) => res.json())
-      .then((data) => setItems(data.map(toCardItem)))
-      .catch(() => setItems([]))
-  }, [])
+ // Fetch items from the backend /search endpoint based on the search term
+   useEffect(() => {
+     const url = search.trim()
+       ? `${API_BASE_URL}/search?query=${encodeURIComponent(search)}`
+       : `${API_BASE_URL}/search`
+
+     fetch(url)
+       .then((res) => res.json())
+       .then((data) => setItems(data.map(toCardItem)))
+       .catch(() => setItems([]))
+   }, [search])
 
 // filter options are derived from the data so every choice yields results.
   const categories = useMemo(
