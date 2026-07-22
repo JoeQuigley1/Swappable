@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import ItemFilterBar from '../components/ItemFilterBar.jsx'
 import ItemGrid from '../components/ItemGrid.jsx'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import {API_BASE_URL, resolveImageUrl} from '../api/config.js'
+import { API_BASE_URL, resolveImageUrl } from '../api/config.js'
+import { CONDITIONS } from '../lib/constants.js'
 
 // fix leaflet's default marker icon not loading in vite
 delete L.Icon.Default.prototype._getIconUrl
@@ -43,9 +44,21 @@ function haversineDistance(lat1, lng1, lat2, lng2) {
   return R * c
 }
 
-// Browse Items page (/items): search, filter and sort the full catalogue.
+// maps a UI sort option to the backend Pageable sort param
+const SORT_PARAMS = {
+  newest: 'createdAt,desc',
+  oldest: 'createdAt,asc',
+  title: 'title,asc',
+}
+
+// how many items to request per page (200 is the max we expose)
+const PAGE_SIZE_OPTIONS = [20, 50, 100, 200]
+
+// Browse Items page (/items). Pagination, category and sort are server-side.
+// Search, condition and radius refine the returned page client-side.
 export default function BrowseItemsPage() {
-  const [items, setItems] = useState([])
+  const [items, setItems] = useState([]) // the current page returned by the server
+  const [categoryOptions, setCategoryOptions] = useState([]) // [{ id, name, ... }]
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('All')
   const [condition, setCondition] = useState('All')
@@ -53,12 +66,18 @@ export default function BrowseItemsPage() {
 // radius in km, 'all' means no distance filter
   const [radius, setRadius] = useState('all')
 
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0])
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalElements, setTotalElements] = useState(0)
+
 // get logged in user's coordinates from localStorage
   const userLat = parseFloat(localStorage.getItem('lat'))
   const userLng = parseFloat(localStorage.getItem('lng'))
   const isLoggedIn = !!localStorage.getItem('token')
 // tracks which item pin is being hovered on the map
   const [hoveredItem, setHoveredItem] = useState(null)
+  const gridRef = useRef(null)
 
  // Fetch items from the backend /search endpoint based on the search term
    useEffect(() => {
@@ -71,49 +90,88 @@ export default function BrowseItemsPage() {
        .then((data) => setItems(data.map(toCardItem)))
        .catch(() => setItems([]))
    }, [search])
+// load the category list once, for the dropdown and to map a category name to its id
   useEffect(() => {
-      fetch(`${API_BASE_URL}/items`)
+    fetch(`${API_BASE_URL}/categories`)
       .then((res) => res.json())
-      .then((data) => setItems((data.content ?? []).map(toCardItem)))
-      .catch(() => setItems([]))
+      .then((data) => setCategoryOptions(Array.isArray(data) ? data : []))
+      .catch(() => setCategoryOptions([]))
   }, [])
 
-// filter options are derived from the data so every choice yields results.
-  const categories = useMemo(
-    () => ['All', ...new Set(items.map((i) => i.category))].sort(byAllFirst),
-    [items]
-  )
-  const conditions = useMemo(
-    () => ['All', ...new Set(items.map((i) => i.condition))].sort(byAllFirst),
-    [items]
-  )
+// changing a server-side filter resets back to the first page
+  const handleCategoryChange = (value) => {
+    setCategory(value)
+    setPage(0)
+  }
+  const handleSortChange = (value) => {
+    setSort(value)
+    setPage(0)
+  }
+  const handlePageSizeChange = (value) => {
+    setPageSize(value)
+    setPage(0)
+  }
 
+// fetch the current page from the backend (pagination, category and sort are server-side)
+  useEffect(() => {
+    const params = new URLSearchParams({
+      page: String(page),
+      size: String(pageSize),
+      sort: SORT_PARAMS[sort] ?? SORT_PARAMS.newest,
+    })
+    const selected = categoryOptions.find((c) => c.name === category)
+    if (selected) params.set('categoryId', String(selected.id))
+
+    fetch(`${API_BASE_URL}/items?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setItems((data.content ?? []).map(toCardItem))
+        setTotalPages(data.totalPages ?? 0)
+        setTotalElements(data.totalElements ?? 0)
+      })
+      .catch(() => {
+        setItems([])
+        setTotalPages(0)
+        setTotalElements(0)
+      })
+  }, [page, pageSize, category, sort, categoryOptions])
+
+// category options come from the backend; condition options are the fixed enum
+  const categories = useMemo(
+    () => ['All', ...categoryOptions.map((c) => c.name)],
+    [categoryOptions]
+  )
+  const conditions = ['All', ...CONDITIONS]
+
+// TODO: search, condition and radius are filtered client-side, so they only
+// refine the current page, not the whole catalogue. Create issues to add
+// server-side support (search + condition query params on GET /api/items, plus
+// a distance/radius filter) and move this filtering into the backend request.
   const visibleItems = useMemo(() => {
     const term = search.trim().toLowerCase()
 
-    const result = items.filter((item) => {
+    return items.filter((item) => {
+// TODO (server-side): text search on title/description
       const matchesSearch =
         !term ||
         item.title.toLowerCase().includes(term) ||
         item.description.toLowerCase().includes(term)
-      const matchesCategory = category === 'All' || item.category === category
+// TODO (server-side): condition filter
       const matchesCondition = condition === 'All' || item.condition === condition
-// distance filter - only applies if user has location and radius is set
-// TODO: use real item owner coordinates from backend once available
-  let matchesRadius = true
-  if (radius !== 'all' && item.lat && item.lng) {
-      const distance = haversineDistance(userLat, userLng, item.lat, item.lng)
-      matchesRadius = distance <= parseInt(radius)
+// TODO (server-side): distance/radius filter, only applies if user has location
+      let matchesRadius = true
+      if (radius !== 'all' && item.lat && item.lng) {
+        const distance = haversineDistance(userLat, userLng, item.lat, item.lng)
+        matchesRadius = distance <= parseInt(radius)
       }
-      return matchesSearch && matchesCategory && matchesCondition && matchesRadius
+      return matchesSearch && matchesCondition && matchesRadius
     })
+  }, [items, search, condition, radius, userLat, userLng])
 
-    return [...result].sort((a, b) => {
-      if (sort === 'title') return a.title.localeCompare(b.title)
-      if (sort === 'oldest') return a.id - b.id
-      return b.id - a.id // TODO: sort by createdAt once available in API response
-    })
-  }, [items, search, category, condition, sort, radius, userLat, userLng])
+// when a client-side filter is active the count reflects the current page,
+// otherwise it reflects the full server-side total for the selected category
+  const clientFiltered = search.trim() !== '' || condition !== 'All' || radius !== 'all'
+  const foundCount = clientFiltered ? visibleItems.length : totalElements
 
   return (
     <div className="container pt-2 pb-5">
@@ -126,13 +184,13 @@ export default function BrowseItemsPage() {
         search={search}
         onSearchChange={setSearch}
         category={category}
-        onCategoryChange={setCategory}
+        onCategoryChange={handleCategoryChange}
         categories={categories}
         condition={condition}
         onConditionChange={setCondition}
         conditions={conditions}
         sort={sort}
-        onSortChange={setSort}
+        onSortChange={handleSortChange}
         radius={radius}
         onRadiusChange={setRadius}
         showRadius={isLoggedIn}
@@ -206,18 +264,55 @@ export default function BrowseItemsPage() {
         </div>
 
 
-      <p className="text-muted small mb-3">
-        {visibleItems.length} {visibleItems.length === 1 ? 'item' : 'items'} found
-      </p>
+      <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <p className="text-muted small mb-0">
+          {foundCount} {foundCount === 1 ? 'item' : 'items'} found
+        </p>
+        <div className="d-flex align-items-center gap-2">
+          <label htmlFor="pageSize" className="text-muted small mb-0">Per page</label>
+          <select
+            id="pageSize"
+            className="form-select form-select-sm"
+            style={{ width: 'auto' }}
+            value={pageSize}
+            onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+          >
+            {PAGE_SIZE_OPTIONS.map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+        </div>
+      </div>
 
-      <ItemGrid items={visibleItems} />
+        <div ref={gridRef}>
+            <ItemGrid items={visibleItems} />
+        </div>
+
+        {totalPages > 1 && (
+            <div className="d-flex justify-content-center align-items-center gap-3 mt-4 mb-4">
+               <button
+                 className="btn btn-outline-secondary btn-sm"
+                 onClick={() => {
+                     setPage((p) => Math.max(p - 1, 0))
+                     gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                   }}
+                   disabled={page === 0}
+                 >
+                    Previous
+                  </button>
+                  <span className="text-muted small">Page {page + 1} of {totalPages}</span>
+                  <button
+                    className="btn btn-outline-secondary btn-sm"
+                   onClick={() => {
+                        setPage((p) => Math.min(p + 1, totalPages - 1))
+                     gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }}
+                disabled={page + 1 >= totalPages}
+               >
+                 Next
+               </button>
+            </div>
+          )}
     </div>
   )
-}
-
-// keeps the "All" option at the top of a sorted dropdown list.
-function byAllFirst(a, b) {
-  if (a === 'All') return -1
-  if (b === 'All') return 1
-  return a.localeCompare(b)
 }

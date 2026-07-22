@@ -21,14 +21,20 @@ function toCardItem(item) {
 }
 
 export default function HomePage() {
-  const [items, setItems] = useState([]);
+  const [featuredItems, setFeaturedItems] = useState([]);
+  const [totalItemCount, setTotalItemCount] = useState(0);
   const [categories, setCategories] = useState([]);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/items`)
+    fetch(`${API_BASE_URL}/items?size=6&sort=createdAt,desc`)
       .then((res) => res.json())
-      .then((data) => setItems(data.content ?? []))
-      .catch(() => setItems([]));
+      .then((data) => setFeaturedItems((data.content ?? []).map(toCardItem)))
+      .catch(() => setFeaturedItems([]));
+
+    fetch(`${API_BASE_URL}/items?size=1`)
+      .then((res) => res.json())
+      .then((data) => setTotalItemCount(data.totalElements ?? 0))
+      .catch(() => setTotalItemCount(0));
 
     fetch(`${API_BASE_URL}/categories`)
       .then((res) => res.json())
@@ -36,28 +42,17 @@ export default function HomePage() {
       .catch(() => setCategories([]));
   }, []);
 
-  // live count of items per category name so each card shows a real total
-  const itemsByCategory = items.reduce((acc, item) => {
-    acc[item.categoryName] = (acc[item.categoryName] ?? 0) + 1;
-    return acc;
-  }, {});
-
-  // show the six most recently listed items (highest id first)
-  const featuredItems = [...items]
-    .sort((a, b) => b.id - a.id)
-    .slice(0, 6)
-    .map(toCardItem);
 
   return (
     <>
-      <HeroSection itemCount={items.length} />
+      <HeroSection itemCount={totalItemCount} />
 
       <section className="py-5">
         <div className="container">
           <div className="mb-4">
             <h2 className="fw-bold mb-1">Browse by Category</h2>
             <p className="text-muted mb-0">
-              Find exactly what you&apos;re looking for
+              Find exactly what you're looking for
             </p>
           </div>
           <div className="row row-cols-2 row-cols-sm-4 row-cols-lg-8 g-3">
@@ -67,7 +62,7 @@ export default function HomePage() {
                   category={{
                     name: cat.name,
                     icon: CATEGORY_ICONS[cat.name] ?? DEFAULT_CATEGORY_ICON,
-                    count: itemsByCategory[cat.name] ?? 0,
+                    count: cat.itemCount ?? 0,
                   }}
                 />
               </div>

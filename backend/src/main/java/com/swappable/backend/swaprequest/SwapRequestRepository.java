@@ -1,6 +1,8 @@
 package com.swappable.backend.swaprequest;
 
 import com.swappable.backend.user.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -9,9 +11,9 @@ import java.util.List;
 
 public interface SwapRequestRepository extends JpaRepository<SwapRequest, Integer> {
 
-    List<SwapRequest> findByRequester(User requester);
+    Page<SwapRequest> findByRequester(User requester, Pageable pageable);
 
-    List<SwapRequest> findByOwner(User owner);
+    Page<SwapRequest> findByOwner(User owner, Pageable pageable);
 
     @Transactional
     long deleteByStatusAndCreatedAtBefore(String status, LocalDateTime cutoff);

@@ -257,7 +257,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"const json = pm.response.json();\r",
+									"const json = pm.response.json().content;\r",
 									"const itemId = Number(pm.collectionVariables.get(\"itemId\"));\r",
 									"\r",
 									"pm.test(\"Items returned\", function () {\r",
@@ -464,7 +464,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"const json = pm.response.json();\r",
+									"const json = pm.response.json().content;\r",
 									"\r",
 									"pm.test(\"My items returns 200\", function () {\r",
 									"    pm.response.to.have.status(200);\r",
@@ -1621,7 +1621,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"const json = pm.response.json();\r",
+									"const json = pm.response.json().content;\r",
 									"\r",
 									"pm.test(\"Sent requests returned\", function () {\r",
 									"    pm.response.to.have.status(200);\r",
@@ -1679,7 +1679,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"const json = pm.response.json();\r",
+									"const json = pm.response.json().content;\r",
 									"\r",
 									"pm.test(\"Received requests returned\", function () {\r",
 									"    pm.response.to.have.status(200);\r",
@@ -1791,7 +1791,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"const json = pm.response.json();\r",
+									"const json = pm.response.json().content;\r",
 									"\r",
 									"pm.test(\"Sent requests returned\", function () {\r",
 									"    pm.response.to.have.status(200);\r",
@@ -1856,7 +1856,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"const json = pm.response.json();\r",
+									"const json = pm.response.json().content;\r",
 									"\r",
 									"pm.test(\"Sent requests returned\", function () {\r",
 									"    pm.response.to.have.status(200);\r",
