@@ -5,6 +5,11 @@ import com.swappable.backend.auth.dto.UpdateProfileRequest;
 import com.swappable.backend.auth.AuthUtils;
 import com.swappable.backend.user.User;
 import com.swappable.backend.user.UserRepository;
+import com.swappable.backend.user.PublicUserResponse;
+import com.swappable.backend.item.ItemMapper;
+import com.swappable.backend.item.ItemRepository;
+import com.swappable.backend.item.ItemResponse;
+import java.util.List;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
@@ -15,10 +20,20 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/users")
 public class UserController {
 
-    private final UserRepository userRepository;
+    private static final String ITEM_STATUS_AVAILABLE = "available";
 
-    public UserController(UserRepository userRepository) {
+    private final UserRepository userRepository;
+    private final ItemRepository itemRepository;
+    private final ItemMapper itemMapper;
+
+    public UserController(
+            UserRepository userRepository,
+            ItemRepository itemRepository,
+            ItemMapper itemMapper
+    ) {
         this.userRepository = userRepository;
+        this.itemRepository = itemRepository;
+        this.itemMapper = itemMapper;
     }
 
     @GetMapping("/me")
@@ -39,6 +54,25 @@ public class UserController {
         if (request.phoneNumber() != null) user.setPhoneNumber(request.phoneNumber());
         userRepository.save(user);
         return toResponse(user);
+    }
+
+    @GetMapping("/{id}")
+    public PublicUserResponse getPublicProfile(@PathVariable Integer id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "User not found"));
+
+        List<ItemResponse> items = itemRepository
+                .findByUserIdAndStatus(user.getId(), ITEM_STATUS_AVAILABLE)
+                .stream()
+                .map(itemMapper::toResponse)
+                .toList();
+
+        return new PublicUserResponse(
+                user.getId(),
+                user.getUsername(),
+                user.getLocation(),
+                items);
     }
 
     private User loadCurrentUser() {
