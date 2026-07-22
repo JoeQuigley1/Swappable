@@ -184,8 +184,7 @@ public class SwapRequestController {
             );
         }
 
-        if (!swapRequest.getStatus().equals(STATUS_PENDING)) {
-            throw new ResponseStatusException(
+        if (!STATUS_PENDING.equals(swapRequest.getStatus())) {            throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Swap request has already been processed"
             );
