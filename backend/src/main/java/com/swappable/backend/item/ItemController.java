@@ -31,6 +31,7 @@ public class ItemController {
     private final CategoryRepository categoryRepository;
     private final ItemImageRepository itemImageRepository;
     private final ImageService imageService;
+    private final ItemMapper itemMapper;
     private static final List<String> VALID_CONDITIONS = List.of(
             "New",
             "Like New",
@@ -43,38 +44,18 @@ public class ItemController {
             ItemRepository itemRepository,
             CategoryRepository categoryRepository,
             ItemImageRepository itemImageRepository,
-            ImageService imageService
+            ImageService imageService,
+            ItemMapper itemMapper
     ) {
         this.itemRepository = itemRepository;
         this.categoryRepository = categoryRepository;
         this.itemImageRepository = itemImageRepository;
         this.imageService = imageService;
+        this.itemMapper = itemMapper;
     }
 
     private ItemResponse toResponse(Item item) {
-        List<String> imageUrls = itemImageRepository.findIdsByItemId(item.getId())
-                .stream()
-                .map(imageId -> "/api/images/" + imageId)
-                .toList();
-
-        String cover = imageUrls.isEmpty() ? null : imageUrls.get(0);
-
-        return new ItemResponse(
-                item.getId(),
-                item.getTitle(),
-                item.getDescription(),
-                item.getCondition(),
-                cover,
-                item.getStatus(),
-                item.getCategory().getId(),
-                item.getCategory().getName(),
-                item.getUser().getUsername(),
-                item.getUser().getLocation(),
-                item.getUser().getLatitude(),
-                item.getUser().getLongitude(),
-                imageUrls,
-                item.getCreatedAt()
-        );
+        return itemMapper.toResponse(item);
     }
 
     private User getAuthenticatedUser() {
@@ -114,14 +95,15 @@ public class ItemController {
     }
 
     @GetMapping("/my-items")
-    public List<ItemResponse> getMyItems() {
-
+    public PagedResponse<ItemResponse> getMyItems(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
         User user = getAuthenticatedUser();
 
-        return itemRepository.findByUserId(user.getId())
-                .stream()
-                .map(this::toResponse)
-                .toList();
+        Page<ItemResponse> page = itemRepository.findByUserId(user.getId(), pageable)
+                .map(this::toResponse);
+
+        return PagedResponse.from(page);
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)

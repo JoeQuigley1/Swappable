@@ -23,14 +23,30 @@ function SwapRequestsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  // independent pagination state per tab
+  const [receivedPage, setReceivedPage] = useState(0)
+  const [receivedTotalPages, setReceivedTotalPages] = useState(0)
+  const [sentPage, setSentPage] = useState(0)
+  const [sentTotalPages, setSentTotalPages] = useState(0)
+  const [receivedTotal, setReceivedTotal] = useState(0)
+  const [sentTotal, setSentTotal] = useState(0)
+  const PAGE_SIZE = 20
+
   // load both lists from the backend
   const load = async () => {
       try {
         setLoading(true)
         setError('')
-        const [r, s] = await Promise.all([getReceivedSwapRequests(), getSentSwapRequests()])
-        setReceived(r)
-        setSent(s)
+        const [r, s] = await Promise.all([
+            getReceivedSwapRequests(receivedPage, PAGE_SIZE),
+            getSentSwapRequests(sentPage, PAGE_SIZE),
+           ])
+        setReceived(r.content ?? [])
+        setReceivedTotalPages(r.totalPages ?? 0)
+        setReceivedTotal(r.totalElements ?? 0)
+        setSent(s.content ?? [])
+        setSentTotalPages(s.totalPages ?? 0)
+        setSentTotal(s.totalElements ?? 0)
       } catch (err) {
         setError('Could not load swap requests.')
       } finally {
@@ -39,7 +55,7 @@ function SwapRequestsPage() {
     }
 
 
-    useEffect(() => { load() }, [])
+     useEffect(() => { load() }, [receivedPage, sentPage])
 
     // act, then refetch so the lists reflect the new status
     const handleAccept = async (id) => {
@@ -81,7 +97,7 @@ function SwapRequestsPage() {
                   className={`nav-link ${tab === 'received' ? 'active' : ''}`}
                   onClick={() => setTab('received')}
                 >
-                  Received ({received.length})
+                  Received ({receivedTotal})
                 </button>
               </li>
               <li className="nav-item">
@@ -89,7 +105,7 @@ function SwapRequestsPage() {
                   className={`nav-link ${tab === 'sent' ? 'active' : ''}`}
                   onClick={() => setTab('sent')}
                 >
-                  Sent ({sent.length})
+                  Sent ({sentTotal})
                 </button>
               </li>
             </ul>
@@ -153,6 +169,25 @@ function SwapRequestsPage() {
                     </div>
                   </div>
                 ))}
+                 {receivedTotalPages > 1 && (
+                     <div className="d-flex justify-content-center align-items-center gap-3 mt-3  mb-4">
+                         <button
+                            className="btn btn-outline-secondary btn-sm"
+                             onClick={() => setReceivedPage((p) => Math.max(p - 1, 0))}
+                             disabled={receivedPage === 0}
+                            >
+                              Previous
+                              </button>
+                              <span className="text-muted small">Page {receivedPage + 1} of {receivedTotalPages}</span>
+                              <button
+                                 className="btn btn-outline-secondary btn-sm"
+                                 onClick={() => setReceivedPage((p) => Math.min(p + 1, receivedTotalPages - 1))}
+                                 disabled={receivedPage + 1 >= receivedTotalPages}
+                            >
+                                      Next
+                                    </button>
+                                  </div>
+                                )}
               </div>
             )}
 
@@ -194,6 +229,25 @@ function SwapRequestsPage() {
                     </div>
                   </div>
                 ))}
+                 {sentTotalPages > 1 && (
+                     <div className="d-flex justify-content-center align-items-center gap-3 mt-3 mb-4">
+                         <button
+                             className="btn btn-outline-secondary btn-sm"
+                             onClick={() => setSentPage((p) => Math.max(p - 1, 0))}
+                             disabled={sentPage === 0}
+                            >
+                             Previous
+                         </button>
+                         <span className="text-muted small">Page {sentPage + 1} of {sentTotalPages}</span>
+                         <button
+                             className="btn btn-outline-secondary btn-sm"
+                             onClick={() => setSentPage((p) => Math.min(p + 1, sentTotalPages - 1))}
+                             disabled={sentPage + 1 >= sentTotalPages}
+                         >
+                            Next
+                         </button>
+                     </div>
+                 )}
               </div>
             )}
 

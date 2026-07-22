@@ -63,6 +63,18 @@ body {
   z-index: 1000;
 }
 
+@media (max-width: 991.98px) {
+  .site-navbar .navbar-collapse.show {
+    position: absolute;
+    top: 104px;
+    left: 0;
+    right: 0;
+    background: #0c2b30;
+    padding: 1rem 1.5rem 1.5rem;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+  }
+}
+
 .site-footer {
   background: linear-gradient(135deg, #0c2b30 0%, #1a6a78 100%);
 }
