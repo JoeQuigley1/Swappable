@@ -42,6 +42,7 @@ class ItemControllerTest {
     @Mock private CategoryRepository categoryRepository;
     @Mock private ItemImageRepository itemImageRepository;
     @Mock private ImageService imageService;
+    @Mock private ItemMapper itemMapper;
 
     private ItemController itemController;
     private MockMvc mockMvc;
@@ -53,7 +54,7 @@ class ItemControllerTest {
 
     @BeforeEach
     void setUp() {
-        itemController = new ItemController(itemRepository, categoryRepository, itemImageRepository, imageService);
+        itemController = new ItemController(itemRepository, categoryRepository, itemImageRepository, imageService, itemMapper);
         mockMvc = MockMvcBuilders.standaloneSetup(itemController)
                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
                 .build();
@@ -117,6 +118,8 @@ class ItemControllerTest {
     void getAllItems_withCategoryId_filtersByCategory() throws Exception {
         when(itemRepository.findByCategoryId(eq(1), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(buildItem(1, owner))));
+        when(itemMapper.toResponse(any(Item.class)))
+                .thenReturn(new ItemResponse(1, "Test Item", "desc", "Good", null, "available", 1, "Books", 1, "owner", null, null, null, List.of(), null));
 
         mockMvc.perform(get("/api/items").param("categoryId", "1"))
                 .andExpect(status().isOk())
