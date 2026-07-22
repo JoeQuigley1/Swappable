@@ -9,8 +9,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import com.swappable.backend.common.PagedResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 
-import java.util.List;
+
 
 @RestController
 @RequestMapping("/api/swap-requests")
@@ -115,23 +120,27 @@ public class SwapRequestController {
     }
 
     @GetMapping("/received")
-    public List<SwapRequestResponse> getIncomingSwapRequests() {
+    public PagedResponse<SwapRequestResponse> getIncomingSwapRequests(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
         User owner = AuthUtils.getAuthenticatedUser();
 
-        return swapRequestRepository.findByOwner(owner)
-                .stream()
-                .map(swapRequest -> toResponse(swapRequest, owner.getId()))
-                .toList();
+        Page<SwapRequestResponse> page = swapRequestRepository.findByOwner(owner, pageable)
+                .map(swapRequest -> toResponse(swapRequest, owner.getId()));
+
+        return PagedResponse.from(page);
     }
 
     @GetMapping("/sent")
-    public List<SwapRequestResponse> getOutgoingSwapRequests() {
+        public PagedResponse<SwapRequestResponse> getOutgoingSwapRequests(
+                @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+        ) {
         User requester = AuthUtils.getAuthenticatedUser();
 
-        return swapRequestRepository.findByRequester(requester)
-                .stream()
-                .map(swapRequest -> toResponse(swapRequest, requester.getId()))
-                .toList();
+        Page<SwapRequestResponse> page = swapRequestRepository.findByRequester(requester, pageable)
+                .map(swapRequest -> toResponse(swapRequest, requester.getId()));
+
+        return PagedResponse.from(page);
     }
 
     @PostMapping("/{id}/accept")
