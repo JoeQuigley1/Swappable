@@ -4,6 +4,7 @@ import ItemCard from '../components/ItemCard.jsx';
 import CategoryCard from '../components/CategoryCard.jsx';
 import HowItWorksSection from '../components/HowItWorksSection.jsx';
 import { CATEGORY_ICONS, DEFAULT_CATEGORY_ICON } from '../lib/constants.js';
+import {API_BASE_URL} from "../api/config.js";
 
 // map a backend item (ItemResponse) onto the shape ItemCard expects
 function toCardItem(item) {
@@ -25,17 +26,17 @@ export default function HomePage() {
   const [categories, setCategories] = useState([]);
 
   useEffect(() => {
-    fetch('/api/items?size=6&sort=createdAt,desc')
+    fetch(`${API_BASE_URL}/items?size=6&sort=createdAt,desc`)
       .then((res) => res.json())
       .then((data) => setFeaturedItems((data.content ?? []).map(toCardItem)))
       .catch(() => setFeaturedItems([]));
 
-    fetch('/api/items?size=1')
-          .then((res) => res.json())
-          .then((data) => setTotalItemCount(data.totalElements ?? 0))
-          .catch(() => setTotalItemCount(0));
+    fetch(`${API_BASE_URL}/items?size=1`)
+      .then((res) => res.json())
+      .then((data) => setTotalItemCount(data.totalElements ?? 0))
+      .catch(() => setTotalItemCount(0));
 
-    fetch('/api/categories')
+    fetch(`${API_BASE_URL}/categories`)
       .then((res) => res.json())
       .then(setCategories)
       .catch(() => setCategories([]));

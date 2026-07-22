@@ -31,6 +31,7 @@ public class ItemController {
     private final CategoryRepository categoryRepository;
     private final ItemImageRepository itemImageRepository;
     private final ImageService imageService;
+    private final ItemMapper itemMapper;
     private static final List<String> VALID_CONDITIONS = List.of(
             "New",
             "Like New",
@@ -43,40 +44,18 @@ public class ItemController {
             ItemRepository itemRepository,
             CategoryRepository categoryRepository,
             ItemImageRepository itemImageRepository,
-            ImageService imageService
+            ImageService imageService,
+            ItemMapper itemMapper
     ) {
         this.itemRepository = itemRepository;
         this.categoryRepository = categoryRepository;
         this.itemImageRepository = itemImageRepository;
         this.imageService = imageService;
+        this.itemMapper = itemMapper;
     }
 
     private ItemResponse toResponse(Item item) {
-        List<String> imageUrls = itemImageRepository.findIdsByItemId(item.getId())
-                .stream()
-                .map(imageId -> "/api/images/" + imageId)
-                .toList();
-
-        String cover = !imageUrls.isEmpty()
-                ? imageUrls.get(0)
-                : item.getImageUrl();
-
-        return new ItemResponse(
-                item.getId(),
-                item.getTitle(),
-                item.getDescription(),
-                item.getCondition(),
-                cover,
-                item.getStatus(),
-                item.getCategory().getId(),
-                item.getCategory().getName(),
-                item.getUser().getUsername(),
-                item.getUser().getLocation(),
-                item.getUser().getLatitude(),
-                item.getUser().getLongitude(),
-                imageUrls,
-                item.getCreatedAt()
-        );
+        return itemMapper.toResponse(item);
     }
 
     private User getAuthenticatedUser() {
@@ -97,8 +76,12 @@ public class ItemController {
 
 
     @GetMapping
-    public PagedResponse<ItemResponse> getAllItems(@PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<ItemResponse> page = itemRepository.findAll(pageable).map(this::toResponse);
+    public PagedResponse<ItemResponse> getAllItems(
+            @RequestParam(required = false) Integer categoryId,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        Page<ItemResponse> page = (categoryId == null
+                ? itemRepository.findAll(pageable)
+                : itemRepository.findByCategoryId(categoryId, pageable)).map(this::toResponse);
 
         return PagedResponse.from(page);
     }
@@ -145,7 +128,6 @@ public class ItemController {
         item.setTitle(request.title());
         item.setDescription(request.description());
         item.setCondition(request.condition());
-        item.setImageUrl(request.imageUrl());
         item.setStatus("available");
 
         Item savedItem = itemRepository.save(item);
@@ -239,10 +221,6 @@ public class ItemController {
         item.setTitle(request.title());
         item.setDescription(request.description());
         item.setCondition(request.condition());
-
-        if (request.imageUrl() != null) {
-            item.setImageUrl(request.imageUrl());
-        }
 
         Item savedItem = itemRepository.save(item);
 

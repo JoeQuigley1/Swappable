@@ -4,7 +4,7 @@ import ItemGrid from '../components/ItemGrid.jsx'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { API_BASE_URL } from '../api/config.js'
+import {API_BASE_URL, resolveImageUrl} from '../api/config.js'
 
 // fix leaflet's default marker icon not loading in vite
 delete L.Icon.Default.prototype._getIconUrl
@@ -186,7 +186,7 @@ const pagedItems = useMemo(
       }}>
         {hoveredItem.imageUrl && (
             <img
-               src={hoveredItem.imageUrl}
+               src={resolveImageUrl(hoveredItem.imageUrl)}
                alt={hoveredItem.title}
                style={{ width: '100%', height: '120px', objectFit: 'cover' }}
             />

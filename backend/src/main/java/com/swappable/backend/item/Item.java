@@ -27,9 +27,6 @@ public class Item {
     private String description;
     private String condition;
 
-    @Column(name = "image_url")
-    private String imageUrl;
-
     private String status;
 
     @Column(name = "created_at", insertable = false, updatable = false)
@@ -59,10 +56,6 @@ public class Item {
         return condition;
     }
 
-    public String getImageUrl() {
-        return imageUrl;
-    }
-
     public String getStatus() {
         return status;
     }
@@ -87,10 +80,6 @@ public class Item {
 
     public void setCondition(String condition) {
         this.condition = condition;
-    }
-
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
     }
 
     public void setStatus(String status) {
