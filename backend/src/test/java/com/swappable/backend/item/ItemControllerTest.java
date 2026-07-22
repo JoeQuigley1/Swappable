@@ -252,4 +252,4 @@ class ItemControllerTest {
         mockMvc.perform(delete("/api/items/999/images/5"))
                 .andExpect(status().isNotFound());
     }
-}
+} 
