@@ -86,6 +86,7 @@ public class SwapRequestController {
             );
         }
 
+
         boolean duplicateRequestExists = swapRequestRepository
                 .existsByRequesterIdAndRequestedItemIdAndOfferedItemIdAndStatus(
                         requester.getId(),

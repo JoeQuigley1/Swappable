@@ -86,27 +86,6 @@ public class ItemController {
         return user;
     }
 
-    @GetMapping
-    public List<ItemResponse> getAllItems() {
-        return itemRepository.findAll()
-                .stream()
-                .map(this::toResponse)
-                .toList();
-    }
-
-    @GetMapping("/search")
-    public List<ItemResponse> searchItems(@RequestParam("query") String query) {
-        List<Item> items;
-        if (query == null || query.trim().isEmpty()) {
-            items = itemRepository.findAll();
-        } else {
-            items = itemRepository.findByTitleContainingIgnoreCase(query);
-        }
-
-        return items.stream()
-                .map(this::toResponse)
-                .toList();
-    }
 
     @GetMapping("/{id}")
     public ResponseEntity<ItemResponse> getItemById(@PathVariable Integer id) {
@@ -122,6 +101,35 @@ public class ItemController {
 
         return itemRepository.findByUserId(user.getId())
                 .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+    @GetMapping
+    public List<ItemResponse> getAllItems() {
+        User currentUser = getAuthenticatedUser();
+        return itemRepository.findByUserIdNot(currentUser.getId())
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @GetMapping("/search")
+    public List<ItemResponse> searchItems(@RequestParam("query") String query) {
+        User currentUser = getAuthenticatedUser();
+        List<Item> items;
+
+        if (query == null || query.trim().isEmpty()) {
+            items = itemRepository.findByUserIdNot(currentUser.getId());
+        } else {
+            //
+            // you can filte  results or use a combined query method in your repository.
+            items = itemRepository.findByTitleContainingIgnoreCase(query)
+                    .stream()
+                    .filter(item -> !item.getUser().getId().equals(currentUser.getId()))
+                    .toList();
+        }
+
+        return items.stream()
                 .map(this::toResponse)
                 .toList();
     }
