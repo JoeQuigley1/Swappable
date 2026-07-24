@@ -6,6 +6,8 @@ target/
 .idea
 /.idea
 
+/simulated_images/
+
 ### STS ###
 .apt_generated
 .classpath

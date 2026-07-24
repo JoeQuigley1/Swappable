@@ -3,15 +3,10 @@ package com.swappable.backend.swaprequest;
 import com.swappable.backend.item.Item;
 import com.swappable.backend.user.User;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "swap_requests")
-@Getter
-@Setter
 public class SwapRequest {
 
     @Id
@@ -40,4 +35,24 @@ public class SwapRequest {
     private String message;
 
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    // Getters
+    public Integer getId() { return id; }
+    public User getRequester() { return requester; }
+    public User getOwner() { return owner; }
+    public Item getRequestedItem() { return requestedItem; }
+    public Item getOfferedItem() { return offeredItem; }
+    public String getStatus() { return status; }
+    public String getMessage() { return message; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+
+    // Setters
+    public void setId(Integer id) { this.id = id; }
+    public void setRequester(User requester) { this.requester = requester; }
+    public void setOwner(User owner) { this.owner = owner; }
+    public void setRequestedItem(Item requestedItem) { this.requestedItem = requestedItem; }
+    public void setOfferedItem(Item offeredItem) { this.offeredItem = offeredItem; }
+    public void setStatus(String status) { this.status = status; }
+    public void setMessage(String message) { this.message = message; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
