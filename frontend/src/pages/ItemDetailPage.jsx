@@ -225,7 +225,13 @@ function ItemDetailPage() {
               <div className="border-top pt-3 mb-4">
                 <p className="mb-1">
                   <span className="fw-semibold">Listed by: </span>
-                  {item.ownerUsername}
+                  <span
+                    className="clickable"
+                    role="button"
+                    onClick={() => item.ownerId && navigate(`/users/${item.ownerId}`)}
+                  >
+                    {item.ownerUsername}
+                  </span>
                 </p>
                 <p className="mb-1">
                   <span className="fw-semibold">Location: </span>

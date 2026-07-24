@@ -10,6 +10,7 @@ import EditItemPage from './pages/EditItemPage.jsx';
 import MyItemsPage from './pages/MyItemsPage.jsx';
 import ItemDetailPage from './pages/ItemDetailPage.jsx';
 import BrowseItemsPage from './pages/BrowseItemsPage.jsx';
+import UserProfilePage from './pages/UserProfilePage.jsx';
 import HowItWorksPage from './pages/HowItWorksPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx'
@@ -32,6 +33,7 @@ function App() {
           <Route path="/items/edit/:id" element={<EditItemPage />} />
           <Route path="/my-items" element={<MyItemsPage />} />
           <Route path="/items/:id" element={<ItemDetailPage />} />
+          <Route path="/users/:id" element={<UserProfilePage />} />
           <Route path="*" element={<NotFoundPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
