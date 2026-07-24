@@ -60,6 +60,25 @@ function ItemDetailPage() {
       getMyAvailableItems().then(setMyItems).catch(() => setMyItems([]))
   }, [])
 
+     // restore a swap-in-progress if the user just logged in to get here
+      const [resumedSwap, setResumedSwap] = useState(false)
+      useEffect(() => {
+        const saved = sessionStorage.getItem('swapIntent')
+        if (!saved) return
+        try {
+          const intent = JSON.parse(saved)
+         if (String(intent.itemId) === String(id)) {
+             if (intent.offeredItemId) setOfferedItemId(intent.offeredItemId)
+             if (intent.message) setMessage(intent.message)
+             setResumedSwap(true)
+         }
+        } catch {
+            // ignore malformed storage
+        } finally{
+          sessionStorage.removeItem('swapIntent')
+        }q
+      }, [id])
+
 
   // runs when user clicks Request a swap
   // TODO: replace with real API call to POST /api/swaps
@@ -67,6 +86,12 @@ function ItemDetailPage() {
   const handleRequestSwap = async () => {
       setSwapError('')
        if (!localStorage.getItem('token')) {
+           sessionStorage.setItem('swapIntent', JSON.stringify({
+               itemId: id,
+               itemTitle: item.title,
+               offeredItemId,
+               message,
+             }))
            navigate('/login')
            return
        }
@@ -224,6 +249,11 @@ function ItemDetailPage() {
                    </div>
                ) : (
                    <div>
+                        {resumedSwap && (
+                            <div className="alert alert-info py-2">
+                                Welcome back! Continue your swap request below.
+                            </div>
+                        )}
                        {swapError && <div className="alert alert-danger py-2">{swapError}</div>}
 
                         <label className="form-label small mb-1">Offer one of your items</label>
