@@ -63,7 +63,7 @@ public class UserController {
     @GetMapping("/{id}")
     public PublicUserResponse getPublicProfile(
             @PathVariable Integer id,
-            @PageableDefault(size = 18, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
