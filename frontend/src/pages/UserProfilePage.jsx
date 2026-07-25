@@ -27,9 +27,15 @@ export default function UserProfilePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [viewMode, setViewMode] = useState('cards')
+  const [page, setPage] = useState(0)
 
   // public profiles are keyed by numeric id; "me" is not a public profile
   const isNumericId = /^\d+$/.test(id)
+
+  // start from the first page when viewing a different member
+  useEffect(() => {
+    setPage(0)
+  }, [id])
 
   useEffect(() => {
     if (!isNumericId) return
@@ -37,7 +43,7 @@ export default function UserProfilePage() {
       setLoading(true)
       setError('')
       try {
-        const data = await getPublicProfile(id)
+        const data = await getPublicProfile(id, page)
         setProfile(data)
       } catch {
         setError('Could not load this member.')
@@ -46,7 +52,7 @@ export default function UserProfilePage() {
       }
     }
     loadProfile()
-  }, [id, isNumericId])
+  }, [id, isNumericId, page])
 
   // /users/me should go to your own profile, or login when logged out
   if (id === 'me') {
@@ -77,7 +83,10 @@ export default function UserProfilePage() {
     )
   }
 
-  const items = (profile.items ?? []).map(toCardItem)
+  const paged = profile.items ?? {}
+  const items = (paged.content ?? []).map(toCardItem)
+  const totalPages = paged.totalPages ?? 0
+  const totalElements = paged.totalElements ?? items.length
 
   return (
     <div className="container pt-2 pb-5">
@@ -105,7 +114,7 @@ export default function UserProfilePage() {
       {/* member's listed items */}
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h4 className="fw-bold mb-0">
-          Listings <span className="text-muted fw-normal">({items.length})</span>
+          Listings <span className="text-muted fw-normal">({totalElements})</span>
         </h4>
         <div className="btn-group" role="group" aria-label="View mode">
           <button
@@ -127,6 +136,26 @@ export default function UserProfilePage() {
         </div>
       </div>
       {viewMode === 'cards' ? <ItemGrid items={items} /> : <ItemList items={items} />}
+
+      {totalPages > 1 && (
+        <div className="d-flex justify-content-center align-items-center gap-3 mt-4 mb-4">
+          <button
+            className="btn btn-outline-secondary btn-sm"
+            onClick={() => setPage((p) => Math.max(p - 1, 0))}
+            disabled={page === 0}
+          >
+            Previous
+          </button>
+          <span className="text-muted small">Page {page + 1} of {totalPages}</span>
+          <button
+            className="btn btn-outline-secondary btn-sm"
+            onClick={() => setPage((p) => Math.min(p + 1, totalPages - 1))}
+            disabled={page + 1 >= totalPages}
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   )
 }
