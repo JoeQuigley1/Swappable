@@ -5,21 +5,7 @@ import CategoryCard from '../components/CategoryCard.jsx';
 import HowItWorksSection from '../components/HowItWorksSection.jsx';
 import { CATEGORY_ICONS, DEFAULT_CATEGORY_ICON } from '../lib/constants.js';
 import {API_BASE_URL} from "../api/config.js";
-
-// map a backend item (ItemResponse) onto the shape ItemCard expects
-function toCardItem(item) {
-  return {
-    id: item.id,
-    title: item.title,
-    description: item.description,
-    category: item.categoryName,
-    condition: item.condition,
-    owner: item.ownerUsername,
-    ownerId: item.ownerId,
-    location: item.ownerLocation,
-    imageUrl: item.imageUrl,
-  };
-}
+import { toCardItem } from '../api/items.js';
 
 export default function HomePage() {
   const [featuredItems, setFeaturedItems] = useState([]);

@@ -3,22 +3,8 @@ import { useParams, Navigate } from 'react-router-dom'
 import ItemGrid from '../components/ItemGrid.jsx'
 import ItemList from '../components/ItemList.jsx'
 import { getPublicProfile } from '../api/users.js'
+import { toCardItem } from '../api/items.js'
 import { BRAND_COLOR } from '../lib/constants.js'
-
-// map a backend item (ItemResponse) onto the shape ItemCard expects
-function toCardItem(item) {
-  return {
-    id: item.id,
-    title: item.title,
-    description: item.description,
-    category: item.categoryName,
-    condition: item.condition,
-    owner: item.ownerUsername,
-    ownerId: item.ownerId,
-    location: item.ownerLocation,
-    imageUrl: item.imageUrl,
-  }
-}
 
 // public read-only profile: a member and the items they have listed
 export default function UserProfilePage() {
