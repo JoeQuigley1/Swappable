@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Navigate } from 'react-router-dom'
 import ItemGrid from '../components/ItemGrid.jsx'
 import ItemList from '../components/ItemList.jsx'
 import { getPublicProfile } from '../api/users.js'
@@ -28,7 +28,11 @@ export default function UserProfilePage() {
   const [error, setError] = useState('')
   const [viewMode, setViewMode] = useState('cards')
 
+  // public profiles are keyed by numeric id; "me" is not a public profile
+  const isNumericId = /^\d+$/.test(id)
+
   useEffect(() => {
+    if (!isNumericId) return
     const loadProfile = async () => {
       setLoading(true)
       setError('')
@@ -42,7 +46,18 @@ export default function UserProfilePage() {
       }
     }
     loadProfile()
-  }, [id])
+  }, [id, isNumericId])
+
+  // /users/me should go to your own profile, or login when logged out
+  if (id === 'me') {
+    const loggedIn = !!localStorage.getItem('token')
+    return <Navigate to={loggedIn ? '/profile' : '/login'} replace />
+  }
+
+  // any other non-numeric id can never be a valid public profile
+  if (!isNumericId) {
+    return <Navigate to="/" replace />
+  }
 
   if (loading) {
     return (
