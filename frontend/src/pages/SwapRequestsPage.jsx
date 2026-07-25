@@ -3,12 +3,42 @@ import { BRAND_COLOR } from '../lib/constants'
 import {
   getReceivedSwapRequests, getSentSwapRequests,
 
-  acceptSwapRequest, declineSwapRequest,
+  acceptSwapRequest, declineSwapRequest, confirmSwapRequest,
 
 } from '../api/swapRequests'
 
-// backend sends lowercase status (pending/accepted/declined/cancelled)
+// backend sends lowercase status (pending/accepted/declined/cancelled/completed)
 const norm = (s) => (s || '').toLowerCase()
+
+// shown while a swap is accepted; both sides confirm to complete it
+function ConfirmSwap({ mine, onConfirm }) {
+  if (mine) {
+    return (
+      <p className="text-muted small mb-0 mt-2">
+        You confirmed this swap. Waiting for the other person to confirm.
+      </p>
+    )
+  }
+  return (
+    <button
+      className="btn btn-sm mt-2"
+      style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
+      onClick={onConfirm}
+    >
+      Confirm Swap
+    </button>
+  )
+}
+
+// shown once a swap is completed; contact details are no longer exposed
+function CompletedNote({ date }) {
+  const when = date ? ` on ${new Date(date).toLocaleDateString('en-IE')}` : ''
+  return (
+    <div className="alert alert-light border mt-3 mb-0 p-2 small">
+      Swap completed{when}.
+    </div>
+  )
+}
 
 // page for managing swap requests
 function SwapRequestsPage() {
@@ -68,9 +98,15 @@ function SwapRequestsPage() {
       catch (err) { setError('Could not decline the request. Please try again.') }
     }
 
+    const handleConfirm = async (id) => {
+      try { await confirmSwapRequest(id); await load() }
+      catch (err) { setError('Could not confirm the swap. Please try again.') }
+    }
+
 
   // pick badge colour based on status
   const statusBadge = (status) => {
+    if (norm(status) === 'completed') return 'bg-primary'
     if (norm(status) === 'accepted') return 'bg-success'
     if (norm(status) === 'declined') return 'bg-danger'
     if (norm(status) === 'cancelled') return 'bg-secondary'
@@ -151,6 +187,14 @@ function SwapRequestsPage() {
                         </div>
                       )}
 
+                      {norm(request.status) === 'accepted' && (
+                        <ConfirmSwap mine={request.ownerConfirmed} onConfirm={() => handleConfirm(request.id)} />
+                      )}
+
+                      {norm(request.status) === 'completed' && (
+                        <CompletedNote date={request.completedAt} />
+                      )}
+
                          {request.contactDetails && (
                              <div className="alert alert-success mt-3 mb-0 p-2 small">
                                  <strong>Swap accepted — contact {request.contactDetails.username} to arrange it:</strong>
@@ -212,6 +256,14 @@ function SwapRequestsPage() {
                       <p className="mb-0 text-muted small">
                         You want: <strong>{request.requestedItemTitle}</strong>
                       </p>
+
+                      {norm(request.status) === 'accepted' && (
+                        <ConfirmSwap mine={request.requesterConfirmed} onConfirm={() => handleConfirm(request.id)} />
+                      )}
+
+                      {norm(request.status) === 'completed' && (
+                        <CompletedNote date={request.completedAt} />
+                      )}
 
                       {request.contactDetails && (
                           <div className="alert alert-success mt-3 mb-0 p-2 small">
