@@ -103,20 +103,20 @@ class ItemControllerTest {
 
     @Test
     void getAllItems_withoutCategoryId_returnsAll() throws Exception {
-        when(itemRepository.findAll(any(Pageable.class)))
+        when(itemRepository.findByArchivedFalse(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(buildItem(1, owner), buildItem(2, owner))));
 
         mockMvc.perform(get("/api/items"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2));
 
-        verify(itemRepository).findAll(any(Pageable.class));
-        verify(itemRepository, never()).findByCategoryId(any(Integer.class), any(Pageable.class));
+        verify(itemRepository).findByArchivedFalse(any(Pageable.class));
+        verify(itemRepository, never()).findByCategoryIdAndArchivedFalse(any(Integer.class), any(Pageable.class));
     }
 
     @Test
     void getAllItems_withCategoryId_filtersByCategory() throws Exception {
-        when(itemRepository.findByCategoryId(eq(1), any(Pageable.class)))
+        when(itemRepository.findByCategoryIdAndArchivedFalse(eq(1), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(buildItem(1, owner))));
         when(itemMapper.toResponse(any(Item.class)))
                 .thenReturn(new ItemResponse(1, "Test Item", "desc", "Good", null, "available", 1, "Books", 1, "owner", null, null, null, List.of(), null));
@@ -126,8 +126,24 @@ class ItemControllerTest {
                 .andExpect(jsonPath("$.content.length()").value(1))
                 .andExpect(jsonPath("$.content[0].categoryId").value(1));
 
-        verify(itemRepository).findByCategoryId(eq(1), any(Pageable.class));
-        verify(itemRepository, never()).findAll(any(Pageable.class));
+        verify(itemRepository).findByCategoryIdAndArchivedFalse(eq(1), any(Pageable.class));
+        verify(itemRepository, never()).findByArchivedFalse(any(Pageable.class));
+    }
+
+    // ---------- getMyItems (archived filter) ----------
+
+    @Test
+    void getMyItems_excludesArchived_forAuthenticatedUser() throws Exception {
+        authenticateAs(owner);
+        when(itemRepository.findByUserIdAndArchivedFalse(eq(1), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(buildItem(1, owner))));
+
+        mockMvc.perform(get("/api/items/my-items"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1));
+
+        verify(itemRepository).findByUserIdAndArchivedFalse(eq(1), any(Pageable.class));
+        verify(itemRepository, never()).findByUserId(any(Integer.class), any(Pageable.class));
     }
 
 
