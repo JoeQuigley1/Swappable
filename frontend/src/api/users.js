@@ -26,8 +26,8 @@ export function getMyProfile() {
   return fetch(`${BASE}/users/me`, { headers: authHeaders() }).then(handle);
 }
 
-export function getPublicProfile(id) {
-  return fetch(`${BASE}/users/${id}`).then(handle);
+export function getPublicProfile(id, page = 0, size = 18) {
+  return fetch(`${BASE}/users/${id}?page=${page}&size=${size}`).then(handle);
 }
 
 export function updateMyProfile(data) {
