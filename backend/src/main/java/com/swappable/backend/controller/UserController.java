@@ -60,6 +60,12 @@ public class UserController {
         return toResponse(user);
     }
 
+    @DeleteMapping("/me")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteMyAccount() {
+        userRepository.delete(loadCurrentUser());
+    }
+
     @GetMapping("/{id}")
     public PublicUserResponse getPublicProfile(
             @PathVariable Integer id,

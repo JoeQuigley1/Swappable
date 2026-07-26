@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 
 import { QRCodeSVG } from 'qrcode.react'
 
@@ -529,6 +530,18 @@ function ProfilePage() {
              )}
 
           </div>
+        </div>
+        {/* danger zone - permanent account deletion */}
+        <div className="card shadow-sm mt-4 border-danger mb-4">
+            <div className="card-body p-4">
+                <h5 className="card-title text-danger mb-1">Delete Account</h5>
+                <p className="text-muted mb-3">
+                    Permanently delete your account and all of your data.
+                </p>
+                <Link to="/profile/delete" className="btn btn-outline-danger">
+                    Delete my account
+                </Link>
+            </div>
         </div>
       </div>
     </div>
