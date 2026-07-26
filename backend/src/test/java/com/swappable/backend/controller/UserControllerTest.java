@@ -135,6 +135,37 @@ class UserControllerTest {
         }
     }
 
+    // ---------- deleteMyAccount (#199) ----------
+
+    @Test
+    void deleteMyAccount_deletesCurrentUser() {
+        User u = user(1, "owner", "owner@test.com", "Galway", "0851234567");
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(u);
+            when(userRepository.findById(1)).thenReturn(Optional.of(u));
+
+            controller.deleteMyAccount();
+
+            verify(userRepository).delete(u);
+        }
+    }
+
+    @Test
+    void deleteMyAccount_throws404_whenUserNotFound() {
+        User u = user(1, "owner", "owner@test.com", "Galway", "0851234567");
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(u);
+            when(userRepository.findById(1)).thenReturn(Optional.empty());
+
+            ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                    () -> controller.deleteMyAccount());
+            assertEquals(404, ex.getStatusCode().value());
+            verify(userRepository, never()).delete(any());
+        }
+    }
+
     // ---------- getPublicProfile (#170) ----------
 
     @Test

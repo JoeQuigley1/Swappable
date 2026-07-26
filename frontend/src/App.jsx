@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
+import DeleteAccountPage from './pages/DeleteAccountPage.jsx';
 import SwapRequestsPage from './pages/SwapRequestsPage.jsx';
 import CreateItemPage from './pages/CreateItemPage.jsx';
 import EditItemPage from './pages/EditItemPage.jsx';
@@ -27,6 +28,7 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/profile/delete" element={<DeleteAccountPage />} />
           <Route path="/swap-requests" element={<SwapRequestsPage />} />
           <Route path="/items" element={<BrowseItemsPage />} />
           <Route path="/items/create" element={<CreateItemPage />} />
