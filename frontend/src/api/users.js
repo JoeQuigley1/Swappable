@@ -37,3 +37,13 @@ export function updateMyProfile(data) {
     body: JSON.stringify(data),
   }).then(handle);
 }
+
+// DELETE /users/me returns 204 with no body, so it is handled separately
+export async function deleteMyAccount() {
+  const res = await fetch(`${BASE}/users/me`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  if (res.status === 401 || res.status === 403) throw new Error('unauthenticated');
+  if (!res.ok) throw new Error('Could not delete account');
+}

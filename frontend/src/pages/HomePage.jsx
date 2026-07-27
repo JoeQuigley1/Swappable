@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import HeroSection from '../components/HeroSection.jsx';
 import ItemCard from '../components/ItemCard.jsx';
 import CategoryCard from '../components/CategoryCard.jsx';
@@ -8,9 +9,23 @@ import {API_BASE_URL} from "../api/config.js";
 import { toCardItem } from '../api/items.js';
 
 export default function HomePage() {
+  const location = useLocation();
   const [featuredItems, setFeaturedItems] = useState([]);
   const [totalItemCount, setTotalItemCount] = useState(0);
   const [categories, setCategories] = useState([]);
+  // set by DeleteAccountPage after a successful account deletion
+  const [accountDeleted, setAccountDeleted] = useState(
+    Boolean(location.state?.accountDeleted)
+  );
+
+  // clear the redirect flag so a refresh or back navigation does not reshow
+  // the banner, and auto-hide it after a few seconds
+  useEffect(() => {
+    if (!accountDeleted) return;
+    window.history.replaceState({}, '');
+    const timer = setTimeout(() => setAccountDeleted(false), 5000);
+    return () => clearTimeout(timer);
+  }, [accountDeleted]);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/items?size=6&sort=createdAt,desc`)
@@ -32,6 +47,23 @@ export default function HomePage() {
 
   return (
     <>
+      {accountDeleted && (
+        <div
+          className="position-fixed start-50 translate-middle-x px-3 w-100"
+          style={{ top: '116px', zIndex: 1080, maxWidth: '600px' }}
+        >
+          <div className="alert alert-success alert-dismissible shadow fade show mb-0" role="alert">
+            Your account has been deleted successfully.
+            <button
+              type="button"
+              className="btn-close"
+              aria-label="Close"
+              onClick={() => setAccountDeleted(false)}
+            ></button>
+          </div>
+        </div>
+      )}
+
       <HeroSection itemCount={totalItemCount} />
 
       <section className="py-5">
