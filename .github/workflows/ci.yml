@@ -48,7 +48,7 @@ jobs:
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
 
   frontend:
-    name: Frontend Build
+    name: Frontend Build & Test
     runs-on: ubuntu-latest
 
     steps:
@@ -60,7 +60,8 @@ jobs:
 
       - run: |
           cd frontend
-          npm install
+          npm ci
+          npm run test:run
           npm run build
 
   smoke:
