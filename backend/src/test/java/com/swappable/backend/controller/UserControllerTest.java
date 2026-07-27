@@ -88,7 +88,7 @@ class UserControllerTest {
     @Test
     void updateMe_throws409_whenNewUsernameAlreadyTaken() {
         User u = user(1, "owner", "owner@test.com", "Galway", "0851234567");
-        UpdateProfileRequest request = new UpdateProfileRequest("takenName", null, null);
+        UpdateProfileRequest request = new UpdateProfileRequest("takenName", null, null, null, null);
 
         try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
             mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(u);
@@ -104,7 +104,7 @@ class UserControllerTest {
     @Test
     void updateMe_allowsKeepingOwnUnchangedUsername() {
         User u = user(1, "owner", "owner@test.com", "Galway", "0851234567");
-        UpdateProfileRequest request = new UpdateProfileRequest("owner", "Dublin", null);
+        UpdateProfileRequest request = new UpdateProfileRequest("owner", "Dublin", null, null, null);
 
         try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
             mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(u);
@@ -121,7 +121,7 @@ class UserControllerTest {
     @Test
     void updateMe_updatesLocationAndPhoneNumber() {
         User u = user(1, "owner", "owner@test.com", "Galway", "0851234567");
-        UpdateProfileRequest request = new UpdateProfileRequest(null, "Cork", "0879999999");
+        UpdateProfileRequest request = new UpdateProfileRequest(null, "Cork", "0879999999", null, null);
 
         try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
             mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(u);
@@ -132,6 +132,67 @@ class UserControllerTest {
             assertEquals("Cork", response.location());
             assertEquals("0879999999", response.phoneNumber());
             verify(userRepository).save(u);
+        }
+    }
+
+    @Test
+    void updateMe_movesCoordinatesWithTheLocation() {
+        User u = user(1, "owner", "owner@test.com", "Dublin", "0851234567");
+        u.setLatitude(53.4065148);
+        u.setLongitude(-6.2866677);
+        // Dublin to Kerry, see issue #211
+        UpdateProfileRequest request =
+                new UpdateProfileRequest(null, "Kerry", null, 52.1453345, -9.5174011);
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(u);
+            when(userRepository.findById(1)).thenReturn(Optional.of(u));
+
+            var response = controller.updateMe(request);
+
+            assertEquals("Kerry", response.location());
+            assertEquals(52.1453345, response.lat());
+            assertEquals(-9.5174011, response.lng());
+            assertEquals(52.1453345, u.getLatitude());
+            assertEquals(-9.5174011, u.getLongitude());
+            verify(userRepository).save(u);
+        }
+    }
+
+    @Test
+    void updateMe_keepsExistingCoordinates_whenRequestOmitsThem() {
+        User u = user(1, "owner", "owner@test.com", "Dublin", "0851234567");
+        u.setLatitude(53.4065148);
+        u.setLongitude(-6.2866677);
+        UpdateProfileRequest request = new UpdateProfileRequest("renamed", null, null, null, null);
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(u);
+            when(userRepository.findById(1)).thenReturn(Optional.of(u));
+            when(userRepository.existsByUsername("renamed")).thenReturn(false);
+
+            var response = controller.updateMe(request);
+
+            assertEquals(53.4065148, response.lat());
+            assertEquals(-6.2866677, response.lng());
+        }
+    }
+
+    @Test
+    void updateMe_ignoresCoordinates_whenOnlyOneOfThePairIsSent() {
+        User u = user(1, "owner", "owner@test.com", "Dublin", "0851234567");
+        u.setLatitude(53.4065148);
+        u.setLongitude(-6.2866677);
+        UpdateProfileRequest request = new UpdateProfileRequest(null, "Kerry", null, 52.1453345, null);
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(u);
+            when(userRepository.findById(1)).thenReturn(Optional.of(u));
+
+            var response = controller.updateMe(request);
+
+            assertEquals(53.4065148, response.lat());
+            assertEquals(-6.2866677, response.lng());
         }
     }
 

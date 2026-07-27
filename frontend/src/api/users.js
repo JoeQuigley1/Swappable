@@ -26,6 +26,23 @@ export function getMyProfile() {
   return fetch(`${BASE}/users/me`, { headers: authHeaders() }).then(handle);
 }
 
+// the browse page measures distance from the coordinates cached in
+// localStorage. logging in only stores the identity fields, so without this a
+// fresh browser has no coordinates and the radius filter has no origin.
+// call it after the token is stored, it reads the authenticated profile.
+export async function cacheMyLocation() {
+  try {
+    const me = await getMyProfile();
+    if (me.location) localStorage.setItem('location', me.location);
+    if (me.lat != null && me.lng != null) {
+      localStorage.setItem('lat', me.lat);
+      localStorage.setItem('lng', me.lng);
+    }
+  } catch {
+    // not worth blocking a successful login, the radius filter just stays hidden
+  }
+}
+
 export function getPublicProfile(id, page = 0, size = 18) {
   return fetch(`${BASE}/users/${id}?page=${page}&size=${size}`).then(handle);
 }
