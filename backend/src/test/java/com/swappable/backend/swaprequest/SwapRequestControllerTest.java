@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.Optional;
 
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -325,4 +326,99 @@ class SwapRequestControllerTest {
         org.junit.jupiter.api.Assertions.assertTrue(requestedItem.isArchived());
         org.junit.jupiter.api.Assertions.assertTrue(offeredItem.isArchived());
     }
+
+    // ---------- cancelSwapRequest ----------
+
+    @Test
+    void cancelSwapRequest_returns204_andDeletesPendingRequest() throws Exception {
+        User requester = user(1, "requester");
+        User owner = user(2, "owner");
+
+        SwapRequest swapRequest = new SwapRequest();
+        ReflectionTestUtils.setField(swapRequest, "id", 50);
+        swapRequest.setRequester(requester);
+        swapRequest.setOwner(owner);
+        swapRequest.setRequestedItem(item(100, owner, "available"));
+        swapRequest.setOfferedItem(item(200, requester, "available"));
+        swapRequest.setStatus("pending");
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(requester);
+            when(swapRequestRepository.findById(50))
+                    .thenReturn(Optional.of(swapRequest));
+
+            mockMvc.perform(delete("/api/swap-requests/50"))
+                    .andExpect(status().isNoContent());
+        }
+
+        verify(swapRequestRepository).delete(swapRequest);
+    }
+
+    @Test
+    void cancelSwapRequest_returns403_whenUserIsNotRequester() throws Exception {
+        User requester = user(1, "requester");
+        User owner = user(2, "owner");
+
+        SwapRequest swapRequest = new SwapRequest();
+        ReflectionTestUtils.setField(swapRequest, "id", 50);
+        swapRequest.setRequester(requester);
+        swapRequest.setOwner(owner);
+        swapRequest.setRequestedItem(item(100, owner, "available"));
+        swapRequest.setOfferedItem(item(200, requester, "available"));
+        swapRequest.setStatus("pending");
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            // The item owner tries to cancel someone else's request
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(owner);
+            when(swapRequestRepository.findById(50))
+                    .thenReturn(Optional.of(swapRequest));
+
+            mockMvc.perform(delete("/api/swap-requests/50"))
+                    .andExpect(status().isForbidden());
+        }
+
+        verify(swapRequestRepository, never()).delete(any(SwapRequest.class));
+    }
+
+    @Test
+    void cancelSwapRequest_returns400_whenRequestIsNotPending() throws Exception {
+        User requester = user(1, "requester");
+        User owner = user(2, "owner");
+
+        SwapRequest swapRequest = new SwapRequest();
+        ReflectionTestUtils.setField(swapRequest, "id", 50);
+        swapRequest.setRequester(requester);
+        swapRequest.setOwner(owner);
+        swapRequest.setRequestedItem(item(100, owner, "swapped"));
+        swapRequest.setOfferedItem(item(200, requester, "swapped"));
+        swapRequest.setStatus("accepted");
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(requester);
+            when(swapRequestRepository.findById(50))
+                    .thenReturn(Optional.of(swapRequest));
+
+            mockMvc.perform(delete("/api/swap-requests/50"))
+                    .andExpect(status().isBadRequest());
+        }
+
+        verify(swapRequestRepository, never()).delete(any(SwapRequest.class));
+    }
+
+    @Test
+    void cancelSwapRequest_returns404_whenRequestDoesNotExist() throws Exception {
+        User requester = user(1, "requester");
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(requester);
+            when(swapRequestRepository.findById(999))
+                    .thenReturn(Optional.empty());
+
+            mockMvc.perform(delete("/api/swap-requests/999"))
+                    .andExpect(status().isNotFound());
+        }
+
+        verify(swapRequestRepository, never()).delete(any(SwapRequest.class));
+    }
+
 }
