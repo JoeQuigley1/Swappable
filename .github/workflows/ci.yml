@@ -48,7 +48,7 @@ jobs:
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
 
   frontend:
-    name: Frontend Build & Test
+    name: Frontend Build
     runs-on: ubuntu-latest
 
     steps:
