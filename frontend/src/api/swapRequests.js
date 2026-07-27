@@ -46,8 +46,12 @@ export function declineSwapRequest(id) {
   return fetch(`${BASE}/swap-requests/${id}/decline`, { method: 'POST', headers: authHeaders() }).then(handle)
 }
 
+export function confirmSwapRequest(id) {
+  return fetch(`${BASE}/swap-requests/${id}/confirm`, { method: 'POST', headers: authHeaders() }).then(handle)
+}
+
 export function cancelSwapRequest(id) {
-  return fetch(`${BASE}/swap-requests/${id}/cancel`, { method: 'PUT', headers: authHeaders() }).then(handle)
+  return fetch(`${BASE}/swap-requests/${id}`, { method: 'DELETE', headers: authHeaders() }).then(handle)
 }
 
 // Used by ItemDetailPage to fill the "what do you offer" dropdown.

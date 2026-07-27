@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { API_BASE_URL, resolveImageUrl } from '../api/config.js'
+import { toCardItem } from '../api/items.js'
 import { CONDITIONS } from '../lib/constants.js'
 
 // fix leaflet's default marker icon not loading in vite
@@ -14,22 +15,6 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 })
-
-// map a backend item (ItemResponse) onto the shape ItemCard expects
-function toCardItem(item) {
-  return {
-    id: item.id,
-    title: item.title,
-    description: item.description,
-    category: item.categoryName,
-    condition: item.condition,
-    owner: item.ownerUsername,
-    location: item.ownerLocation,
-    lat: item.ownerLatitude,
-    lng: item.ownerLongitude,
-    imageUrl: item.imageUrl,
-  }
-}
 
 // calculates distance in km between two coordinates
 function haversineDistance(lat1, lng1, lat2, lng2) {

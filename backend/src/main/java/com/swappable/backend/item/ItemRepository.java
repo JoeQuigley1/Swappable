@@ -18,8 +18,16 @@ public interface ItemRepository extends JpaRepository<Item, Integer> {
 
     List<Item> findByUserIdAndStatus(Integer userId, String status);
 
+    Page<Item> findByUserIdAndStatus(Integer userId, String status, Pageable pageable);
+
     Page<Item> findByCategoryId(Integer categoryId, Pageable pageable);
 
-    @Query("SELECT i.category.id, COUNT(i) FROM Item i GROUP BY i.category.id")
+    Page<Item> findByArchivedFalse(Pageable pageable);
+
+    Page<Item> findByCategoryIdAndArchivedFalse(Integer categoryId, Pageable pageable);
+
+    Page<Item> findByUserIdAndArchivedFalse(Integer userId, Pageable pageable);
+
+    @Query("SELECT i.category.id, COUNT(i) FROM Item i WHERE i.archived = false GROUP BY i.category.id")
     List<Object[]> countItemsByCategory();
 }

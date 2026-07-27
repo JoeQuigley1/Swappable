@@ -32,6 +32,15 @@ public class SwapRequest {
     @Column(nullable = false)
     private String status = "pending";
 
+    @Column(name = "requester_confirmed", nullable = false)
+    private boolean requesterConfirmed = false;
+
+    @Column(name = "owner_confirmed", nullable = false)
+    private boolean ownerConfirmed = false;
+
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
     private String message;
 
     private LocalDateTime createdAt = LocalDateTime.now();

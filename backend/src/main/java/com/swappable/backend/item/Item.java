@@ -29,6 +29,9 @@ public class Item {
 
     private String status;
 
+    @Column(name = "archived", nullable = false)
+    private boolean archived = false;
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -60,6 +63,10 @@ public class Item {
         return status;
     }
 
+    public boolean isArchived() {
+        return archived;
+    }
+
     public LocalDateTime getCreatedAt() {return createdAt; }
 
     public void setUser(User user) {
@@ -84,6 +91,10 @@ public class Item {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public void setArchived(boolean archived) {
+        this.archived = archived;
     }
 
 }

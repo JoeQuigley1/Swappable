@@ -80,8 +80,8 @@ public class ItemController {
             @RequestParam(required = false) Integer categoryId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<ItemResponse> page = (categoryId == null
-                ? itemRepository.findAll(pageable)
-                : itemRepository.findByCategoryId(categoryId, pageable)).map(this::toResponse);
+                ? itemRepository.findByArchivedFalse(pageable)
+                : itemRepository.findByCategoryIdAndArchivedFalse(categoryId, pageable)).map(this::toResponse);
 
         return PagedResponse.from(page);
     }
@@ -100,7 +100,7 @@ public class ItemController {
     ) {
         User user = getAuthenticatedUser();
 
-        Page<ItemResponse> page = itemRepository.findByUserId(user.getId(), pageable)
+        Page<ItemResponse> page = itemRepository.findByUserIdAndArchivedFalse(user.getId(), pageable)
                 .map(this::toResponse);
 
         return PagedResponse.from(page);

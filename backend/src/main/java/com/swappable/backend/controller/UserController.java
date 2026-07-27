@@ -6,10 +6,14 @@ import com.swappable.backend.auth.AuthUtils;
 import com.swappable.backend.user.User;
 import com.swappable.backend.user.UserRepository;
 import com.swappable.backend.user.PublicUserResponse;
+import com.swappable.backend.common.PagedResponse;
 import com.swappable.backend.item.ItemMapper;
 import com.swappable.backend.item.ItemRepository;
 import com.swappable.backend.item.ItemResponse;
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
@@ -56,23 +60,30 @@ public class UserController {
         return toResponse(user);
     }
 
+    @DeleteMapping("/me")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteMyAccount() {
+        userRepository.delete(loadCurrentUser());
+    }
+
     @GetMapping("/{id}")
-    public PublicUserResponse getPublicProfile(@PathVariable Integer id) {
+    public PublicUserResponse getPublicProfile(
+            @PathVariable Integer id,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "User not found"));
 
-        List<ItemResponse> items = itemRepository
-                .findByUserIdAndStatus(user.getId(), ITEM_STATUS_AVAILABLE)
-                .stream()
-                .map(itemMapper::toResponse)
-                .toList();
+        Page<ItemResponse> items = itemRepository
+                .findByUserIdAndStatus(user.getId(), ITEM_STATUS_AVAILABLE, pageable)
+                .map(itemMapper::toResponse);
 
         return new PublicUserResponse(
                 user.getId(),
                 user.getUsername(),
                 user.getLocation(),
-                items);
+                PagedResponse.from(items));
     }
 
     private User loadCurrentUser() {
