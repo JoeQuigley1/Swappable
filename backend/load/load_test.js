@@ -8,9 +8,7 @@ export const options = {
 
 export default function () {
     // This points to the correct docker-compose service name and the items DB endpoint
-    const res = http.get('http://backend-app:8080/api/items');
-
-    check(res, {
+const res = http.get('http://localhost:8080/api/swap-requests');    check(res, {
         'status is 200': (r) => r.status === 200,
     });
 

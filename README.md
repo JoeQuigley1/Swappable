@@ -156,3 +156,12 @@ From the repository root:
 ```bash
 newman run postman/swappable-smoke.postman_collection.json --env-var baseUrl=http://localhost:8080
 ```
+
+## Load Testing
+
+This project includes a productivity load testing script which is built using k6 (https://k6.io/)
+
+### How to Run
+Application must be running on Docker Compose. Install k6. Run the script from the route of the project:
+```bash
+k6 run backend/load/test.js
