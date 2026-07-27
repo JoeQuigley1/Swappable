@@ -48,8 +48,12 @@ jobs:
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
 
   frontend:
-    name: Frontend Build
+    name: Frontend Build & Test
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
 
     steps:
       - uses: actions/checkout@v4
@@ -57,12 +61,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
-      - run: |
-          cd frontend
-          npm ci
-          npm run test:run
-          npm run build
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Frontend Tests
+        run: npm run test:run
+
+      - name: Build Frontend
+        run: npm run build
 
   smoke:
     name: Docker Smoke Test
@@ -81,7 +90,7 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
-          BREVO_API_KEY: ${{secrets.BREVO_API_KEY}}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
 
       - name: Backend wait
         run: |
