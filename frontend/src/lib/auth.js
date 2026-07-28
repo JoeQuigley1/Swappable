@@ -1,3 +1,21 @@
+// every localStorage key tied to a session. kept in one place because
+// localStorage outlives the account: anything left behind is inherited by
+// whoever logs in next on the same browser.
+export const SESSION_KEYS = [
+  'token',
+  'userId',
+  'username',
+  'email',
+  'location',
+  'lat',
+  'lng',
+  'tempToken',
+]
+
+export function clearSession() {
+  SESSION_KEYS.forEach(key => localStorage.removeItem(key))
+}
+
 // checks whether a JWT is present and not expired.
 // returns false for missing, malformed, or expired tokens.
 export function isTokenValid(token) {
