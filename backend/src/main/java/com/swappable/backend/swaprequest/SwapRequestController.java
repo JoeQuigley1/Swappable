@@ -33,6 +33,7 @@ public class SwapRequestController {
     private static final String STATUS_COMPLETED = "completed";
     private static final String ITEM_STATUS_AVAILABLE = "available";
     private static final String ITEM_STATUS_SWAPPED = "swapped";
+    private static final String STATUS_ABANDONED = "abandoned";
 
 
     public SwapRequestController(
@@ -225,7 +226,43 @@ public class SwapRequestController {
 
         return toResponse(savedSwapRequest, currentUser.getId());
     }
+    @PostMapping("/{id}/abandon")
+    @Transactional
+    public SwapRequestResponse abandonSwapRequest(@PathVariable Integer id) {
+        User currentUser = AuthUtils.getAuthenticatedUser();
 
+        SwapRequest swapRequest = swapRequestRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Swap request not found"
+                ));
+
+        boolean isRequester = swapRequest.getRequester().getId().equals(currentUser.getId());
+        boolean isOwner = swapRequest.getOwner().getId().equals(currentUser.getId());
+
+        if (!isRequester && !isOwner) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can only abandon your own swaps"
+            );
+        }
+
+        if (!swapRequest.getStatus().equals(STATUS_ACCEPTED)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Only accepted swaps can be abandoned"
+            );
+        }
+
+        // Updating the status to abandoned and reset items back to available
+        swapRequest.setStatus(STATUS_ABANDONED);
+        swapRequest.getRequestedItem().setStatus(ITEM_STATUS_AVAILABLE);
+        swapRequest.getOfferedItem().setStatus(ITEM_STATUS_AVAILABLE);
+
+        SwapRequest savedSwapRequest = swapRequestRepository.save(swapRequest);
+
+        return toResponse(savedSwapRequest, currentUser.getId());
+    }
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> cancelSwapRequest(@PathVariable Integer id) {
         User currentUser = AuthUtils.getAuthenticatedUser();

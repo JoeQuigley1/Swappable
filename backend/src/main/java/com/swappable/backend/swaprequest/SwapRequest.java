@@ -52,16 +52,22 @@ public class SwapRequest {
     public Item getRequestedItem() { return requestedItem; }
     public Item getOfferedItem() { return offeredItem; }
     public String getStatus() { return status; }
+    public boolean isRequesterConfirmed() { return requesterConfirmed; }
+    public boolean isOwnerConfirmed() { return ownerConfirmed; }
+    public LocalDateTime getCompletedAt() { return completedAt; }
     public String getMessage() { return message; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 
-    // Setters
+    // Setters:wq
     public void setId(Integer id) { this.id = id; }
     public void setRequester(User requester) { this.requester = requester; }
     public void setOwner(User owner) { this.owner = owner; }
     public void setRequestedItem(Item requestedItem) { this.requestedItem = requestedItem; }
     public void setOfferedItem(Item offeredItem) { this.offeredItem = offeredItem; }
     public void setStatus(String status) { this.status = status; }
+    public void setRequesterConfirmed(boolean requesterConfirmed) { this.requesterConfirmed = requesterConfirmed; }
+    public void setOwnerConfirmed(boolean ownerConfirmed) { this.ownerConfirmed = ownerConfirmed; }
+    public void setCompletedAt(LocalDateTime completedAt) { this.completedAt = completedAt; }
     public void setMessage(String message) { this.message = message; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
