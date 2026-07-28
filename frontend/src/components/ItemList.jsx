@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { CONDITION_COLORS } from '../lib/constants.js'
+import {resolveImageUrl} from "../api/config.js";
 
 // vertical list view of items, an alternative to the card grid
 export default function ItemList({ items }) {
@@ -28,7 +29,7 @@ export default function ItemList({ items }) {
           >
             {item.imageUrl ? (
               <img
-                src={item.imageUrl}
+                src={resolveImageUrl(item.imageUrl)}
                 alt={item.title}
                 className="rounded flex-shrink-0"
                 style={{ width: 64, height: 64, objectFit: 'cover' }}
