@@ -80,8 +80,8 @@ public class ItemController {
             @RequestParam(required = false) Integer categoryId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         Page<ItemResponse> page = (categoryId == null
-                ? itemRepository.findAll(pageable)
-                : itemRepository.findByCategoryId(categoryId, pageable)).map(this::toResponse);
+                ? itemRepository.findByArchivedFalse(pageable)
+                : itemRepository.findByCategoryIdAndArchivedFalse(categoryId, pageable)).map(this::toResponse);
 
         return PagedResponse.from(page);
     }
@@ -95,14 +95,15 @@ public class ItemController {
     }
 
     @GetMapping("/my-items")
-    public List<ItemResponse> getMyItems() {
-
+    public PagedResponse<ItemResponse> getMyItems(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
         User user = getAuthenticatedUser();
 
-        return itemRepository.findByUserId(user.getId())
-                .stream()
-                .map(this::toResponse)
-                .toList();
+        Page<ItemResponse> page = itemRepository.findByUserIdAndArchivedFalse(user.getId(), pageable)
+                .map(this::toResponse);
+
+        return PagedResponse.from(page);
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)

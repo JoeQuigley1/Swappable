@@ -5,4 +5,6 @@ public record MeResponse(
         String username,
         String email,
         String location,
-        String phoneNumber) {}
+        String phoneNumber,
+        Double lat,
+        Double lng) {}

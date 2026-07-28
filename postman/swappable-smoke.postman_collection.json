@@ -257,7 +257,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"const json = pm.response.json();\r",
+									"const json = pm.response.json().content;\r",
 									"const itemId = Number(pm.collectionVariables.get(\"itemId\"));\r",
 									"\r",
 									"pm.test(\"Items returned\", function () {\r",
@@ -464,7 +464,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"const json = pm.response.json();\r",
+									"const json = pm.response.json().content;\r",
 									"\r",
 									"pm.test(\"My items returns 200\", function () {\r",
 									"    pm.response.to.have.status(200);\r",
@@ -1621,7 +1621,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"const json = pm.response.json();\r",
+									"const json = pm.response.json().content;\r",
 									"\r",
 									"pm.test(\"Sent requests returned\", function () {\r",
 									"    pm.response.to.have.status(200);\r",
@@ -1679,7 +1679,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"const json = pm.response.json();\r",
+									"const json = pm.response.json().content;\r",
 									"\r",
 									"pm.test(\"Received requests returned\", function () {\r",
 									"    pm.response.to.have.status(200);\r",
@@ -1791,7 +1791,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"const json = pm.response.json();\r",
+									"const json = pm.response.json().content;\r",
 									"\r",
 									"pm.test(\"Sent requests returned\", function () {\r",
 									"    pm.response.to.have.status(200);\r",
@@ -1856,7 +1856,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"const json = pm.response.json();\r",
+									"const json = pm.response.json().content;\r",
 									"\r",
 									"pm.test(\"Sent requests returned\", function () {\r",
 									"    pm.response.to.have.status(200);\r",
@@ -2495,6 +2495,157 @@
 					"response": []
 				}
 			]
+		},
+		{
+			"name": "Account Deletion",
+			"item": [
+				{
+					"name": "Register user to delete",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"packages": {},
+								"exec": [
+									"const guid = pm.variables.replaceIn(\"{{$guid}}\");\r",
+									"\r",
+									"pm.collectionVariables.set(\"delAccUsername\", `deltest${guid}`);\r",
+									"pm.collectionVariables.set(\"delAccEmail\", `deltest+${guid}@example.com`);\r",
+									"pm.collectionVariables.set(\"delAccPassword\", \"Password123!\");"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"packages": {},
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"pm.collectionVariables.set(\"delAccToken\", pm.response.json().token);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"username\": \"{{delAccUsername}}\",\r\n  \"email\": \"{{delAccEmail}}\",\r\n  \"password\": \"{{delAccPassword}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete own account",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"packages": {},
+								"exec": [
+									"pm.test(\"Account deleted\", function () {\r",
+									"    pm.response.to.have.status(204);\r",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{delAccToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Deleted user token is rejected",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"packages": {},
+								"exec": [
+									"pm.test(\"Token no longer valid\", function () {\r",
+									"    pm.expect([401, 403]).to.include(pm.response.code);\r",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{delAccToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me"
+							]
+						}
+					},
+					"response": []
+				}
+			]
 		}
 	],
 	"event": [
@@ -2520,6 +2671,26 @@
 		}
 	],
 	"variable": [
+		{
+			"key": "delAccUsername",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "delAccEmail",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "delAccPassword",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "delAccToken",
+			"value": "",
+			"type": "string"
+		},
 		{
 			"key": "baseUrl",
 			"value": "http://localhost:8080",

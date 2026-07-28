@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Collapse } from 'bootstrap';
 import logo from '../assets/swappable-logo.png';
 import { HERO_ROUTES } from '../lib/constants';
-import { isTokenValid } from '../lib/auth';
+import { isTokenValid, clearSession } from '../lib/auth';
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -17,6 +18,17 @@ export default function Navbar() {
   const [isLoggedIn, setIsLoggedIn] = useState(() =>
      isTokenValid(localStorage.getItem('token'))
     );
+
+     // close the mobile menu whenever the route changes. this is a SPA so
+     // clicking a nav link doesn't reload the page, and Bootstrap's collapse
+     // has no way to know navigation happened - without this it stays open
+     // and covers the new page underneath it.
+     useEffect(() => {
+       const menuEl = document.getElementById('mainNav');
+       if (!menuEl) return;
+       const instance = Collapse.getOrCreateInstance(menuEl, { toggle: false });
+       instance.hide();
+     }, [location]);
 
     // re-check when this tab navigates
     useEffect(() => {
@@ -33,11 +45,7 @@ export default function Navbar() {
     }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userId');
-    localStorage.removeItem('username');
-    localStorage.removeItem('email');
-    localStorage.removeItem('location');
+    clearSession();
     navigate('/login');
   };
 

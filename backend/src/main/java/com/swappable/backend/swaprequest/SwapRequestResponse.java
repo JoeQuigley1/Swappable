@@ -1,5 +1,7 @@
 package com.swappable.backend.swaprequest;
 
+import java.time.LocalDateTime;
+
 public record SwapRequestResponse(
         Integer id,
         String requesterUsername,
@@ -10,6 +12,9 @@ public record SwapRequestResponse(
         String offeredItemTitle,
         String status,
         String message,
+        boolean requesterConfirmed,
+        boolean ownerConfirmed,
+        LocalDateTime completedAt,
         ContactDetails contactDetails
 ) {
 }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { BRAND_COLOR } from '../lib/constants'
 import { createSwapRequest, getMyAvailableItems } from '../api/swapRequests'
-import {API_BASE_URL} from "../api/config.js";
+import {API_BASE_URL, resolveImageUrl} from "../api/config.js";
 
 // page showing full details of one item
 function ItemDetailPage() {
@@ -60,6 +60,25 @@ function ItemDetailPage() {
       getMyAvailableItems().then(setMyItems).catch(() => setMyItems([]))
   }, [])
 
+     // restore a swap-in-progress if the user just logged in to get here
+      const [resumedSwap, setResumedSwap] = useState(false)
+      useEffect(() => {
+        const saved = sessionStorage.getItem('swapIntent')
+        if (!saved) return
+        try {
+          const intent = JSON.parse(saved)
+         if (String(intent.itemId) === String(id)) {
+             if (intent.offeredItemId) setOfferedItemId(intent.offeredItemId)
+             if (intent.message) setMessage(intent.message)
+             setResumedSwap(true)
+         }
+        } catch {
+            // ignore malformed storage
+        } finally{
+          sessionStorage.removeItem('swapIntent')
+        }
+      }, [id])
+
 
   // runs when user clicks Request a swap
   // TODO: replace with real API call to POST /api/swaps
@@ -67,6 +86,12 @@ function ItemDetailPage() {
   const handleRequestSwap = async () => {
       setSwapError('')
        if (!localStorage.getItem('token')) {
+           sessionStorage.setItem('swapIntent', JSON.stringify({
+               itemId: id,
+               itemTitle: item.title,
+               offeredItemId,
+               message,
+             }))
            navigate('/login')
            return
        }
@@ -111,12 +136,14 @@ function ItemDetailPage() {
     )
   }
 
-  const images = item.imageUrls?.length
-    ? item.imageUrls
-    : item.imageUrl
-      ? [item.imageUrl]
-      : []
-  const currentImage = images[activeImage] ?? images[0]
+    const rawImages = item.imageUrls?.length
+        ? item.imageUrls
+        : item.imageUrl
+            ? [item.imageUrl]
+            : []
+
+    const images = rawImages.map(resolveImageUrl)
+    const currentImage = images[activeImage]
 
   return (
     <div className="mt-4">
@@ -200,7 +227,13 @@ function ItemDetailPage() {
               <div className="border-top pt-3 mb-4">
                 <p className="mb-1">
                   <span className="fw-semibold">Listed by: </span>
-                  {item.ownerUsername}
+                  <span
+                    className="clickable"
+                    role="button"
+                    onClick={() => item.ownerId && navigate(`/users/${item.ownerId}`)}
+                  >
+                    {item.ownerUsername}
+                  </span>
                 </p>
                 <p className="mb-1">
                   <span className="fw-semibold">Location: </span>
@@ -218,6 +251,11 @@ function ItemDetailPage() {
                    </div>
                ) : (
                    <div>
+                        {resumedSwap && (
+                            <div className="alert alert-info py-2">
+                                Welcome back! Continue your swap request below.
+                            </div>
+                        )}
                        {swapError && <div className="alert alert-danger py-2">{swapError}</div>}
 
                         <label className="form-label small mb-1">Offer one of your items</label>
