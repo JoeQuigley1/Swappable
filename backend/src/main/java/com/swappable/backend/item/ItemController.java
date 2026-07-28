@@ -78,10 +78,24 @@ public class ItemController {
     @GetMapping
     public PagedResponse<ItemResponse> getAllItems(
             @RequestParam(required = false) Integer categoryId,
+            @RequestParam(required = false) String q,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<ItemResponse> page = (categoryId == null
-                ? itemRepository.findByArchivedFalse(pageable)
-                : itemRepository.findByCategoryIdAndArchivedFalse(categoryId, pageable)).map(this::toResponse);
+
+        Page<Item> itemPage;
+
+        if (q != null && !q.isBlank()) {
+            if (categoryId == null) {
+                itemPage = itemRepository.findByTitleContainingIgnoreCaseAndArchivedFalse(q.trim(), pageable);
+            } else {
+                itemPage = itemRepository.findByCategoryIdAndTitleContainingIgnoreCaseAndArchivedFalse(categoryId, q.trim(), pageable);
+            }
+        } else {
+            itemPage = (categoryId == null
+                    ? itemRepository.findByArchivedFalse(pageable)
+                    : itemRepository.findByCategoryIdAndArchivedFalse(categoryId, pageable));
+        }
+
+        Page<ItemResponse> page = itemPage.map(this::toResponse);
 
         return PagedResponse.from(page);
     }
