@@ -54,6 +54,9 @@ public class SwapRequest {
     public String getStatus() { return status; }
     public String getMessage() { return message; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public boolean isRequesterConfirmed() { return requesterConfirmed; }
+    public boolean isOwnerConfirmed() { return ownerConfirmed; }
+    public LocalDateTime getCompletedAt() { return completedAt; }
 
     // Setters
     public void setId(Integer id) { this.id = id; }
@@ -64,4 +67,7 @@ public class SwapRequest {
     public void setStatus(String status) { this.status = status; }
     public void setMessage(String message) { this.message = message; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public void setRequesterConfirmed(boolean requesterConfirmed) { this.requesterConfirmed = requesterConfirmed; }
+    public void setOwnerConfirmed(boolean ownerConfirmed) { this.ownerConfirmed = ownerConfirmed; }
+    public void setCompletedAt(LocalDateTime completedAt) { this.completedAt = completedAt; }
 }
