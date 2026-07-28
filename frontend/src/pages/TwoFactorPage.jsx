@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BRAND_COLOR } from '../lib/constants'
 import {API_BASE_URL} from "../api/config.js";
+import { cacheMyLocation } from '../api/users'
 
 function TwoFactorPage() {
   const navigate = useNavigate()
@@ -48,6 +49,7 @@ function TwoFactorPage() {
       localStorage.setItem('userId', data.userId)
       localStorage.setItem('username', data.username)
       localStorage.setItem('email', data.email)
+      await cacheMyLocation()
 
       if (pendingSwap?.itemId) {
           navigate(`/items/${pendingSwap.itemId}`)

@@ -2,15 +2,10 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { deleteMyAccount } from '../api/users'
+import { clearSession } from '../lib/auth'
 
 // phrase the user must type to enable the delete button
 const CONFIRM_PHRASE = 'DELETE'
-
-// clears every auth/session key we store in localStorage
-function clearSession() {
-  ['token', 'userId', 'username', 'email', 'location', 'lat', 'lng', 'tempToken']
-    .forEach(key => localStorage.removeItem(key))
-}
 
 // permanent account deletion screen, reached from the profile danger zone
 function DeleteAccountPage() {
