@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { BRAND_COLOR, CONDITIONS } from '../lib/constants'
 import { addItemImages, deleteItemImage } from '../api/items'
-import {API_BASE_URL} from "../api/config.js";
+import {API_BASE_URL, resolveImageUrl} from "../api/config.js";
 
 // page for editing an existing item listing
 function EditItemPage() {
@@ -264,32 +264,32 @@ function EditItemPage() {
                 {images.length > 0 && (
                   <div className="d-flex gap-2 flex-wrap mb-2">
                     {images.map((img) => (
-                      <div key={img.id} className="position-relative">
-                        <img
-                          src={img.url}
-                          alt="Item"
-                          className="rounded border"
-                          style={{ height: '100px', width: '100px', objectFit: 'cover' }}
-                        />
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-danger rounded-circle position-absolute top-0 end-0 m-1 d-flex align-items-center justify-content-center"
-                          style={{ width: '24px', height: '24px', padding: 0 }}
-                          onClick={() => handleDeleteImage(img.id)}
-                          disabled={imageBusy}
-                          aria-label="Delete photo"
-                        >
-                          <i className="bi bi-x"></i>
-                        </button>
-                      </div>
+                        <div key={img.id} className="position-relative">
+                          <img
+                              src={resolveImageUrl(img.url)}
+                              alt="Item"
+                              className="rounded border"
+                              style={{height: '100px', width: '100px', objectFit: 'cover'}}
+                          />
+                          <button
+                              type="button"
+                              className="btn btn-sm btn-danger rounded-circle position-absolute top-0 end-0 m-1 d-flex align-items-center justify-content-center"
+                              style={{width: '24px', height: '24px', padding: 0}}
+                              onClick={() => handleDeleteImage(img.id)}
+                              disabled={imageBusy}
+                              aria-label="Delete photo"
+                          >
+                            <i className="bi bi-x"></i>
+                          </button>
+                        </div>
                     ))}
                   </div>
                 )}
 
                 {images.length < 3 && (
-                  <>
-                    <input
-                      type="file"
+                    <>
+                      <input
+                          type="file"
                       className="form-control"
                       accept="image/jpeg,image/png,image/webp"
                       multiple

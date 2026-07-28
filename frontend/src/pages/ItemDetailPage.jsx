@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { BRAND_COLOR } from '../lib/constants'
 import { createSwapRequest, getMyAvailableItems } from '../api/swapRequests'
-import {API_BASE_URL} from "../api/config.js";
+import {API_BASE_URL, resolveImageUrl} from "../api/config.js";
 
 // page showing full details of one item
 function ItemDetailPage() {
@@ -76,7 +76,7 @@ function ItemDetailPage() {
             // ignore malformed storage
         } finally{
           sessionStorage.removeItem('swapIntent')
-        }q
+        }
       }, [id])
 
 
@@ -136,12 +136,14 @@ function ItemDetailPage() {
     )
   }
 
-  const images = item.imageUrls?.length
-    ? item.imageUrls
-    : item.imageUrl
-      ? [item.imageUrl]
-      : []
-  const currentImage = images[activeImage] ?? images[0]
+    const rawImages = item.imageUrls?.length
+        ? item.imageUrls
+        : item.imageUrl
+            ? [item.imageUrl]
+            : []
+
+    const images = rawImages.map(resolveImageUrl)
+    const currentImage = images[activeImage]
 
   return (
     <div className="mt-4">
