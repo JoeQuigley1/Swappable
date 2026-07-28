@@ -33,10 +33,19 @@ export function getMyProfile() {
 export async function cacheMyLocation() {
   try {
     const me = await getMyProfile();
-    if (me.location) localStorage.setItem('location', me.location);
+    // a missing value has to clear the key rather than skip it, otherwise the
+    // account inherits whatever the previous one on this browser left behind
+    if (me.location) {
+      localStorage.setItem('location', me.location);
+    } else {
+      localStorage.removeItem('location');
+    }
     if (me.lat != null && me.lng != null) {
       localStorage.setItem('lat', me.lat);
       localStorage.setItem('lng', me.lng);
+    } else {
+      localStorage.removeItem('lat');
+      localStorage.removeItem('lng');
     }
   } catch {
     // not worth blocking a successful login, the radius filter just stays hidden
