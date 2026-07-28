@@ -60,6 +60,9 @@ export default function BrowseItemsPage() {
   const userLat = parseFloat(localStorage.getItem('lat'))
   const userLng = parseFloat(localStorage.getItem('lng'))
   const isLoggedIn = !!localStorage.getItem('token')
+// an account with no coordinates yet gives NaN, which would fail every
+// distance comparison and hide the whole list, so the filter stays hidden
+  const hasUserCoords = Number.isFinite(userLat) && Number.isFinite(userLng)
 // tracks which item pin is being hovered on the map
   const [hoveredItem, setHoveredItem] = useState(null)
   const gridRef = useRef(null)
@@ -134,13 +137,13 @@ export default function BrowseItemsPage() {
       const matchesCondition = condition === 'All' || item.condition === condition
 // TODO (server-side): distance/radius filter, only applies if user has location
       let matchesRadius = true
-      if (radius !== 'all' && item.lat && item.lng) {
+      if (radius !== 'all' && hasUserCoords && item.lat && item.lng) {
         const distance = haversineDistance(userLat, userLng, item.lat, item.lng)
         matchesRadius = distance <= parseInt(radius)
       }
       return matchesSearch && matchesCondition && matchesRadius
     })
-  }, [items, search, condition, radius, userLat, userLng])
+  }, [items, search, condition, radius, userLat, userLng, hasUserCoords])
 
 // when a client-side filter is active the count reflects the current page,
 // otherwise it reflects the full server-side total for the selected category
@@ -167,7 +170,7 @@ export default function BrowseItemsPage() {
         onSortChange={handleSortChange}
         radius={radius}
         onRadiusChange={setRadius}
-        showRadius={isLoggedIn}
+        showRadius={isLoggedIn && hasUserCoords}
       />
 
 

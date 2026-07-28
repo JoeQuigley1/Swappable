@@ -3,7 +3,7 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Collapse } from 'bootstrap';
 import logo from '../assets/swappable-logo.png';
 import { HERO_ROUTES } from '../lib/constants';
-import { isTokenValid } from '../lib/auth';
+import { isTokenValid, clearSession } from '../lib/auth';
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -45,11 +45,7 @@ export default function Navbar() {
     }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userId');
-    localStorage.removeItem('username');
-    localStorage.removeItem('email');
-    localStorage.removeItem('location');
+    clearSession();
     navigate('/login');
   };
 
