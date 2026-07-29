@@ -78,6 +78,11 @@ public class ItemController {
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
         Page<Item> page = itemRepository.searchAndFilterActiveItems(q, categoryId, pageable);
+
+        if (page == null) {
+            page = Page.empty(pageable);
+        }
+
         Page<ItemResponse> responsePage = page.map(this::toResponse);
 
         return PagedResponse.from(responsePage);
