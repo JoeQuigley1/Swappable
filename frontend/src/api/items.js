@@ -1,4 +1,23 @@
-const BASE = '/api';
+import { API_BASE_URL } from './config.js'
+
+const BASE = API_BASE_URL
+
+// map a backend item (ItemResponse) onto the shape ItemCard expects
+export function toCardItem(item) {
+  return {
+    id: item.id,
+    title: item.title,
+    description: item.description,
+    category: item.categoryName,
+    condition: item.condition,
+    owner: item.ownerUsername,
+    ownerId: item.ownerId,
+    location: item.ownerLocation,
+    lat: item.ownerLatitude,
+    lng: item.ownerLongitude,
+    imageUrl: item.imageUrl,
+  }
+}
 
 function authHeaders() {
   const token = localStorage.getItem('token');

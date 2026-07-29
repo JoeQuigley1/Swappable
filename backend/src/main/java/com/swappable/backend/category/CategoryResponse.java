@@ -2,7 +2,8 @@ package com.swappable.backend.category;
 
 public record CategoryResponse(
         Integer id,
-        String name
+        String name,
+       long itemCount
 ) {
 
 }

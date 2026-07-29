@@ -257,7 +257,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"const json = pm.response.json();\r",
+									"const json = pm.response.json().content;\r",
 									"const itemId = Number(pm.collectionVariables.get(\"itemId\"));\r",
 									"\r",
 									"pm.test(\"Items returned\", function () {\r",
@@ -464,7 +464,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"const json = pm.response.json();\r",
+									"const json = pm.response.json().content;\r",
 									"\r",
 									"pm.test(\"My items returns 200\", function () {\r",
 									"    pm.response.to.have.status(200);\r",
@@ -1621,7 +1621,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"const json = pm.response.json();\r",
+									"const json = pm.response.json().content;\r",
 									"\r",
 									"pm.test(\"Sent requests returned\", function () {\r",
 									"    pm.response.to.have.status(200);\r",
@@ -1679,7 +1679,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"const json = pm.response.json();\r",
+									"const json = pm.response.json().content;\r",
 									"\r",
 									"pm.test(\"Received requests returned\", function () {\r",
 									"    pm.response.to.have.status(200);\r",
@@ -1791,7 +1791,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"const json = pm.response.json();\r",
+									"const json = pm.response.json().content;\r",
 									"\r",
 									"pm.test(\"Sent requests returned\", function () {\r",
 									"    pm.response.to.have.status(200);\r",
@@ -1856,7 +1856,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"const json = pm.response.json();\r",
+									"const json = pm.response.json().content;\r",
 									"\r",
 									"pm.test(\"Sent requests returned\", function () {\r",
 									"    pm.response.to.have.status(200);\r",
@@ -2311,6 +2311,341 @@
 					"response": []
 				}
 			]
+		},
+		{
+			"name": "Item Category Filter",
+			"item": [
+				{
+					"name": "Create item in category 2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();\r",
+									"\r",
+									"pm.test(\"Filter item created\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.collectionVariables.set(\"filterItemId\", json.id);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{ "key": "token", "value": "{{user1Token}}", "type": "string" }
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{ "key": "categoryId", "value": "2", "type": "text" },
+								{ "key": "title", "value": "Category Filter Test", "type": "text" },
+								{ "key": "description", "value": "Filter e2e", "type": "text" },
+								{ "key": "condition", "value": "Good", "type": "text" },
+								{ "key": "images", "type": "file", "src": [], "disabled": true }
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/items",
+							"host": [ "{{baseUrl}}" ],
+							"path": [ "api", "items" ]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Filter by category returns only that category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();\r",
+									"\r",
+									"pm.test(\"Filter returns 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Every returned item is in category 2\", function () {\r",
+									"    json.content.forEach(i => pm.expect(i.categoryId).to.eql(2));\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Includes the item we created\", function () {\r",
+									"    const ids = json.content.map(i => i.id);\r",
+									"    pm.expect(ids).to.include(Number(pm.collectionVariables.get(\"filterItemId\")));\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/items?categoryId=2",
+							"host": [ "{{baseUrl}}" ],
+							"path": [ "api", "items" ],
+							"query": [ { "key": "categoryId", "value": "2" } ]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Filter unknown category returns empty",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Returns 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Empty array\", function () {\r",
+									"    pm.expect(pm.response.json().content).to.be.an(\"array\").that.is.empty;\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/items?categoryId=999",
+							"host": [ "{{baseUrl}}" ],
+							"path": [ "api", "items" ],
+							"query": [ { "key": "categoryId", "value": "999" } ]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Filter non-numeric category returns 400",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Bad request\", function () {\r",
+									"    pm.response.to.have.status(400);\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/items?categoryId=abc",
+							"host": [ "{{baseUrl}}" ],
+							"path": [ "api", "items" ],
+							"query": [ { "key": "categoryId", "value": "abc" } ]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cleanup filter item",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Filter item deleted\", function () {\r",
+									"    pm.response.to.have.status(204);\r",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{ "key": "token", "value": "{{user1Token}}", "type": "string" }
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/items/{{filterItemId}}",
+							"host": [ "{{baseUrl}}" ],
+							"path": [ "api", "items", "{{filterItemId}}" ]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Account Deletion",
+			"item": [
+				{
+					"name": "Register user to delete",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"packages": {},
+								"exec": [
+									"const guid = pm.variables.replaceIn(\"{{$guid}}\");\r",
+									"\r",
+									"pm.collectionVariables.set(\"delAccUsername\", `deltest${guid}`);\r",
+									"pm.collectionVariables.set(\"delAccEmail\", `deltest+${guid}@example.com`);\r",
+									"pm.collectionVariables.set(\"delAccPassword\", \"Password123!\");"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"packages": {},
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"    pm.response.to.have.status(200);\r",
+									"});\r",
+									"pm.collectionVariables.set(\"delAccToken\", pm.response.json().token);"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"username\": \"{{delAccUsername}}\",\r\n  \"email\": \"{{delAccEmail}}\",\r\n  \"password\": \"{{delAccPassword}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete own account",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"packages": {},
+								"exec": [
+									"pm.test(\"Account deleted\", function () {\r",
+									"    pm.response.to.have.status(204);\r",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{delAccToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Deleted user token is rejected",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"packages": {},
+								"exec": [
+									"pm.test(\"Token no longer valid\", function () {\r",
+									"    pm.expect([401, 403]).to.include(pm.response.code);\r",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{delAccToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me"
+							]
+						}
+					},
+					"response": []
+				}
+			]
 		}
 	],
 	"event": [
@@ -2336,6 +2671,26 @@
 		}
 	],
 	"variable": [
+		{
+			"key": "delAccUsername",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "delAccEmail",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "delAccPassword",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "delAccToken",
+			"value": "",
+			"type": "string"
+		},
 		{
 			"key": "baseUrl",
 			"value": "http://localhost:8080",
@@ -2403,6 +2758,10 @@
 		},
 		{
 			"key": "imageId",
+			"value": ""
+		},
+		{
+			"key": "filterItemId",
 			"value": ""
 		}
 	]

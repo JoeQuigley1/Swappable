@@ -27,10 +27,10 @@ public class Item {
     private String description;
     private String condition;
 
-    @Column(name = "image_url")
-    private String imageUrl;
-
     private String status;
+
+    @Column(name = "archived", nullable = false)
+    private boolean archived = false;
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -59,12 +59,12 @@ public class Item {
         return condition;
     }
 
-    public String getImageUrl() {
-        return imageUrl;
-    }
-
     public String getStatus() {
         return status;
+    }
+
+    public boolean isArchived() {
+        return archived;
     }
 
     public LocalDateTime getCreatedAt() {return createdAt; }
@@ -89,12 +89,12 @@ public class Item {
         this.condition = condition;
     }
 
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
-
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public void setArchived(boolean archived) {
+        this.archived = archived;
     }
 
 }

@@ -1,7 +1,9 @@
 // src/api/swapRequests.js
 // Matches the fetch-based pattern in BrowseItemsPage; adds the JWT for protected calls.
 
-const BASE = '/api'
+import { API_BASE_URL } from './config.js'
+
+const BASE = API_BASE_URL
 
 function authHeaders() {
   const token = localStorage.getItem('token')
@@ -12,19 +14,20 @@ async function handle(res) {
   if (res.status === 401) throw new Error('unauthenticated')
   if (!res.ok) {
     let msg = 'Request failed'
-    try { msg = (await res.json()).error || msg } catch {}
+    try { msg = (await res.json()).error || msg } catch { /* response body was not json */ }
     throw new Error(msg)
   }
-  if (res.status === 204) return null // no body
+  if (res.status === 204) return null
   return res.json()
 }
 
-export function getReceivedSwapRequests() {
-  return fetch(`${BASE}/swap-requests/received`, { headers: authHeaders() }).then(handle)
+
+export function getReceivedSwapRequests(page = 0, size = 20) {
+   return fetch(`${BASE}/swap-requests/received?page=${page}&size=${size}`, { headers: authHeaders() }).then(handle)
 }
 
-export function getSentSwapRequests() {
-  return fetch(`${BASE}/swap-requests/sent`, { headers: authHeaders() }).then(handle)
+export function getSentSwapRequests(page = 0, size = 20) {
+    return fetch(`${BASE}/swap-requests/sent?page=${page}&size=${size}`, { headers: authHeaders() }).then(handle)
 }
 
 export function createSwapRequest(requestedItemId, offeredItemId, message) {
@@ -43,14 +46,28 @@ export function declineSwapRequest(id) {
   return fetch(`${BASE}/swap-requests/${id}/decline`, { method: 'POST', headers: authHeaders() }).then(handle)
 }
 
+export function confirmSwapRequest(id) {
+  return fetch(`${BASE}/swap-requests/${id}/confirm`, { method: 'POST', headers: authHeaders() }).then(handle)
+}
+
 export function cancelSwapRequest(id) {
-  return fetch(`${BASE}/swap-requests/${id}/cancel`, { method: 'PUT', headers: authHeaders() }).then(handle)
+  return fetch(`${BASE}/swap-requests/${id}`, { method: 'DELETE', headers: authHeaders() }).then(handle)
 }
 
 // Used by ItemDetailPage to fill the "what do you offer" dropdown.
+// Pages through the paginated my-items endpoint (using the backend's own page
+// size) to gather every item, rather than requesting one huge page.
 export async function getMyAvailableItems() {
+  const items = []
+  let page = 0
+  let last = false
 
-  const items = await fetch(`${BASE}/items/my-items`, { headers: authHeaders() }).then(handle)
+  while (!last) {
+    const data = await fetch(`${BASE}/items/my-items?page=${page}`, { headers: authHeaders() }).then(handle)
+    items.push(...(data?.content ?? []))
+    last = data?.last ?? true
+    page += 1
+  }
 
   return items.filter((i) => (i.status || 'available').toLowerCase() !== 'swapped')
 }

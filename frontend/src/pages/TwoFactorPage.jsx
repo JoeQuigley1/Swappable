@@ -1,11 +1,23 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BRAND_COLOR } from '../lib/constants'
+import {API_BASE_URL} from "../api/config.js";
+import { cacheMyLocation } from '../api/users'
 
 function TwoFactorPage() {
   const navigate = useNavigate()
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
+
+   // if the user was mid-swap-request before being sent to login, remember where to send them back
+    const pendingSwap = (() => {
+      try {
+        const saved = sessionStorage.getItem('swapIntent')
+        return saved ? JSON.parse(saved) : null
+      } catch {
+        return null
+      }
+    })()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -18,7 +30,7 @@ function TwoFactorPage() {
     }
 
     try {
-      const response = await fetch('http://localhost:8080/api/auth/2fa/validate', {
+      const response = await fetch(`${API_BASE_URL}/auth/2fa/validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tempToken, code })
@@ -37,8 +49,13 @@ function TwoFactorPage() {
       localStorage.setItem('userId', data.userId)
       localStorage.setItem('username', data.username)
       localStorage.setItem('email', data.email)
+      await cacheMyLocation()
 
-      navigate('/profile')
+      if (pendingSwap?.itemId) {
+          navigate(`/items/${pendingSwap.itemId}`)
+      } else {
+          navigate('/profile')
+      }
     } catch (err) {
       setError('Something went wrong. Please try again.')
     }
@@ -54,6 +71,11 @@ function TwoFactorPage() {
             <p className="text-muted mb-4">
               Enter the 6-digit code from your authenticator app.
             </p>
+            {pendingSwap?.itemTitle && (
+                <p className="text-muted small mb-3">
+                  Verify to continue your swap request for <strong>{pendingSwap.itemTitle}</strong>.
+               </p>
+             )}
 
             {error && <div className="alert alert-danger">{error}</div>}
 

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BRAND_COLOR } from '../lib/constants'
+import {API_BASE_URL} from "../api/config.js";
+import { cacheMyLocation } from '../api/users'
 
 // login page for existing users
 function LoginPage() {
@@ -17,6 +19,16 @@ function LoginPage() {
   // error message shown to user if login fails
   const [error, setError] = useState('')
 
+  // if the user was redirected here mid-swap-request, show context and remember where to send them back
+    const pendingSwap = (() => {
+      try {
+        const saved = sessionStorage.getItem('swapIntent')
+        return saved ? JSON.parse(saved) : null
+      } catch {
+        return null
+      }
+    })()
+
   // updates form data when user types in any field
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -30,7 +42,7 @@ function LoginPage() {
     e.preventDefault()
     setError('')
     try {
-      const response = await fetch('http://localhost:8080/api/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -56,7 +68,12 @@ function LoginPage() {
       localStorage.setItem('userId', data.userId)
       localStorage.setItem('username', data.username)
       localStorage.setItem('email', data.email)
-      navigate('/profile')
+      await cacheMyLocation()
+       if (pendingSwap?.itemId) {
+           navigate(`/items/${pendingSwap.itemId}`)
+           } else {
+             navigate('/profile')
+           }
     } catch (err) {
       setError('Could not login. Please try again..')
     }
@@ -69,7 +86,11 @@ function LoginPage() {
           <div className="card-body p-4">
 
             <h2 className="card-title mb-1">Welcome back</h2>
-            <p className="text-muted mb-4">Log in to your Swappable account</p>
+            <p className="text-muted mb-4">
+                {pendingSwap?.itemTitle
+                    ? <>Log in to send your swap request for <strong>{pendingSwap.itemTitle}</strong>.</>
+                    : 'Log in to your Swappable account'}
+            </p>
 
             {/* show error if login fails */}
             {error && (

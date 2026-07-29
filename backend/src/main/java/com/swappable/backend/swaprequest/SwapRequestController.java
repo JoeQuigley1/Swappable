@@ -9,8 +9,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.ResponseEntity;
+import com.swappable.backend.common.PagedResponse;
+import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 
-import java.util.List;
+
 
 @RestController
 @RequestMapping("/api/swap-requests")
@@ -22,6 +30,7 @@ public class SwapRequestController {
     private static final String STATUS_PENDING = "pending";
     private static final String STATUS_ACCEPTED = "accepted";
     private static final String STATUS_DECLINED = "declined";
+    private static final String STATUS_COMPLETED = "completed";
     private static final String ITEM_STATUS_AVAILABLE = "available";
     private static final String ITEM_STATUS_SWAPPED = "swapped";
 
@@ -115,23 +124,27 @@ public class SwapRequestController {
     }
 
     @GetMapping("/received")
-    public List<SwapRequestResponse> getIncomingSwapRequests() {
+    public PagedResponse<SwapRequestResponse> getIncomingSwapRequests(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
         User owner = AuthUtils.getAuthenticatedUser();
 
-        return swapRequestRepository.findByOwner(owner)
-                .stream()
-                .map(swapRequest -> toResponse(swapRequest, owner.getId()))
-                .toList();
+        Page<SwapRequestResponse> page = swapRequestRepository.findByOwner(owner, pageable)
+                .map(swapRequest -> toResponse(swapRequest, owner.getId()));
+
+        return PagedResponse.from(page);
     }
 
     @GetMapping("/sent")
-    public List<SwapRequestResponse> getOutgoingSwapRequests() {
+        public PagedResponse<SwapRequestResponse> getOutgoingSwapRequests(
+                @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+        ) {
         User requester = AuthUtils.getAuthenticatedUser();
 
-        return swapRequestRepository.findByRequester(requester)
-                .stream()
-                .map(swapRequest -> toResponse(swapRequest, requester.getId()))
-                .toList();
+        Page<SwapRequestResponse> page = swapRequestRepository.findByRequester(requester, pageable)
+                .map(swapRequest -> toResponse(swapRequest, requester.getId()));
+
+        return PagedResponse.from(page);
     }
 
     @PostMapping("/{id}/accept")
@@ -164,6 +177,83 @@ public class SwapRequestController {
         SwapRequest savedSwapRequest = swapRequestRepository.save(swapRequest);
 
         return toResponse(savedSwapRequest, owner.getId());
+    }
+
+    @PostMapping("/{id}/confirm")
+    @Transactional
+    public SwapRequestResponse confirmSwapRequest(@PathVariable Integer id) {
+        User currentUser = AuthUtils.getAuthenticatedUser();
+
+        SwapRequest swapRequest = swapRequestRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Swap request not found"
+                ));
+
+        boolean isRequester = swapRequest.getRequester().getId().equals(currentUser.getId());
+        boolean isOwner = swapRequest.getOwner().getId().equals(currentUser.getId());
+
+        if (!isRequester && !isOwner) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can only confirm your own swaps"
+            );
+        }
+
+        if (!swapRequest.getStatus().equals(STATUS_ACCEPTED)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Only accepted swaps can be confirmed"
+            );
+        }
+
+        if (isRequester) {
+            swapRequest.setRequesterConfirmed(true);
+        } else {
+            swapRequest.setOwnerConfirmed(true);
+        }
+
+        // both sides confirmed: complete the swap and archive the items so they drop off the listings
+        if (swapRequest.isRequesterConfirmed() && swapRequest.isOwnerConfirmed()) {
+            swapRequest.setStatus(STATUS_COMPLETED);
+            swapRequest.setCompletedAt(LocalDateTime.now());
+            swapRequest.getRequestedItem().setArchived(true);
+            swapRequest.getOfferedItem().setArchived(true);
+        }
+
+        SwapRequest savedSwapRequest = swapRequestRepository.save(swapRequest);
+
+        return toResponse(savedSwapRequest, currentUser.getId());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> cancelSwapRequest(@PathVariable Integer id) {
+        User currentUser = AuthUtils.getAuthenticatedUser();
+
+        SwapRequest swapRequest = swapRequestRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Swap request not found"
+                ));
+
+        // Ensuring that only the user who created (requested) the swap can cancel/delete it
+        if (!swapRequest.getRequester().getId().equals(currentUser.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can only cancel your own swap requests"
+            );
+        }
+
+
+        if (!swapRequest.getStatus().equals(STATUS_PENDING)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Can only delete pending swap requests"
+            );
+        }
+
+        swapRequestRepository.delete(swapRequest);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/decline")
@@ -202,6 +292,7 @@ public class SwapRequestController {
     private SwapRequestResponse toResponse(SwapRequest swapRequest, Integer currentUserId) {
         ContactDetails contactDetails = null;
 
+        // contact details are only exposed while the swap is being arranged; once completed we drop them
         if (STATUS_ACCEPTED.equals(swapRequest.getStatus())) {
             // show the OTHER person's details, not your own
             User counterparty =
@@ -226,6 +317,9 @@ public class SwapRequestController {
                 swapRequest.getOfferedItem().getTitle(),
                 swapRequest.getStatus(),
                 swapRequest.getMessage(),
+                swapRequest.isRequesterConfirmed(),
+                swapRequest.isOwnerConfirmed(),
+                swapRequest.getCompletedAt(),
                 contactDetails
         );
     }

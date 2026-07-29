@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 
 import { QRCodeSVG } from 'qrcode.react'
 
 import { getMyProfile, updateMyProfile } from '../api/users'
+import {API_BASE_URL} from "../api/config.js";
 
 
 // profile page where user can view and edit their account details
@@ -54,7 +56,9 @@ function ProfilePage() {
            username: data.username || '',
            email: data.email || '',
            location: data.location || '',
-           phoneNumber: data.phoneNumber || ''
+           phoneNumber: data.phoneNumber || '',
+           lat: data.lat ?? '',
+           lng: data.lng ?? ''
          })
        })
        .catch(() => {
@@ -66,7 +70,7 @@ function ProfilePage() {
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (!token) return
-    fetch('http://localhost:8080/api/users/me/2fa/status', {
+    fetch(`${API_BASE_URL}/users/me/2fa/status`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -104,14 +108,10 @@ function ProfilePage() {
                 (data.display_name ? data.display_name.split(',')[0] : 'My Location')
 
               setProfile({ ...profile, location: placeName, lat: userLat, lng: userLng })
-              localStorage.setItem('lat', userLat)
-              localStorage.setItem('lng', userLng)
               setLocationMessage(`Location detected: ${placeName}`)
             } catch (err) {
               // if the name lookup fails, still keep the coordinates
               setProfile({ ...profile, location: 'My Location', lat: userLat, lng: userLng })
-              localStorage.setItem('lat', userLat)
-              localStorage.setItem('lng', userLng)
               setLocationMessage('Location detected (could not get place name)')
             }
             setLocating(false)
@@ -150,14 +150,14 @@ function ProfilePage() {
           // runs when user picks a suggestion from the dropdown
           const handleSelectLocation = (place) => {
             const locationName = place.display_name.split(',')[0]
+            // only the save handler writes the cached coordinates, otherwise
+            // cancelling an edit would leave them on a location never saved
             setProfile({
               ...profile,
               location: locationName,
               lat: parseFloat(place.lat),
               lng: parseFloat(place.lon)
             })
-            localStorage.setItem('lat', parseFloat(place.lat))
-            localStorage.setItem('lng', parseFloat(place.lon))
             setLocationSearch(locationName)
             setLocationMessage(`Location selected: ${locationName}`)
             setSuggestions([])
@@ -169,19 +169,30 @@ function ProfilePage() {
     // runs when user clicks Save changes
       const handleSave = async () => {
         try {
+          // the coordinates go up with the name. without them the backend keeps
+          // the old ones and item map pins stay on the previous location.
+          const isCoord = (value) => value !== '' && Number.isFinite(Number(value))
+          const hasCoords = isCoord(profile.lat) && isCoord(profile.lng)
           const updated = await updateMyProfile({
             username: profile.username,
             location: profile.location,
-            phoneNumber: profile.phoneNumber
+            phoneNumber: profile.phoneNumber,
+            ...(hasCoords ? { lat: Number(profile.lat), lng: Number(profile.lng) } : {})
           })
           setProfile({
             username: updated.username || '',
             email: updated.email || '',
             location: updated.location || '',
-            phoneNumber: updated.phoneNumber || ''
+            phoneNumber: updated.phoneNumber || '',
+            lat: updated.lat ?? '',
+            lng: updated.lng ?? ''
           })
           localStorage.setItem('username', updated.username || '')
           localStorage.setItem('location', updated.location || '')
+          if (updated.lat != null && updated.lng != null) {
+            localStorage.setItem('lat', updated.lat)
+            localStorage.setItem('lng', updated.lng)
+          }
           setEditMode(false)
           setSuccessMessage('Profile updated successfully!')
           setTimeout(() => setSuccessMessage(''), 3000)
@@ -197,7 +208,7 @@ function ProfilePage() {
     const handleSetup2FA = async () => {
       const token = localStorage.getItem('token')
       try {
-        const response = await fetch('http://localhost:8080/api/users/me/2fa/setup', {
+        const response = await fetch(`${API_BASE_URL}/users/me/2fa/setup`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` }
         })
@@ -219,7 +230,7 @@ function ProfilePage() {
     const handleVerifySetup = async () => {
       const token = localStorage.getItem('token')
       try {
-        const response = await fetch('http://localhost:8080/api/users/me/2fa/verify-setup', {
+        const response = await fetch(`${API_BASE_URL}/users/me/2fa/verify-setup`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -245,7 +256,7 @@ function ProfilePage() {
     const handleDisable2FA = async () => {
       const token = localStorage.getItem('token')
       try {
-        const response = await fetch('http://localhost:8080/api/users/me/2fa', {
+        const response = await fetch(`${API_BASE_URL}/users/me/2fa`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -528,6 +539,18 @@ function ProfilePage() {
              )}
 
           </div>
+        </div>
+        {/* danger zone - permanent account deletion */}
+        <div className="card shadow-sm mt-4 border-danger mb-4">
+            <div className="card-body p-4">
+                <h5 className="card-title text-danger mb-1">Delete Account</h5>
+                <p className="text-muted mb-3">
+                    Permanently delete your account and all of your data.
+                </p>
+                <Link to="/profile/delete" className="btn btn-outline-danger">
+                    Delete my account
+                </Link>
+            </div>
         </div>
       </div>
     </div>
