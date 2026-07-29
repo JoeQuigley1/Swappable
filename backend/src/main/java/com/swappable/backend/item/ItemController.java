@@ -1,6 +1,5 @@
 package com.swappable.backend.item;
 
-
 import com.swappable.backend.category.Category;
 import com.swappable.backend.category.CategoryRepository;
 import com.swappable.backend.user.User;
@@ -18,7 +17,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-
 
 import java.util.ArrayList;
 import java.util.List;
@@ -73,17 +71,16 @@ public class ItemController {
         return user;
     }
 
-
-
     @GetMapping
-    public PagedResponse<ItemResponse> getAllItems(
+    public PagedResponse<ItemResponse> getItems(
+            @RequestParam(required = false) String q,
             @RequestParam(required = false) Integer categoryId,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<ItemResponse> page = (categoryId == null
-                ? itemRepository.findByArchivedFalse(pageable)
-                : itemRepository.findByCategoryIdAndArchivedFalse(categoryId, pageable)).map(this::toResponse);
 
-        return PagedResponse.from(page);
+        Page<Item> page = itemRepository.searchAndFilterActiveItems(q, categoryId, pageable);
+        Page<ItemResponse> responsePage = page.map(this::toResponse);
+
+        return PagedResponse.from(responsePage);
     }
 
     @GetMapping("/{id}")
@@ -108,7 +105,7 @@ public class ItemController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ItemResponse createItem(
-           @Valid @RequestBody CreateItemRequest request
+            @Valid @RequestBody CreateItemRequest request
     ) {
 
         User user = getAuthenticatedUser();
