@@ -16,6 +16,32 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 })
 
+// items share the owner's coordinates rather than having their own location - every item still gets its own visible, clickable pin
+export function spreadMarkerPositions(items) {
+  const seenCounts = new Map()
+
+  return items.map((item) => {
+    const key = `${item.lat.toFixed(5)},${item.lng.toFixed(5)}`
+    const occurrence = seenCounts.get(key) ?? 0
+    seenCounts.set(key, occurrence + 1)
+
+    if (occurrence === 0) {
+      return { item, position: [item.lat, item.lng] }
+    }
+
+    // spread repeats around the original point using the golden angle, so
+    // they fan out evenly instead of lining up in one direction
+    const angle = occurrence * 137.5 * (Math.PI / 180)
+    const radiusDegrees = 0.0006 * occurrence // roughly 60-70m per step
+    return {
+      item,
+      position: [
+        item.lat + radiusDegrees * Math.cos(angle),
+        item.lng + radiusDegrees * Math.sin(angle),
+      ],
+    }
+  })
+}
 // calculates distance in km between two coordinates
 function haversineDistance(lat1, lng1, lat2, lng2) {
   const R = 6371
@@ -185,12 +211,12 @@ export default function BrowseItemsPage() {
              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
            />
-           {visibleItems
-              .filter(item => item.lat && item.lng)
-              .map(item => (
+
+                  {spreadMarkerPositions(visibleItems.filter(item => item.lat && item.lng))
+                      .map(({ item, position }) => (
                 <Marker
                   key={item.id}
-                  position={[item.lat, item.lng]}
+                  position={position}
                   eventHandlers={{
                     mouseover: () => setHoveredItem(item),
                     mouseout: () => setHoveredItem(null),
