@@ -31,6 +31,7 @@ public class SwapRequestController {
     private static final String STATUS_ACCEPTED = "accepted";
     private static final String STATUS_DECLINED = "declined";
     private static final String STATUS_COMPLETED = "completed";
+    private static final String STATUS_CANCELLED = "cancelled";
     private static final String ITEM_STATUS_AVAILABLE = "available";
     private static final String ITEM_STATUS_SWAPPED = "swapped";
 
@@ -220,6 +221,48 @@ public class SwapRequestController {
             swapRequest.getRequestedItem().setArchived(true);
             swapRequest.getOfferedItem().setArchived(true);
         }
+
+        SwapRequest savedSwapRequest = swapRequestRepository.save(swapRequest);
+
+        return toResponse(savedSwapRequest, currentUser.getId());
+    }
+
+    @PostMapping("/{id}/abandon")
+    @Transactional
+    public SwapRequestResponse abandonSwapRequest(@PathVariable Integer id) {
+        User currentUser = AuthUtils.getAuthenticatedUser();
+
+        // same lock as confirm, so abandoning cannot race with the other side confirming
+        SwapRequest swapRequest = swapRequestRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Swap request not found"
+                ));
+
+        boolean isRequester = swapRequest.getRequester().getId().equals(currentUser.getId());
+        boolean isOwner = swapRequest.getOwner().getId().equals(currentUser.getId());
+
+        if (!isRequester && !isOwner) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You can only abandon your own swaps"
+            );
+        }
+
+        if (!swapRequest.getStatus().equals(STATUS_ACCEPTED)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Only accepted swaps that are not yet completed can be abandoned"
+            );
+        }
+
+        // either side can walk away from an arranged swap that never happened, which frees
+        // both items for new requests and clears any confirmation the other side had given
+        swapRequest.setStatus(STATUS_CANCELLED);
+        swapRequest.setRequesterConfirmed(false);
+        swapRequest.setOwnerConfirmed(false);
+        swapRequest.getRequestedItem().setStatus(ITEM_STATUS_AVAILABLE);
+        swapRequest.getOfferedItem().setStatus(ITEM_STATUS_AVAILABLE);
 
         SwapRequest savedSwapRequest = swapRequestRepository.save(swapRequest);
 

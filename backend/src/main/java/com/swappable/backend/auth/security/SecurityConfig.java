@@ -51,6 +51,7 @@ public class SecurityConfig {
                                 "/api/items/*",
                                 "/api/images/*",
                                 "/api/categories",
+                                "/api/stats",
                                 "/error").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/users/{id:[0-9]+}").permitAll()
                         .anyRequest().authenticated()
