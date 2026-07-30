@@ -6,29 +6,53 @@ import {
   acceptSwapRequest,
   declineSwapRequest,
   confirmSwapRequest,
-  cancelSwapRequest
+  cancelSwapRequest,
+  abandonSwapRequest
 } from '../api/swapRequests'
 
 // backend sends lowercase status (pending/accepted/declined/cancelled/completed)
 const norm = (s) => (s || '').toLowerCase()
 
-// shown while a swap is accepted; both sides confirm to complete it
-function ConfirmSwap({ mine, onConfirm }) {
-  if (mine) {
-    return (
-      <p className="text-muted small mb-0 mt-2">
-        You confirmed this swap. Waiting for the other person to confirm.
-      </p>
-    )
+// wording for the two destructive actions that go through the confirmation modal
+const MODAL_COPY = {
+  cancel: {
+    title: 'Cancel Swap Request',
+    question: 'Are you sure you want to cancel this swap request?',
+    note: 'This action cannot be undone.',
+    keepLabel: 'Keep Request',
+    confirmLabel: 'Cancel Request'
+  },
+  abandon: {
+    title: 'Abandon Swap',
+    question: 'Are you sure you want to abandon this swap?',
+    note: 'Both items become available again and the other person can no longer confirm the swap.',
+    keepLabel: 'Keep Swap',
+    confirmLabel: 'Abandon Swap'
   }
+}
+
+// shown while a swap is accepted; both sides confirm to complete it, or either
+// side can abandon it if the swap never actually happened
+function AcceptedActions({ mine, onConfirm, onAbandon }) {
   return (
-    <button
-      className="btn btn-sm mt-2"
-      style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
-      onClick={onConfirm}
-    >
-      Confirm Swap
-    </button>
+    <div className="d-flex flex-wrap align-items-center gap-2 mt-2">
+      {mine ? (
+        <p className="text-muted small mb-0">
+          You confirmed this swap. Waiting for the other person to confirm.
+        </p>
+      ) : (
+        <button
+          className="btn btn-sm"
+          style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
+          onClick={onConfirm}
+        >
+          Confirm Swap
+        </button>
+      )}
+      <button className="btn btn-sm btn-outline-danger" onClick={onAbandon}>
+        Abandon Swap
+      </button>
+    </div>
   )
 }
 
@@ -38,6 +62,15 @@ function CompletedNote({ date }) {
   return (
     <div className="alert alert-light border mt-3 mb-0 p-2 small">
       Swap completed{when}.
+    </div>
+  )
+}
+
+// shown when an accepted swap was abandoned by either side
+function CancelledNote() {
+  return (
+    <div className="alert alert-light border mt-3 mb-0 p-2 small">
+      Swap abandoned. Both items are available again.
     </div>
   )
 }
@@ -55,8 +88,8 @@ function SwapRequestsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const [showCancelModal, setShowCancelModal] = useState(false)
-  const [requestToCancel, setRequestToCancel] = useState(null)
+  // pending destructive action awaiting confirmation: { id, mode: 'cancel' | 'abandon' }
+  const [pendingAction, setPendingAction] = useState(null)
 
   // independent pagination state per tab
   const [receivedPage, setReceivedPage] = useState(0)
@@ -108,24 +141,34 @@ function SwapRequestsPage() {
       catch (err) { setError('Could not confirm the swap. Please try again.') }
     }
 
-  const handleCancel = async (id) => {
+  // runs whichever destructive action the modal was opened for
+  const handlePendingAction = async () => {
+    if (!pendingAction) return
+
+    const { id, mode } = pendingAction
+
     try {
       setError('')
 
-      await cancelSwapRequest(id)
+      if (mode === 'abandon') {
+        await abandonSwapRequest(id)
+      } else {
+        await cancelSwapRequest(id)
+      }
 
-      setShowCancelModal(false)
-      setRequestToCancel(null)
+      setPendingAction(null)
 
       await load()
 
     } catch (err) {
+      const noun = mode === 'abandon' ? 'abandon the swap' : 'cancel the request'
+
       if (err.message === 'unauthenticated') {
-        setError('You must be logged in to cancel a request.')
+        setError(`You must be logged in to ${noun}.`)
         return
       }
 
-      setError(err.message || 'Could not cancel the request. Please try again.')
+      setError(err.message || `Could not ${noun}. Please try again.`)
     }
   }
 
@@ -213,12 +256,18 @@ function SwapRequestsPage() {
                       )}
 
                       {norm(request.status) === 'accepted' && (
-                        <ConfirmSwap mine={request.ownerConfirmed} onConfirm={() => handleConfirm(request.id)} />
+                        <AcceptedActions
+                          mine={request.ownerConfirmed}
+                          onConfirm={() => handleConfirm(request.id)}
+                          onAbandon={() => setPendingAction({ id: request.id, mode: 'abandon' })}
+                        />
                       )}
 
                       {norm(request.status) === 'completed' && (
                         <CompletedNote date={request.completedAt} />
                       )}
+
+                      {norm(request.status) === 'cancelled' && <CancelledNote />}
 
                          {request.contactDetails && (
                              <div className="alert alert-success mt-3 mb-0 p-2 small">
@@ -285,22 +334,25 @@ function SwapRequestsPage() {
                       {norm(request.status) === 'pending' && (
                           <button
                               className="btn btn-sm btn-outline-danger"
-                              onClick={() => {
-                                setRequestToCancel(request.id)
-                                setShowCancelModal(true)
-                              }}
+                              onClick={() => setPendingAction({ id: request.id, mode: 'cancel' })}
                           >
                             Cancel Request
                           </button>
                       )}
 
                       {norm(request.status) === 'accepted' && (
-                          <ConfirmSwap mine={request.requesterConfirmed} onConfirm={() => handleConfirm(request.id)} />
+                          <AcceptedActions
+                            mine={request.requesterConfirmed}
+                            onConfirm={() => handleConfirm(request.id)}
+                            onAbandon={() => setPendingAction({ id: request.id, mode: 'abandon' })}
+                          />
                       )}
 
                       {norm(request.status) === 'completed' && (
                         <CompletedNote date={request.completedAt} />
                       )}
+
+                      {norm(request.status) === 'cancelled' && <CancelledNote />}
 
                       {request.contactDetails && (
                           <div className="alert alert-success mt-3 mb-0 p-2 small">
@@ -344,43 +396,40 @@ function SwapRequestsPage() {
         </div>
       </div>
 
-      {showCancelModal && (
+      {pendingAction && (
           <>
             <div
                 className="modal fade show d-block"
                 tabIndex="-1"
                 role="dialog"
                 aria-modal="true"
-                aria-labelledby="cancelSwapModalTitle"
+                aria-labelledby="swapActionModalTitle"
             >
               <div className="modal-dialog modal-dialog-centered">
                 <div className="modal-content">
                   <div className="modal-header">
                     <h5
                         className="modal-title"
-                        id="cancelSwapModalTitle"
+                        id="swapActionModalTitle"
                     >
-                      Cancel Swap Request
+                      {MODAL_COPY[pendingAction.mode].title}
                     </h5>
 
                     <button
                         type="button"
                         className="btn-close"
                         aria-label="Close"
-                        onClick={() => {
-                          setShowCancelModal(false)
-                          setRequestToCancel(null)
-                        }}
+                        onClick={() => setPendingAction(null)}
                     />
                   </div>
 
                   <div className="modal-body">
                     <p className="mb-2">
-                      Are you sure you want to cancel this swap request?
+                      {MODAL_COPY[pendingAction.mode].question}
                     </p>
 
                     <p className="text-muted mb-0">
-                      This action cannot be undone.
+                      {MODAL_COPY[pendingAction.mode].note}
                     </p>
                   </div>
 
@@ -388,21 +437,17 @@ function SwapRequestsPage() {
                     <button
                         type="button"
                         className="btn btn-outline-secondary"
-                        onClick={() => {
-                          setShowCancelModal(false)
-                          setRequestToCancel(null)
-                        }}
+                        onClick={() => setPendingAction(null)}
                     >
-                      Keep Request
+                      {MODAL_COPY[pendingAction.mode].keepLabel}
                     </button>
 
                     <button
                         type="button"
                         className="btn btn-danger"
-                        onClick={() => handleCancel(requestToCancel)}
-                        disabled={requestToCancel === null}
+                        onClick={handlePendingAction}
                     >
-                      Cancel Request
+                      {MODAL_COPY[pendingAction.mode].confirmLabel}
                     </button>
                   </div>
                 </div>

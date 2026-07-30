@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { BRAND_COLOR } from '../lib/constants'
 import { createSwapRequest, getMyAvailableItems } from '../api/swapRequests'
+import { isOwnItem } from '../lib/auth.js'
 import {API_BASE_URL, resolveImageUrl} from "../api/config.js";
 
 // page showing full details of one item
@@ -145,6 +146,9 @@ function ItemDetailPage() {
     const images = rawImages.map(resolveImageUrl)
     const currentImage = images[activeImage]
 
+    // swapping with yourself is rejected by the backend, so the form is disabled on your own items
+    const isMine = isOwnItem(item.ownerId)
+
   return (
     <div className="mt-4">
 
@@ -263,6 +267,7 @@ function ItemDetailPage() {
                             className="form-select mb-2"
                             value={offeredItemId}
                             onChange={(e) => setOfferedItemId(e.target.value)}
+                            disabled={isMine}
                         >
                            <option value="">Select an item…</option>
                            {myItems.map((mi) => (
@@ -277,17 +282,24 @@ function ItemDetailPage() {
                             maxLength={500}
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
+                            disabled={isMine}
                        />
 
                        <button
                             className="btn w-100"
                             style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
                             onClick={handleRequestSwap}
+                            disabled={isMine}
+                            title={isMine ? 'This is your own item' : undefined}
                        >
                          Request a swap
                        </button>
 
-                       {myItems.length === 0 && (
+                       {isMine ? (
+                           <p className="text-muted small mt-2 mb-0">
+                               This is your own item, so you cannot request a swap for it.
+                           </p>
+                       ) : myItems.length === 0 && (
                            <p className="text-muted small mt-2 mb-0">
                                You need an available item of your own to offer a swap.
                            </p>
