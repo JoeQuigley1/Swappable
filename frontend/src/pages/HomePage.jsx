@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import HeroSection from '../components/HeroSection.jsx';
 import ItemCard from '../components/ItemCard.jsx';
 import CategoryCard from '../components/CategoryCard.jsx';
@@ -10,6 +10,7 @@ import { toCardItem } from '../api/items.js';
 
 export default function HomePage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [featuredItems, setFeaturedItems] = useState([]);
   const [totalItemCount, setTotalItemCount] = useState(0);
   const [categories, setCategories] = useState([]);
@@ -83,6 +84,9 @@ export default function HomePage() {
                     icon: CATEGORY_ICONS[cat.name] ?? DEFAULT_CATEGORY_ICON,
                     count: cat.itemCount ?? 0,
                   }}
+                  onSelect={() =>
+                    navigate(`/items?category=${encodeURIComponent(cat.name)}`)
+                  }
                 />
               </div>
             ))}
