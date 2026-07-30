@@ -214,4 +214,83 @@ describe('RegisterPage', () => {
         expect(localStorage.getItem('username')).toBe('joeuser')
         expect(localStorage.getItem('email')).toBe('joe@example.com')
     })
+
+test('fills in the location search box with a real place name after using GPS location', async () => {
+        const user = userEvent.setup()
+
+        const getCurrentPosition = vi.fn((success) => {
+            success({ coords: { latitude: 53.27, longitude: -9.05 } })
+        })
+        vi.stubGlobal('navigator', {
+            ...navigator,
+            geolocation: { getCurrentPosition }
+        })
+
+        vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                address: { city: 'Galway' },
+                display_name: 'Galway, County Galway, Ireland'
+            })
+        })
+
+        render(
+            <MemoryRouter>
+                <RegisterPage />
+            </MemoryRouter>
+        )
+
+        await user.click(
+            screen.getByRole('button', { name: /use my location/i })
+        )
+
+        expect(getCurrentPosition).toHaveBeenCalled()
+
+        expect(fetch).toHaveBeenCalledWith(
+            expect.stringContaining('nominatim.openstreetmap.org/reverse'),
+            expect.anything()
+        )
+
+        // the search box shows show the reverse-geocoded place name
+            expect(
+            await screen.findByPlaceholderText(/type your town or city/i)
+        ).toHaveValue('Galway')
+
+        expect(
+            await screen.findByText(/location detected: galway/i)
+        ).toBeInTheDocument()
+    })
+
+    test('falls back to raw coordinates if the reverse-geocode lookup fails', async () => {
+        const user = userEvent.setup()
+
+        const getCurrentPosition = vi.fn((success) => {
+            success({ coords: { latitude: 53.27, longitude: -9.05 } })
+        })
+        vi.stubGlobal('navigator', {
+            ...navigator,
+            geolocation: { getCurrentPosition }
+        })
+
+        vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network error'))
+
+        render(
+            <MemoryRouter>
+                <RegisterPage />
+            </MemoryRouter>
+        )
+
+        await user.click(
+            screen.getByRole('button', { name: /use my location/i })
+        )
+
+        expect(
+            await screen.findByPlaceholderText(/type your town or city/i)
+        ).toHaveValue('My Location')
+
+        expect(
+            await screen.findByText(/could not get place name/i)
+        ).toBeInTheDocument()
+
+    })
 })

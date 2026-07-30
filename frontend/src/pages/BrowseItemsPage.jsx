@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import ItemFilterBar from '../components/ItemFilterBar.jsx'
 import ItemGrid from '../components/ItemGrid.jsx'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
@@ -16,6 +17,33 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 })
 
+// items share the owner's coordinates rather than having their own location - every item still gets its own visible, clickable pin
+export function spreadMarkerPositions(items) {
+  const seenCounts = new Map()
+
+  return items.map((item) => {
+    const key = `${item.lat.toFixed(5)},${item.lng.toFixed(5)}`
+    const occurrence = seenCounts.get(key) ?? 0
+    seenCounts.set(key, occurrence + 1)
+
+    if (occurrence === 0) {
+      return { item, position: [item.lat, item.lng] }
+    }
+
+    // spread repeats around the original point using the golden angle, so
+    // they fan out evenly instead of lining up in one direction
+    const angle = occurrence * 137.5 * (Math.PI / 180)
+    const radiusDegrees = 0.0006 * occurrence // roughly 60-70m per step
+    return {
+      item,
+      position: [
+        item.lat + radiusDegrees * Math.cos(angle),
+        item.lng + radiusDegrees * Math.sin(angle),
+      ],
+    }
+  })
+}
+
 // maps a UI sort option to the backend Pageable sort param
 const SORT_PARAMS = {
   newest: 'createdAt,desc',
@@ -26,10 +54,22 @@ const SORT_PARAMS = {
 // how many items to request per page (200 is the max we expose)
 const PAGE_SIZE_OPTIONS = [20, 50, 100, 200]
 
-// 'All' and 'all' are the "no filter" values the dropdowns start on
-const DEFAULT_FILTERS = {
+// 'All' and 'all' are the "no filter" values the dropdowns start on.
+// the submitted category is held by name because that is what the url carries,
+// and the name is known at mount while the id only arrives with the category list
+const DEFAULT_SUBMITTED = {
   search: '',
-  categoryId: '',
+  categoryName: '',
+  condition: 'All',
+  sort: 'newest',
+  radius: 'all',
+}
+
+// the draft holds the category by id, which is what the dropdown works in.
+// null means the user has not touched it, so it follows what was submitted
+const DEFAULT_DRAFT = {
+  search: '',
+  categoryId: null,
   condition: 'All',
   sort: 'newest',
   radius: 'all',
@@ -41,15 +81,23 @@ const DEFAULT_FILTERS = {
 // The search box only queries when submitted, so typing a word costs one query
 // rather than one per letter.
 export default function BrowseItemsPage() {
+// ?category=<name> lets the home page category cards land here pre-filtered
+  const [searchParams, setSearchParams] = useSearchParams()
+
 // the last page the server returned, tagged with the filters that produced it.
 // keeping them together is what lets us tell a stale view from a current one
   const [result, setResult] = useState({ key: null, items: [], totalPages: 0, totalElements: 0 })
   const [categoryOptions, setCategoryOptions] = useState([]) // [{ id, name, ... }]
-// draft is what the filter bar shows, filters is what has actually been submitted.
+  const [categoriesLoaded, setCategoriesLoaded] = useState(false)
+// draft is what the filter bar shows, submitted is what has actually been applied.
 // keeping them apart is what lets the user set up several controls and pay for one
 // query, instead of one query per control they touch
-  const [draft, setDraft] = useState(DEFAULT_FILTERS)
-  const [filters, setFilters] = useState(DEFAULT_FILTERS)
+  const [draft, setDraft] = useState(DEFAULT_DRAFT)
+// ?category=<name> from the home page cards is already a submitted filter on arrival
+  const [submitted, setSubmitted] = useState(() => ({
+    ...DEFAULT_SUBMITTED,
+    categoryName: searchParams.get('category') ?? '',
+  }))
 
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0])
@@ -75,7 +123,38 @@ export default function BrowseItemsPage() {
       .then((res) => res.json())
       .then((data) => setCategoryOptions(Array.isArray(data) ? data : []))
       .catch(() => setCategoryOptions([]))
+      .finally(() => setCategoriesLoaded(true))
   }, [])
+
+// the submitted category name only becomes an id once the category list is in.
+// a name that is not in the list (stale link, hand-edited url) resolves to nothing
+// and so behaves like no filter
+  const submittedCategoryId = String(
+    categoryOptions.find((c) => c.name === submitted.categoryName)?.id ?? ''
+  )
+
+// what has actually been applied, with the category as the id the request needs
+  const filters = useMemo(
+    () => ({ ...submitted, categoryId: submittedCategoryId }),
+    [submitted, submittedCategoryId]
+  )
+// the dropdown shows the submitted category until the user picks another one
+  const draftView = useMemo(
+    () => ({ ...draft, categoryId: draft.categoryId ?? submittedCategoryId }),
+    [draft, submittedCategoryId]
+  )
+
+// mirrors the submitted category into the url so the view stays shareable. this is
+// only ever an output: the request is driven by state, so writing it cannot cost a
+// second query
+  const syncCategoryParam = (name) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      if (name) next.set('category', name)
+      else next.delete('category')
+      return next
+    }, { replace: true })
+  }
 
 // editing a control only updates the draft, it does not query
   const handleFilterChange = (key, value) => {
@@ -84,18 +163,39 @@ export default function BrowseItemsPage() {
 
 // submitting is the only thing that queries, from the button or the Enter key
   const handleSubmit = () => {
-    setFilters({ ...draft, search: draft.search.trim() })
+    const categoryName =
+      categoryOptions.find((c) => String(c.id) === String(draftView.categoryId))?.name ?? ''
+
+    setSubmitted({
+      search: draftView.search.trim(),
+      categoryName,
+      condition: draftView.condition,
+      sort: draftView.sort,
+      radius: draftView.radius,
+    })
+    // hand the dropdown back to the submitted value now that it has been applied
+    setDraft((current) => ({ ...current, categoryId: null }))
+    syncCategoryParam(categoryName)
     setPage(0)
   }
   const handleReset = () => {
-    setDraft(DEFAULT_FILTERS)
-    setFilters(DEFAULT_FILTERS)
+    setDraft(DEFAULT_DRAFT)
+    setSubmitted(DEFAULT_SUBMITTED)
+    syncCategoryParam('')
     setPage(0)
   }
 // drops a single filter straight away, from the chips under the bar
   const handleRemoveFilter = (key) => {
-    setDraft((current) => ({ ...current, [key]: DEFAULT_FILTERS[key] }))
-    setFilters((current) => ({ ...current, [key]: DEFAULT_FILTERS[key] }))
+    if (key === 'categoryId') {
+      setDraft((current) => ({ ...current, categoryId: null }))
+      setSubmitted((current) => ({ ...current, categoryName: '' }))
+      syncCategoryParam('')
+      setPage(0)
+      return
+    }
+
+    setDraft((current) => ({ ...current, [key]: DEFAULT_DRAFT[key] }))
+    setSubmitted((current) => ({ ...current, [key]: DEFAULT_SUBMITTED[key] }))
     setPage(0)
   }
 
@@ -111,6 +211,11 @@ export default function BrowseItemsPage() {
 
 // fetch the current page from the backend with every submitted filter applied
   useEffect(() => {
+    // the url gives the category by name, and it only becomes an id once the
+    // category list is in, so hold the request back rather than flashing the
+    // unfiltered catalogue first
+    if (filters.categoryName && !categoriesLoaded) return
+
     const controller = new AbortController()
 
     getItems(
@@ -145,7 +250,7 @@ export default function BrowseItemsPage() {
       })
 
     return () => controller.abort()
-  }, [requestKey, page, pageSize, filters, userLat, userLng])
+  }, [requestKey, page, pageSize, filters, userLat, userLng, categoriesLoaded])
 
 // category options come from the backend; condition options are the fixed enum
   const categories = useMemo(
@@ -155,7 +260,12 @@ export default function BrowseItemsPage() {
   const conditions = ['All', ...CONDITIONS]
 
 // true while the filter bar shows changes the user has not submitted yet
-  const pending = JSON.stringify({ ...draft, search: draft.search.trim() }) !== JSON.stringify(filters)
+  const pending =
+    draftView.search.trim() !== filters.search ||
+    String(draftView.categoryId) !== String(filters.categoryId) ||
+    draftView.condition !== filters.condition ||
+    draftView.sort !== filters.sort ||
+    draftView.radius !== filters.radius
 
 // every filter currently narrowing the results, so a small count is always
 // explainable. Sort is left out because it reorders rather than narrows
@@ -169,10 +279,10 @@ export default function BrowseItemsPage() {
       const name = categoryOptions.find((c) => String(c.id) === filters.categoryId)?.name
       if (name) chips.push({ key: 'categoryId', label: `Category: ${name}` })
     }
-    if (filters.condition !== DEFAULT_FILTERS.condition) {
+    if (filters.condition !== DEFAULT_SUBMITTED.condition) {
       chips.push({ key: 'condition', label: `Condition: ${filters.condition}` })
     }
-    if (filters.radius !== DEFAULT_FILTERS.radius) {
+    if (filters.radius !== DEFAULT_SUBMITTED.radius) {
       chips.push({ key: 'radius', label: `Within ${filters.radius}km` })
     }
 
@@ -196,7 +306,7 @@ export default function BrowseItemsPage() {
       </div>
 
       <ItemFilterBar
-        filters={draft}
+        filters={draftView}
         onChange={handleFilterChange}
         onSubmit={handleSubmit}
         onReset={handleReset}
@@ -220,12 +330,11 @@ export default function BrowseItemsPage() {
              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
            />
-           {items
-              .filter(item => item.lat && item.lng)
-              .map(item => (
+           {spreadMarkerPositions(items.filter(item => item.lat && item.lng))
+              .map(({ item, position }) => (
                 <Marker
                   key={item.id}
-                  position={[item.lat, item.lng]}
+                  position={position}
                   eventHandlers={{
                     mouseover: () => setHoveredItem(item),
                     mouseout: () => setHoveredItem(null),
@@ -330,7 +439,7 @@ export default function BrowseItemsPage() {
                     </div>
                 </div>
             ) : (
-                <ItemGrid items={items} />
+                <ItemGrid items={items} columnsLg={4} />
             )}
         </div>
 

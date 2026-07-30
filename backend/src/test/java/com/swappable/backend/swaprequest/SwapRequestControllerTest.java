@@ -327,6 +327,162 @@ class SwapRequestControllerTest {
         org.junit.jupiter.api.Assertions.assertTrue(offeredItem.isArchived());
     }
 
+    // ---------- abandonSwapRequest (#215) ----------
+
+    @Test
+    void abandonSwapRequest_cancelsAndFreesItems_whenOwnerAbandons() throws Exception {
+        User requester = user(1, "requester");
+        User owner = user(2, "owner");
+        Item requestedItem = item(100, owner, "swapped");
+        Item offeredItem = item(200, requester, "swapped");
+
+        SwapRequest swapRequest = new SwapRequest();
+        ReflectionTestUtils.setField(swapRequest, "id", 50);
+        swapRequest.setRequester(requester);
+        swapRequest.setOwner(owner);
+        swapRequest.setRequestedItem(requestedItem);
+        swapRequest.setOfferedItem(offeredItem);
+        swapRequest.setStatus("accepted");
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(owner);
+            when(swapRequestRepository.findByIdForUpdate(50)).thenReturn(Optional.of(swapRequest));
+            when(swapRequestRepository.save(swapRequest)).thenReturn(swapRequest);
+
+            mockMvc.perform(post("/api/swap-requests/50/abandon"))
+                    .andExpect(status().isOk());
+        }
+
+        org.junit.jupiter.api.Assertions.assertEquals("cancelled", swapRequest.getStatus());
+        org.junit.jupiter.api.Assertions.assertEquals("available", requestedItem.getStatus());
+        org.junit.jupiter.api.Assertions.assertEquals("available", offeredItem.getStatus());
+        org.junit.jupiter.api.Assertions.assertFalse(requestedItem.isArchived());
+        org.junit.jupiter.api.Assertions.assertFalse(offeredItem.isArchived());
+    }
+
+    @Test
+    void abandonSwapRequest_clearsConfirmations_whenRequesterAbandonsAfterOwnerConfirmed() throws Exception {
+        User requester = user(1, "requester");
+        User owner = user(2, "owner");
+        Item requestedItem = item(100, owner, "swapped");
+        Item offeredItem = item(200, requester, "swapped");
+
+        SwapRequest swapRequest = new SwapRequest();
+        ReflectionTestUtils.setField(swapRequest, "id", 50);
+        swapRequest.setRequester(requester);
+        swapRequest.setOwner(owner);
+        swapRequest.setRequestedItem(requestedItem);
+        swapRequest.setOfferedItem(offeredItem);
+        swapRequest.setStatus("accepted");
+        swapRequest.setOwnerConfirmed(true); // the other side confirmed and then went quiet
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(requester);
+            when(swapRequestRepository.findByIdForUpdate(50)).thenReturn(Optional.of(swapRequest));
+            when(swapRequestRepository.save(swapRequest)).thenReturn(swapRequest);
+
+            mockMvc.perform(post("/api/swap-requests/50/abandon"))
+                    .andExpect(status().isOk());
+        }
+
+        org.junit.jupiter.api.Assertions.assertEquals("cancelled", swapRequest.getStatus());
+        org.junit.jupiter.api.Assertions.assertFalse(swapRequest.isOwnerConfirmed());
+        org.junit.jupiter.api.Assertions.assertFalse(swapRequest.isRequesterConfirmed());
+        org.junit.jupiter.api.Assertions.assertNull(swapRequest.getCompletedAt());
+    }
+
+    @Test
+    void abandonSwapRequest_returns403_whenNotParticipant() throws Exception {
+        User requester = user(1, "requester");
+        User owner = user(2, "owner");
+        User someoneElse = user(3, "intruder");
+        Item requestedItem = item(100, owner, "swapped");
+        Item offeredItem = item(200, requester, "swapped");
+
+        SwapRequest swapRequest = new SwapRequest();
+        ReflectionTestUtils.setField(swapRequest, "id", 50);
+        swapRequest.setRequester(requester);
+        swapRequest.setOwner(owner);
+        swapRequest.setRequestedItem(requestedItem);
+        swapRequest.setOfferedItem(offeredItem);
+        swapRequest.setStatus("accepted");
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(someoneElse);
+            when(swapRequestRepository.findByIdForUpdate(50)).thenReturn(Optional.of(swapRequest));
+
+            mockMvc.perform(post("/api/swap-requests/50/abandon"))
+                    .andExpect(status().isForbidden());
+        }
+
+        org.junit.jupiter.api.Assertions.assertEquals("swapped", requestedItem.getStatus());
+        org.junit.jupiter.api.Assertions.assertEquals("swapped", offeredItem.getStatus());
+        verify(swapRequestRepository, never()).save(any(SwapRequest.class));
+    }
+
+    @Test
+    void abandonSwapRequest_returns400_whenRequestIsStillPending() throws Exception {
+        User requester = user(1, "requester");
+        User owner = user(2, "owner");
+
+        SwapRequest swapRequest = new SwapRequest();
+        ReflectionTestUtils.setField(swapRequest, "id", 50);
+        swapRequest.setRequester(requester);
+        swapRequest.setOwner(owner);
+        swapRequest.setRequestedItem(item(100, owner, "available"));
+        swapRequest.setOfferedItem(item(200, requester, "available"));
+        swapRequest.setStatus("pending");
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(requester);
+            when(swapRequestRepository.findByIdForUpdate(50)).thenReturn(Optional.of(swapRequest));
+
+            mockMvc.perform(post("/api/swap-requests/50/abandon"))
+                    .andExpect(status().isBadRequest());
+        }
+
+        verify(swapRequestRepository, never()).save(any(SwapRequest.class));
+    }
+
+    @Test
+    void abandonSwapRequest_returns400_whenSwapAlreadyCompleted() throws Exception {
+        User requester = user(1, "requester");
+        User owner = user(2, "owner");
+
+        SwapRequest swapRequest = new SwapRequest();
+        ReflectionTestUtils.setField(swapRequest, "id", 50);
+        swapRequest.setRequester(requester);
+        swapRequest.setOwner(owner);
+        swapRequest.setRequestedItem(item(100, owner, "swapped"));
+        swapRequest.setOfferedItem(item(200, requester, "swapped"));
+        swapRequest.setStatus("completed");
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(owner);
+            when(swapRequestRepository.findByIdForUpdate(50)).thenReturn(Optional.of(swapRequest));
+
+            mockMvc.perform(post("/api/swap-requests/50/abandon"))
+                    .andExpect(status().isBadRequest());
+        }
+
+        verify(swapRequestRepository, never()).save(any(SwapRequest.class));
+    }
+
+    @Test
+    void abandonSwapRequest_returns404_whenRequestDoesNotExist() throws Exception {
+        User requester = user(1, "requester");
+
+        try (MockedStatic<AuthUtils> mocked = mockStatic(AuthUtils.class)) {
+            mocked.when(AuthUtils::getAuthenticatedUser).thenReturn(requester);
+            when(swapRequestRepository.findByIdForUpdate(999)).thenReturn(Optional.empty());
+
+            mockMvc.perform(post("/api/swap-requests/999/abandon"))
+                    .andExpect(status().isNotFound());
+        }
+
+        verify(swapRequestRepository, never()).save(any(SwapRequest.class));
+    }
+
     // ---------- cancelSwapRequest ----------
 
     @Test

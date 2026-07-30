@@ -156,6 +156,23 @@ describe('ItemDetailPage', () => {
         expect(saved.itemTitle).toBe('Old guitar')
     })
 
+    test('owner cannot request a swap for their own item', async () => {
+        localStorage.setItem('token', 'test-token')
+        localStorage.setItem('userId', String(ITEM.ownerId))
+
+        renderPage()
+
+        await screen.findByText('Old guitar')
+
+        expect(
+            screen.getByRole('button', { name: /request a swap/i })
+        ).toBeDisabled()
+
+        expect(
+            screen.getByText(/this is your own item/i)
+        ).toBeInTheDocument()
+    })
+
     test('shows an error returned by the swap request API', async () => {
         const user = userEvent.setup()
         localStorage.setItem('token', 'test-token')

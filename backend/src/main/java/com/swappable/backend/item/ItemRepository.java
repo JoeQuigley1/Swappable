@@ -83,6 +83,8 @@ public interface ItemRepository extends JpaRepository<Item, Integer> {
             Pageable pageable
     );
 
+    long countByArchivedFalse();
+
     @Query("SELECT i.category.id, COUNT(i) FROM Item i WHERE i.archived = false GROUP BY i.category.id")
     List<Object[]> countItemsByCategory();
 }

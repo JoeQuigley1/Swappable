@@ -1,7 +1,7 @@
 import {render, screen, waitFor} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import BrowseItemsPage from './BrowseItemsPage'
+import BrowseItemsPage, { spreadMarkerPositions } from './BrowseItemsPage'
 import { getItems } from '../api/items'
 
 // the map is not what these tests are about, and leaflet needs a real DOM to draw
@@ -69,9 +69,9 @@ afterEach(() => {
     vi.restoreAllMocks()
 })
 
-function renderPage() {
+function renderPage(entry = '/items') {
     render(
-        <MemoryRouter>
+        <MemoryRouter initialEntries={[entry]}>
             <BrowseItemsPage />
         </MemoryRouter>
     )
@@ -322,6 +322,43 @@ describe('BrowseItemsPage', () => {
         expect(await screen.findByText(/could not load items/i)).toBeInTheDocument()
     })
 
+    test('a category in the url filters the very first request', async () => {
+        renderPage('/items?category=Books')
+
+        await waitFor(() => {
+            expect(getItems).toHaveBeenCalledWith(
+                expect.objectContaining({ categoryId: '1' }),
+                expect.anything()
+            )
+        })
+
+        // nothing went out unfiltered while the category list was still loading
+        const unfiltered = getItems.mock.calls.filter(([params]) => !params.categoryId)
+        expect(unfiltered).toHaveLength(0)
+
+        expect(await screen.findByText('Category: Books')).toBeInTheDocument()
+    })
+
+    test('a category in the url preselects the dropdown', async () => {
+        renderPage('/items?category=Electronics')
+
+        await screen.findByRole('option', { name: 'Electronics' })
+
+        const [categorySelect] = screen.getAllByRole('combobox')
+        await waitFor(() => expect(categorySelect).toHaveValue('2'))
+    })
+
+    test('a category that does not exist behaves like no filter', async () => {
+        renderPage('/items?category=Nonsense')
+
+        await waitFor(() => expect(getItems).toHaveBeenCalled())
+
+        const filtered = getItems.mock.calls.filter(([params]) => params.categoryId)
+        expect(filtered).toHaveLength(0)
+
+        expect(screen.queryByText(/^Category:/)).not.toBeInTheDocument()
+    })
+
     test('ignores a request that was aborted by a newer one', async () => {
         const abortError = new Error('aborted')
         abortError.name = 'AbortError'
@@ -334,5 +371,63 @@ describe('BrowseItemsPage', () => {
         })
 
         expect(screen.queryByText(/could not load items/i)).not.toBeInTheDocument()
+    })
+})
+
+describe('spreadMarkerPositions', () => {
+    test('leaves a single item at its own coordinates unchanged', () => {
+        const result = spreadMarkerPositions([
+            { id: 1, lat: 53.27, lng: -9.05 }
+        ])
+
+        expect(result).toEqual([
+            { item: { id: 1, lat: 53.27, lng: -9.05 }, position: [53.27, -9.05] }
+        ])
+    })
+
+    test('leaves items at different coordinates unchanged', () => {
+        const items = [
+            { id: 1, lat: 53.27, lng: -9.05 },
+            { id: 2, lat: 53.35, lng: -6.26 }
+        ]
+
+        const result = spreadMarkerPositions(items)
+
+        expect(result[0].position).toEqual([53.27, -9.05])
+        expect(result[1].position).toEqual([53.35, -6.26])
+    })
+
+    test('spreads apart items that share the same owner coordinates', () => {
+        // simulates one owner with three listed items - all three come
+        // through with identical ownerLatitude/ownerLongitude
+        const items = [
+            { id: 1, lat: 53.27, lng: -9.05 },
+            { id: 2, lat: 53.27, lng: -9.05 },
+            { id: 3, lat: 53.27, lng: -9.05 }
+        ]
+
+        const result = spreadMarkerPositions(items)
+
+        // the first one keeps the exact original coordinates
+        expect(result[0].position).toEqual([53.27, -9.05])
+
+        // every position is unique - no two items land on the same pixel
+        const positions = result.map((r) => r.position.join(','))
+        expect(new Set(positions).size).toBe(3)
+
+        // the offset stays small (within roughly 100m) so pins remain
+        // grouped near the real location rather than drifting away from it
+        for (const { position } of result) {
+            expect(Math.abs(position[0] - 53.27)).toBeLessThan(0.002)
+            expect(Math.abs(position[1] - (-9.05))).toBeLessThan(0.002)
+        }
+    })
+
+    test('preserves the original item reference alongside its position', () => {
+        const item = { id: 5, lat: 53.27, lng: -9.05, title: 'Bike' }
+
+        const [result] = spreadMarkerPositions([item])
+
+        expect(result.item).toBe(item)
     })
 })

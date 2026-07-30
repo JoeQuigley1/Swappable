@@ -1,8 +1,10 @@
 import ItemCard from './ItemCard.jsx'
 
 // responsive grid of item cards with an empty state.
-// grid columns mirror the Featured Items section on the home page.
-export default function ItemGrid({ items }) {
+// columnsLg is how many cards sit in a row on large screens: 3 mirrors the
+// Featured Items section on the home page, browse asks for 4 so a full page
+// of 20 items lands as 5 even rows.
+export default function ItemGrid({ items, columnsLg = 3 }) {
   if (items.length === 0) {
     return (
       <div className="text-center py-5">
@@ -14,7 +16,7 @@ export default function ItemGrid({ items }) {
   }
 
   return (
-    <div className="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-4">
+    <div className={`row row-cols-1 row-cols-sm-2 row-cols-lg-${columnsLg} g-4`}>
       {items.map((item) => (
         <div key={item.id} className="col">
           <ItemCard item={item} />
