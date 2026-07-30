@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import HeroSection from '../components/HeroSection.jsx';
 import ItemCard from '../components/ItemCard.jsx';
 import CategoryCard from '../components/CategoryCard.jsx';
@@ -10,6 +10,7 @@ import { toCardItem } from '../api/items.js';
 
 export default function HomePage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [featuredItems, setFeaturedItems] = useState([]);
   // community counters shown in the hero, all from the backend
   const [stats, setStats] = useState({ memberCount: 0, itemCount: 0, completedSwapCount: 0 });
@@ -92,6 +93,9 @@ export default function HomePage() {
                     icon: CATEGORY_ICONS[cat.name] ?? DEFAULT_CATEGORY_ICON,
                     count: cat.itemCount ?? 0,
                   }}
+                  onSelect={() =>
+                    navigate(`/items?category=${encodeURIComponent(cat.name)}`)
+                  }
                 />
               </div>
             ))}
