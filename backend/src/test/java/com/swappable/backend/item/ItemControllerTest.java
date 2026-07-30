@@ -8,6 +8,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
@@ -31,8 +32,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 @ExtendWith(MockitoExtension.class)
@@ -99,35 +103,129 @@ class ItemControllerTest {
         return item;
     }
 
-     // ---------- getAllItems (category filter) ----------
+     // ---------- getAllItems (server side search and filters, #23 / #232) ----------
+
+    private void stubSearch(Item... items) {
+        when(itemRepository.search(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(items)));
+        lenient().when(itemMapper.toResponses(anyList()))
+                .thenReturn(List.of(items).stream().map(item -> itemResponse(item.getId())).toList());
+    }
+
+    private ItemResponse itemResponse(Integer id) {
+        return new ItemResponse(id, "Test Item", "desc", "Good", null, "available", 1, "Books", 1, "owner",
+                null, null, null, List.of(), null);
+    }
 
     @Test
-    void getAllItems_withoutCategoryId_returnsAll() throws Exception {
-        when(itemRepository.findByArchivedFalse(any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(buildItem(1, owner), buildItem(2, owner))));
+    void getAllItems_withoutFilters_passesNullsToSearch() throws Exception {
+        stubSearch(buildItem(1, owner), buildItem(2, owner));
 
         mockMvc.perform(get("/api/items"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2));
 
-        verify(itemRepository).findByArchivedFalse(any(Pageable.class));
-        verify(itemRepository, never()).findByCategoryIdAndArchivedFalse(any(Integer.class), any(Pageable.class));
+        verify(itemRepository).search(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
+                isNull(), isNull(), isNull(), any(Pageable.class));
     }
 
     @Test
     void getAllItems_withCategoryId_filtersByCategory() throws Exception {
-        when(itemRepository.findByCategoryIdAndArchivedFalse(eq(1), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(buildItem(1, owner))));
-        when(itemMapper.toResponse(any(Item.class)))
-                .thenReturn(new ItemResponse(1, "Test Item", "desc", "Good", null, "available", 1, "Books", 1, "owner", null, null, null, List.of(), null));
+        stubSearch(buildItem(1, owner));
 
         mockMvc.perform(get("/api/items").param("categoryId", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1))
                 .andExpect(jsonPath("$.content[0].categoryId").value(1));
 
-        verify(itemRepository).findByCategoryIdAndArchivedFalse(eq(1), any(Pageable.class));
-        verify(itemRepository, never()).findByArchivedFalse(any(Pageable.class));
+        verify(itemRepository).search(eq(1), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
+                isNull(), isNull(), isNull(), any(Pageable.class));
+    }
+
+    @Test
+    void getAllItems_withSearch_passesLowercasedContainsPattern() throws Exception {
+        stubSearch(buildItem(1, owner));
+
+        mockMvc.perform(get("/api/items").param("search", "  Mountain BIKE "))
+                .andExpect(status().isOk());
+
+        verify(itemRepository).search(isNull(), isNull(), eq("%mountain bike%"), isNull(), isNull(), isNull(),
+                isNull(), isNull(), isNull(), isNull(), any(Pageable.class));
+    }
+
+    @Test
+    void getAllItems_withSearch_escapesUserTypedWildcards() throws Exception {
+        stubSearch(buildItem(1, owner));
+
+        mockMvc.perform(get("/api/items").param("search", "50%_off"))
+                .andExpect(status().isOk());
+
+        verify(itemRepository).search(isNull(), isNull(), eq("%50!%!_off%"), isNull(), isNull(), isNull(),
+                isNull(), isNull(), isNull(), isNull(), any(Pageable.class));
+    }
+
+    @Test
+    void getAllItems_withBlankSearchAndCondition_treatsThemAsNoFilter() throws Exception {
+        stubSearch(buildItem(1, owner));
+
+        mockMvc.perform(get("/api/items").param("search", "   ").param("condition", ""))
+                .andExpect(status().isOk());
+
+        verify(itemRepository).search(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
+                isNull(), isNull(), isNull(), any(Pageable.class));
+    }
+
+    @Test
+    void getAllItems_withCondition_filtersByCondition() throws Exception {
+        stubSearch(buildItem(1, owner));
+
+        mockMvc.perform(get("/api/items").param("condition", "Like New"))
+                .andExpect(status().isOk());
+
+        verify(itemRepository).search(isNull(), eq("Like New"), isNull(), isNull(), isNull(), isNull(),
+                isNull(), isNull(), isNull(), isNull(), any(Pageable.class));
+    }
+
+    @Test
+    void getAllItems_withRadius_passesBoundingBoxAndRadians() throws Exception {
+        stubSearch(buildItem(1, owner));
+
+        mockMvc.perform(get("/api/items")
+                        .param("lat", "53.35")
+                        .param("lng", "-6.26")
+                        .param("radiusKm", "25"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<Double> minLat = ArgumentCaptor.forClass(Double.class);
+        ArgumentCaptor<Double> maxLat = ArgumentCaptor.forClass(Double.class);
+        verify(itemRepository).search(isNull(), isNull(), isNull(), eq(25.0), minLat.capture(), maxLat.capture(),
+                any(), any(), eq(Math.toRadians(53.35)), eq(Math.toRadians(-6.26)), any(Pageable.class));
+
+        // 25km is roughly a quarter of a degree of latitude either side of the user
+        assertEquals(53.35 - 25 / 111.045, minLat.getValue(), 0.0001);
+        assertEquals(53.35 + 25 / 111.045, maxLat.getValue(), 0.0001);
+    }
+
+    @Test
+    void getAllItems_returns400_whenRadiusGivenWithoutCoordinates() throws Exception {
+        mockMvc.perform(get("/api/items").param("radiusKm", "25"))
+                .andExpect(status().isBadRequest());
+
+        verify(itemRepository, never()).search(any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                any(), any(Pageable.class));
+    }
+
+    @Test
+    void getAllItems_returns400_whenRadiusIsNotPositive() throws Exception {
+        mockMvc.perform(get("/api/items")
+                        .param("lat", "53.35")
+                        .param("lng", "-6.26")
+                        .param("radiusKm", "0"))
+                .andExpect(status().isBadRequest());
+
+        verify(itemRepository, never()).search(any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                any(), any(Pageable.class));
     }
 
     // ---------- getMyItems (archived filter) ----------
@@ -137,6 +235,7 @@ class ItemControllerTest {
         authenticateAs(owner);
         when(itemRepository.findByUserIdAndArchivedFalse(eq(1), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(buildItem(1, owner))));
+        when(itemMapper.toResponses(anyList())).thenReturn(List.of(itemResponse(1)));
 
         mockMvc.perform(get("/api/items/my-items"))
                 .andExpect(status().isOk())

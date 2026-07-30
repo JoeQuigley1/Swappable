@@ -5,8 +5,8 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { API_BASE_URL, resolveImageUrl } from '../api/config.js'
-import { toCardItem } from '../api/items.js'
-import { CONDITIONS } from '../lib/constants.js'
+import { getItems, toCardItem } from '../api/items.js'
+import { BRAND_COLOR, CONDITIONS } from '../lib/constants.js'
 
 // fix leaflet's default marker icon not loading in vite
 delete L.Icon.Default.prototype._getIconUrl
@@ -15,19 +15,6 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 })
-
-// calculates distance in km between two coordinates
-function haversineDistance(lat1, lng1, lat2, lng2) {
-  const R = 6371
-  const dLat = (lat2 - lat1) * Math.PI / 180
-  const dLng = (lng2 - lng1) * Math.PI / 180
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLng / 2) * Math.sin(dLng / 2)
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-  return R * c
-}
 
 // maps a UI sort option to the backend Pageable sort param
 const SORT_PARAMS = {
@@ -39,35 +26,50 @@ const SORT_PARAMS = {
 // how many items to request per page (200 is the max we expose)
 const PAGE_SIZE_OPTIONS = [20, 50, 100, 200]
 
-// Browse Items page (/items). Pagination, category and sort are server-side.
-// Search, condition and radius refine the returned page client-side.
+// 'All' and 'all' are the "no filter" values the dropdowns start on
+const DEFAULT_FILTERS = {
+  search: '',
+  categoryId: '',
+  condition: 'All',
+  sort: 'newest',
+  radius: 'all',
+}
+
+// Browse Items page (/items). Every filter (search, category, condition, sort,
+// distance) and the pagination are applied by the backend, so results cover the
+// whole catalogue rather than whatever happened to be on the current page.
+// The search box only queries when submitted, so typing a word costs one query
+// rather than one per letter.
 export default function BrowseItemsPage() {
-  const [items, setItems] = useState([]) // the current page returned by the server
+// the last page the server returned, tagged with the filters that produced it.
+// keeping them together is what lets us tell a stale view from a current one
+  const [result, setResult] = useState({ key: null, items: [], totalPages: 0, totalElements: 0 })
   const [categoryOptions, setCategoryOptions] = useState([]) // [{ id, name, ... }]
-  const [search, setSearch] = useState('')
-  const [category, setCategory] = useState('All')
-  const [condition, setCondition] = useState('All')
-  const [sort, setSort] = useState('newest')
-// radius in km, 'all' means no distance filter
-  const [radius, setRadius] = useState('all')
+// draft is what the filter bar shows, filters is what has actually been submitted.
+// keeping them apart is what lets the user set up several controls and pay for one
+// query, instead of one query per control they touch
+  const [draft, setDraft] = useState(DEFAULT_FILTERS)
+  const [filters, setFilters] = useState(DEFAULT_FILTERS)
 
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0])
-  const [totalPages, setTotalPages] = useState(0)
-  const [totalElements, setTotalElements] = useState(0)
+  const [error, setError] = useState('')
 
 // get logged in user's coordinates from localStorage
-  const userLat = parseFloat(localStorage.getItem('lat'))
-  const userLng = parseFloat(localStorage.getItem('lng'))
   const isLoggedIn = !!localStorage.getItem('token')
-// an account with no coordinates yet gives NaN, which would fail every
-// distance comparison and hide the whole list, so the filter stays hidden
-  const hasUserCoords = Number.isFinite(userLat) && Number.isFinite(userLng)
+  const storedLat = parseFloat(localStorage.getItem('lat'))
+  const storedLng = parseFloat(localStorage.getItem('lng'))
+// an account with no coordinates yet gives NaN, which the distance filter cannot
+// use, so the filter stays hidden. Normalising to null also keeps the value stable
+// across renders, because NaN never equals itself in a dependency array
+  const hasUserCoords = Number.isFinite(storedLat) && Number.isFinite(storedLng)
+  const userLat = hasUserCoords ? storedLat : null
+  const userLng = hasUserCoords ? storedLng : null
 // tracks which item pin is being hovered on the map
   const [hoveredItem, setHoveredItem] = useState(null)
   const gridRef = useRef(null)
 
-// load the category list once, for the dropdown and to map a category name to its id
+// load the category list once, for the dropdown
   useEffect(() => {
     fetch(`${API_BASE_URL}/categories`)
       .then((res) => res.json())
@@ -75,80 +77,116 @@ export default function BrowseItemsPage() {
       .catch(() => setCategoryOptions([]))
   }, [])
 
-// changing a server-side filter resets back to the first page
-  const handleCategoryChange = (value) => {
-    setCategory(value)
+// editing a control only updates the draft, it does not query
+  const handleFilterChange = (key, value) => {
+    setDraft((current) => ({ ...current, [key]: value }))
+  }
+
+// submitting is the only thing that queries, from the button or the Enter key
+  const handleSubmit = () => {
+    setFilters({ ...draft, search: draft.search.trim() })
     setPage(0)
   }
-  const handleSortChange = (value) => {
-    setSort(value)
+  const handleReset = () => {
+    setDraft(DEFAULT_FILTERS)
+    setFilters(DEFAULT_FILTERS)
     setPage(0)
   }
+// drops a single filter straight away, from the chips under the bar
+  const handleRemoveFilter = (key) => {
+    setDraft((current) => ({ ...current, [key]: DEFAULT_FILTERS[key] }))
+    setFilters((current) => ({ ...current, [key]: DEFAULT_FILTERS[key] }))
+    setPage(0)
+  }
+
+// paging is navigation rather than filtering, so it applies straight away
   const handlePageSizeChange = (value) => {
     setPageSize(value)
     setPage(0)
   }
 
-// fetch the current page from the backend (pagination, category and sort are server-side)
-  useEffect(() => {
-    const params = new URLSearchParams({
-      page: String(page),
-      size: String(pageSize),
-      sort: SORT_PARAMS[sort] ?? SORT_PARAMS.newest,
-    })
-    const selected = categoryOptions.find((c) => c.name === category)
-    if (selected) params.set('categoryId', String(selected.id))
+// identifies the page the submitted filters ask for. Comparing it to the key stored
+// alongside the last result tells us whether what is on screen is up to date
+  const requestKey = JSON.stringify([page, pageSize, filters, userLat, userLng])
 
-    fetch(`${API_BASE_URL}/items?${params.toString()}`)
-      .then((res) => res.json())
+// fetch the current page from the backend with every submitted filter applied
+  useEffect(() => {
+    const controller = new AbortController()
+
+    getItems(
+      {
+        page,
+        size: pageSize,
+        sort: SORT_PARAMS[filters.sort] ?? SORT_PARAMS.newest,
+        categoryId: filters.categoryId || undefined,
+        search: filters.search || undefined,
+        condition: filters.condition === 'All' ? undefined : filters.condition,
+        lat: userLat,
+        lng: userLng,
+        radiusKm: filters.radius === 'all' ? undefined : Number(filters.radius),
+      },
+      controller.signal
+    )
       .then((data) => {
-        setItems((data.content ?? []).map(toCardItem))
-        setTotalPages(data.totalPages ?? 0)
-        setTotalElements(data.totalElements ?? 0)
+        setResult({
+          key: requestKey,
+          items: (data.content ?? []).map(toCardItem),
+          totalPages: data.totalPages ?? 0,
+          totalElements: data.totalElements ?? 0,
+        })
+        setError('')
       })
-      .catch(() => {
-        setItems([])
-        setTotalPages(0)
-        setTotalElements(0)
+      .catch((err) => {
+// a newer request replaced this one, so its result is no longer wanted
+        if (err.name === 'AbortError') return
+
+        setResult({ key: requestKey, items: [], totalPages: 0, totalElements: 0 })
+        setError('Could not load items. Please try again.')
       })
-  }, [page, pageSize, category, sort, categoryOptions])
+
+    return () => controller.abort()
+  }, [requestKey, page, pageSize, filters, userLat, userLng])
 
 // category options come from the backend; condition options are the fixed enum
   const categories = useMemo(
-    () => ['All', ...categoryOptions.map((c) => c.name)],
+    () => [{ id: '', name: 'All' }, ...categoryOptions],
     [categoryOptions]
   )
   const conditions = ['All', ...CONDITIONS]
 
-// TODO: search, condition and radius are filtered client-side, so they only
-// refine the current page, not the whole catalogue. Create issues to add
-// server-side support (search + condition query params on GET /api/items, plus
-// a distance/radius filter) and move this filtering into the backend request.
-  const visibleItems = useMemo(() => {
-    const term = search.trim().toLowerCase()
+// true while the filter bar shows changes the user has not submitted yet
+  const pending = JSON.stringify({ ...draft, search: draft.search.trim() }) !== JSON.stringify(filters)
 
-    return items.filter((item) => {
-// TODO (server-side): text search on title/description
-      const matchesSearch =
-        !term ||
-        item.title.toLowerCase().includes(term) ||
-        item.description.toLowerCase().includes(term)
-// TODO (server-side): condition filter
-      const matchesCondition = condition === 'All' || item.condition === condition
-// TODO (server-side): distance/radius filter, only applies if user has location
-      let matchesRadius = true
-      if (radius !== 'all' && hasUserCoords && item.lat && item.lng) {
-        const distance = haversineDistance(userLat, userLng, item.lat, item.lng)
-        matchesRadius = distance <= parseInt(radius)
-      }
-      return matchesSearch && matchesCondition && matchesRadius
-    })
-  }, [items, search, condition, radius, userLat, userLng, hasUserCoords])
+// every filter currently narrowing the results, so a small count is always
+// explainable. Sort is left out because it reorders rather than narrows
+  const activeFilters = useMemo(() => {
+    const chips = []
 
-// when a client-side filter is active the count reflects the current page,
-// otherwise it reflects the full server-side total for the selected category
-  const clientFiltered = search.trim() !== '' || condition !== 'All' || radius !== 'all'
-  const foundCount = clientFiltered ? visibleItems.length : totalElements
+    if (filters.search) {
+      chips.push({ key: 'search', label: `Search: ${filters.search}` })
+    }
+    if (filters.categoryId) {
+      const name = categoryOptions.find((c) => String(c.id) === filters.categoryId)?.name
+      if (name) chips.push({ key: 'categoryId', label: `Category: ${name}` })
+    }
+    if (filters.condition !== DEFAULT_FILTERS.condition) {
+      chips.push({ key: 'condition', label: `Condition: ${filters.condition}` })
+    }
+    if (filters.radius !== DEFAULT_FILTERS.radius) {
+      chips.push({ key: 'radius', label: `Within ${filters.radius}km` })
+    }
+
+    return chips
+  }, [filters, categoryOptions])
+
+  const { items, totalPages } = result
+// the backend now filters everything, so the total it reports is the real count
+  const foundCount = result.totalElements
+// a result tagged with older filters means a newer request is still in flight
+  const loading = result.key !== requestKey
+// keep the previous results on screen while the next page loads so the page does
+// not flash empty; only the very first load gets a spinner
+  const showSpinner = loading && items.length === 0
 
   return (
     <div className="container pt-2 pb-5">
@@ -158,20 +196,17 @@ export default function BrowseItemsPage() {
       </div>
 
       <ItemFilterBar
-        search={search}
-        onSearchChange={setSearch}
-        category={category}
-        onCategoryChange={handleCategoryChange}
+        filters={draft}
+        onChange={handleFilterChange}
+        onSubmit={handleSubmit}
+        onReset={handleReset}
         categories={categories}
-        condition={condition}
-        onConditionChange={setCondition}
         conditions={conditions}
-        sort={sort}
-        onSortChange={handleSortChange}
-        radius={radius}
-        onRadiusChange={setRadius}
         showRadius={isLoggedIn && hasUserCoords}
+        pending={pending}
       />
+
+      {error && <div className="alert alert-danger">{error}</div>}
 
 
   {/* leaflet map showing item locations */}
@@ -185,7 +220,7 @@ export default function BrowseItemsPage() {
              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
            />
-           {visibleItems
+           {items
               .filter(item => item.lat && item.lng)
               .map(item => (
                 <Marker
@@ -242,8 +277,34 @@ export default function BrowseItemsPage() {
 
 
       <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-        <p className="text-muted small mb-0">
+        <p className="text-muted small mb-0 d-flex align-items-center gap-2">
           {foundCount} {foundCount === 1 ? 'item' : 'items'} found
+          {/* explains why the count does not match the controls yet */}
+          {pending && (
+            <span className="text-warning-emphasis">Press Enter or click Search to apply</span>
+          )}
+          {activeFilters.map((chip) => (
+            <span key={chip.key} className="badge bg-light text-secondary border fw-normal">
+              {chip.label}
+              <button
+                type="button"
+                className="btn btn-sm btn-link p-0 ms-2 align-baseline text-secondary"
+                onClick={() => handleRemoveFilter(chip.key)}
+                aria-label={`Remove ${chip.label}`}
+              >
+                <i className="bi bi-x"></i>
+              </button>
+            </span>
+          ))}
+          {loading && items.length > 0 && (
+            <span
+              className="spinner-border spinner-border-sm"
+              style={{ color: BRAND_COLOR }}
+              role="status"
+            >
+              <span className="visually-hidden">Loading...</span>
+            </span>
+          )}
         </p>
         <div className="d-flex align-items-center gap-2">
           <label htmlFor="pageSize" className="text-muted small mb-0">Per page</label>
@@ -261,8 +322,16 @@ export default function BrowseItemsPage() {
         </div>
       </div>
 
-        <div ref={gridRef}>
-            <ItemGrid items={visibleItems} />
+        <div ref={gridRef} style={{ opacity: loading && items.length > 0 ? 0.6 : 1 }}>
+            {showSpinner ? (
+                <div className="text-center py-5">
+                    <div className="spinner-border" style={{ color: BRAND_COLOR }} role="status">
+                        <span className="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            ) : (
+                <ItemGrid items={items} />
+            )}
         </div>
 
         {totalPages > 1 && (
