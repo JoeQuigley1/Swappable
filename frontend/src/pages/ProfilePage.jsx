@@ -108,10 +108,12 @@ function ProfilePage() {
                 (data.display_name ? data.display_name.split(',')[0] : 'My Location')
 
               setProfile({ ...profile, location: placeName, lat: userLat, lng: userLng })
+              setLocationSearch(placeName)
               setLocationMessage(`Location detected: ${placeName}`)
-            } catch (err) {
+            } catch {
               // if the name lookup fails, still keep the coordinates
               setProfile({ ...profile, location: 'My Location', lat: userLat, lng: userLng })
+              setLocationSearch('My Location')
               setLocationMessage('Location detected (could not get place name)')
             }
             setLocating(false)
@@ -416,6 +418,7 @@ function ProfilePage() {
                   className="btn btn-outline-secondary flex-fill"
                   onClick={() => {
                      setProfile(originalProfile)
+                     setLocationSearch('')
                      setLocationMessage('')
                      setEditMode(false)
                      }}
@@ -428,6 +431,7 @@ function ProfilePage() {
                 className="btn btn-primary w-100"
                 onClick={() => {
                     setOriginalProfile(profile)
+                    setLocationSearch(profile.location)
                     setEditMode(true)
                 }}
               >
