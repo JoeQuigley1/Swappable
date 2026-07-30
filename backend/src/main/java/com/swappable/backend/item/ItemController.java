@@ -5,6 +5,7 @@ import com.swappable.backend.category.Category;
 import com.swappable.backend.category.CategoryRepository;
 import com.swappable.backend.user.User;
 import jakarta.validation.Valid;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,6 +41,7 @@ public class ItemController {
             "Fair",
             "Poor"
     );
+    private static final double KM_PER_DEGREE_LATITUDE = 111.045;
 
     public ItemController(
             ItemRepository itemRepository,
@@ -76,14 +79,76 @@ public class ItemController {
 
 
     @GetMapping
-    public PagedResponse<ItemResponse> getAllItems(
+    public ResponseEntity<PagedResponse<ItemResponse>> getAllItems(
             @RequestParam(required = false) Integer categoryId,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String condition,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lng,
+            @RequestParam(required = false) Double radiusKm,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<ItemResponse> page = (categoryId == null
-                ? itemRepository.findByArchivedFalse(pageable)
-                : itemRepository.findByCategoryIdAndArchivedFalse(categoryId, pageable)).map(this::toResponse);
 
-        return PagedResponse.from(page);
+        if (radiusKm != null) {
+            if (lat == null || lng == null) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "lat and lng are required when radiusKm is set"
+                );
+            }
+            if (radiusKm <= 0) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "radiusKm must be greater than 0"
+                );
+            }
+        }
+
+        // the square around the user narrows the rows before the exact distance is computed
+        double latDelta = radiusKm == null ? 0 : radiusKm / KM_PER_DEGREE_LATITUDE;
+        double lngDelta = radiusKm == null
+                ? 0
+                : radiusKm / (KM_PER_DEGREE_LATITUDE * Math.max(Math.cos(Math.toRadians(lat)), 0.01));
+
+        Page<Item> page = itemRepository.search(
+                categoryId,
+                blankToNull(condition),
+                toSearchPattern(search),
+                radiusKm,
+                radiusKm == null ? null : lat - latDelta,
+                radiusKm == null ? null : lat + latDelta,
+                radiusKm == null ? null : lng - lngDelta,
+                radiusKm == null ? null : lng + lngDelta,
+                radiusKm == null ? null : Math.toRadians(lat),
+                radiusKm == null ? null : Math.toRadians(lng),
+                pageable
+        );
+
+        // browsing means paging back and forth over the same filters, so a short
+        // private cache serves those repeats without another round trip. Kept brief
+        // so a newly listed item still shows up promptly.
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(Duration.ofSeconds(30)).cachePrivate())
+                .body(PagedResponse.from(page, itemMapper.toResponses(page.getContent())));
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    // builds the lowercase contains pattern for the search query. Wildcards typed by
+    // the user are escaped so they match literally rather than widening the search.
+    private static String toSearchPattern(String search) {
+        String term = blankToNull(search);
+        if (term == null) {
+            return null;
+        }
+
+        String escaped = term.toLowerCase()
+                .replace("!", "!!")
+                .replace("%", "!%")
+                .replace("_", "!_");
+
+        return "%" + escaped + "%";
     }
 
     @GetMapping("/{id}")
@@ -100,10 +165,9 @@ public class ItemController {
     ) {
         User user = getAuthenticatedUser();
 
-        Page<ItemResponse> page = itemRepository.findByUserIdAndArchivedFalse(user.getId(), pageable)
-                .map(this::toResponse);
+        Page<Item> page = itemRepository.findByUserIdAndArchivedFalse(user.getId(), pageable);
 
-        return PagedResponse.from(page);
+        return PagedResponse.from(page, itemMapper.toResponses(page.getContent()));
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)

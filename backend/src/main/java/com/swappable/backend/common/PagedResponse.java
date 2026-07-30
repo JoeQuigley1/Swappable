@@ -14,5 +14,17 @@ public record PagedResponse<T>(List<T> content, int page, int size, long totalEl
                 page.isLast()
         );
 }
- 
+
+    // for callers that map the page content in one batch instead of element by element
+    public static <T> PagedResponse<T> from(Page<?> page, List<T> content) {
+        return new PagedResponse<>(
+                content,
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isLast()
+        );
+    }
+
 }
