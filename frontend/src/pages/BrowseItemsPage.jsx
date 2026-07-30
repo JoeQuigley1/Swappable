@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import ItemFilterBar from '../components/ItemFilterBar.jsx'
 import ItemGrid from '../components/ItemGrid.jsx'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
@@ -68,10 +69,13 @@ const PAGE_SIZE_OPTIONS = [20, 50, 100, 200]
 // Browse Items page (/items). Pagination, category and sort are server-side.
 // Search, condition and radius refine the returned page client-side.
 export default function BrowseItemsPage() {
+  // ?category=<name> lets the home page category cards land here pre-filtered
+  const [searchParams, setSearchParams] = useSearchParams()
+
   const [items, setItems] = useState([]) // the current page returned by the server
   const [categoryOptions, setCategoryOptions] = useState([]) // [{ id, name, ... }]
+  const [categoriesLoaded, setCategoriesLoaded] = useState(false)
   const [search, setSearch] = useState('')
-  const [category, setCategory] = useState('All')
   const [condition, setCondition] = useState('All')
   const [sort, setSort] = useState('newest')
 // radius in km, 'all' means no distance filter
@@ -99,12 +103,26 @@ export default function BrowseItemsPage() {
       .then((res) => res.json())
       .then((data) => setCategoryOptions(Array.isArray(data) ? data : []))
       .catch(() => setCategoryOptions([]))
+      .finally(() => setCategoriesLoaded(true))
   }, [])
+
+// the url owns the category filter, so back navigation and shared links just work.
+// a name that is not in the list (stale link, hand-edited url) behaves like no filter
+  const urlCategory = searchParams.get('category') ?? 'All'
+  const category =
+    categoriesLoaded && !categoryOptions.some((c) => c.name === urlCategory)
+      ? 'All'
+      : urlCategory
 
 // changing a server-side filter resets back to the first page
   const handleCategoryChange = (value) => {
-    setCategory(value)
     setPage(0)
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      if (value === 'All') next.delete('category')
+      else next.set('category', value)
+      return next
+    }, { replace: true })
   }
   const handleSortChange = (value) => {
     setSort(value)
@@ -117,6 +135,10 @@ export default function BrowseItemsPage() {
 
 // fetch the current page from the backend (pagination, category and sort are server-side)
   useEffect(() => {
+    // the category name only becomes an id once the category list is in, so hold
+    // the request back rather than flashing the unfiltered catalogue first
+    if (category !== 'All' && !categoriesLoaded) return
+
     const params = new URLSearchParams({
       page: String(page),
       size: String(pageSize),
@@ -137,7 +159,7 @@ export default function BrowseItemsPage() {
         setTotalPages(0)
         setTotalElements(0)
       })
-  }, [page, pageSize, category, sort, categoryOptions])
+  }, [page, pageSize, category, sort, categoryOptions, categoriesLoaded])
 
 // category options come from the backend; condition options are the fixed enum
   const categories = useMemo(
