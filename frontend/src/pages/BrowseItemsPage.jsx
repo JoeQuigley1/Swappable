@@ -262,7 +262,7 @@ export default function BrowseItemsPage() {
       </div>
 
         <div ref={gridRef}>
-            <ItemGrid items={visibleItems} />
+            <ItemGrid items={visibleItems} columnsLg={4} />
         </div>
 
         {totalPages > 1 && (
