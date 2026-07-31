@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import HeroSection from '../components/HeroSection.jsx';
 import ItemCard from '../components/ItemCard.jsx';
 import CategoryCard from '../components/CategoryCard.jsx';
@@ -10,8 +10,10 @@ import { toCardItem } from '../api/items.js';
 
 export default function HomePage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [featuredItems, setFeaturedItems] = useState([]);
-  const [totalItemCount, setTotalItemCount] = useState(0);
+  // community counters shown in the hero, all from the backend
+  const [stats, setStats] = useState({ memberCount: 0, itemCount: 0, completedSwapCount: 0 });
   const [categories, setCategories] = useState([]);
   // set by DeleteAccountPage after a successful account deletion
   const [accountDeleted, setAccountDeleted] = useState(
@@ -33,10 +35,14 @@ export default function HomePage() {
       .then((data) => setFeaturedItems((data.content ?? []).map(toCardItem)))
       .catch(() => setFeaturedItems([]));
 
-    fetch(`${API_BASE_URL}/items?size=1`)
+    fetch(`${API_BASE_URL}/stats`)
       .then((res) => res.json())
-      .then((data) => setTotalItemCount(data.totalElements ?? 0))
-      .catch(() => setTotalItemCount(0));
+      .then((data) => setStats({
+        memberCount: data.memberCount ?? 0,
+        itemCount: data.itemCount ?? 0,
+        completedSwapCount: data.completedSwapCount ?? 0,
+      }))
+      .catch(() => setStats({ memberCount: 0, itemCount: 0, completedSwapCount: 0 }));
 
     fetch(`${API_BASE_URL}/categories`)
       .then((res) => res.json())
@@ -64,7 +70,11 @@ export default function HomePage() {
         </div>
       )}
 
-      <HeroSection itemCount={totalItemCount} />
+      <HeroSection
+        memberCount={stats.memberCount}
+        itemCount={stats.itemCount}
+        completedSwapCount={stats.completedSwapCount}
+      />
 
       <section className="py-5">
         <div className="container">
@@ -83,6 +93,9 @@ export default function HomePage() {
                     icon: CATEGORY_ICONS[cat.name] ?? DEFAULT_CATEGORY_ICON,
                     count: cat.itemCount ?? 0,
                   }}
+                  onSelect={() =>
+                    navigate(`/items?category=${encodeURIComponent(cat.name)}`)
+                  }
                 />
               </div>
             ))}

@@ -84,21 +84,45 @@ function RegisterPage() {
      setLocating(true)
      setLocationMessage('')
      navigator.geolocation.getCurrentPosition(
-       (position) => {
+       async (position) => {
          const userLat = position.coords.latitude
          const userLng = position.coords.longitude
-         setFormData({
-           ...formData,
-           location: 'My Location',
-           lat: userLat,
-           lng: userLng
-         })
-         setLocationMessage(`Location detected using GPS`)
-         setLocating(false)
-       },
-       () => {
-         setError('Could not get your location. Please type it instead.')
-         setLocating(false)
+         try {
+             const response = await fetch(
+                 `https://nominatim.openstreetmap.org/reverse?lat=${userLat}&lon=${userLng}&format=json`,
+                 { headers: { 'Accept-Language': 'en' } }
+             )
+            const data = await response.json()
+            // pick the town/city/village from the address, fall back sensibly
+            const addr = data.address || {}
+            const placeName =
+               addr.city || addr.town || addr.village || addr.county ||
+               (data.display_name ? data.display_name.split(',')[0] : 'My Location')
+
+            setFormData({
+                ...formData,
+                location: placeName,
+                lat: userLat,
+                lng: userLng
+                })
+                setLocationSearch(placeName)
+                setLocationMessage(`Location detected: ${placeName}`)
+            } catch {
+                // if the name lookup fails, still keep the coordinates
+                setFormData({
+                    ...formData,
+                    location: 'My Location',
+                    lat: userLat,
+                    lng: userLng
+                })
+                setLocationSearch('My Location')
+                setLocationMessage('Location detected (could not get place name)')
+                }
+            setLocating(false)
+            },
+            () => {
+            setError('Could not get your location. Please type it instead.')
+            setLocating(false)
        }
      )
    }
