@@ -7,7 +7,8 @@ import {
     acceptSwapRequest,
     declineSwapRequest,
     confirmSwapRequest,
-    cancelSwapRequest
+    cancelSwapRequest,
+    abandonSwapRequest
 } from '../api/swapRequests'
 
 vi.mock('../api/swapRequests', () => ({
@@ -16,7 +17,8 @@ vi.mock('../api/swapRequests', () => ({
     acceptSwapRequest: vi.fn(),
     declineSwapRequest: vi.fn(),
     confirmSwapRequest: vi.fn(),
-    cancelSwapRequest: vi.fn()
+    cancelSwapRequest: vi.fn(),
+    abandonSwapRequest: vi.fn()
 }))
 
 const RECEIVED_REQUEST = {
@@ -46,6 +48,7 @@ beforeEach(() => {
     declineSwapRequest.mockReset()
     confirmSwapRequest.mockReset()
     cancelSwapRequest.mockReset()
+    abandonSwapRequest.mockReset()
 
     getReceivedSwapRequests.mockResolvedValue({
         content: [RECEIVED_REQUEST],
@@ -257,6 +260,131 @@ describe('SwapRequestsPage', () => {
         })
 
         expect(getSentSwapRequests).toHaveBeenCalledTimes(2)
+    })
+
+    test('abandoning an accepted received swap asks for confirmation first', async () => {
+        const user = userEvent.setup()
+        getReceivedSwapRequests.mockResolvedValue({
+            content: [{ ...RECEIVED_REQUEST, status: 'accepted', ownerConfirmed: false }],
+            totalPages: 1,
+            totalElements: 1
+        })
+
+        render(<SwapRequestsPage />)
+
+        await user.click(await screen.findByRole('button', { name: /abandon swap/i }))
+
+        expect(
+            await screen.findByText(/are you sure you want to abandon this swap/i)
+        ).toBeInTheDocument()
+
+        expect(abandonSwapRequest).not.toHaveBeenCalled()
+
+        await user.click(screen.getByRole('button', { name: /keep swap/i }))
+
+        expect(abandonSwapRequest).not.toHaveBeenCalled()
+        expect(
+            screen.queryByText(/are you sure you want to abandon this swap/i)
+        ).not.toBeInTheDocument()
+    })
+
+    test('confirming the abandon modal calls the API and reloads the list', async () => {
+        const user = userEvent.setup()
+        getReceivedSwapRequests.mockResolvedValue({
+            content: [{ ...RECEIVED_REQUEST, status: 'accepted', ownerConfirmed: false }],
+            totalPages: 1,
+            totalElements: 1
+        })
+        abandonSwapRequest.mockResolvedValue(null)
+
+        render(<SwapRequestsPage />)
+
+        await user.click(await screen.findByRole('button', { name: /abandon swap/i }))
+        await screen.findByText(/are you sure you want to abandon this swap/i)
+
+        // the row action and the modal's confirm button share a label, and the
+        // modal one is last in document order
+        const abandonButtons = screen.getAllByRole('button', { name: /abandon swap/i })
+        await user.click(abandonButtons[abandonButtons.length - 1])
+
+        await waitFor(() => {
+            expect(abandonSwapRequest).toHaveBeenCalledWith(1)
+        })
+
+        expect(getReceivedSwapRequests).toHaveBeenCalledTimes(2)
+    })
+
+    test('a sent swap can be abandoned once it has already been confirmed by the user', async () => {
+        const user = userEvent.setup()
+        getSentSwapRequests.mockResolvedValue({
+            content: [{ ...SENT_REQUEST, status: 'accepted', requesterConfirmed: true }],
+            totalPages: 1,
+            totalElements: 1
+        })
+        abandonSwapRequest.mockResolvedValue(null)
+
+        render(<SwapRequestsPage />)
+
+        await screen.findByText(/from:/i)
+        await user.click(screen.getByRole('button', { name: /sent \(1\)/i }))
+        await screen.findByText(/to:/i)
+
+        // already confirmed, so no confirm button, but abandoning is still possible
+        expect(
+            screen.queryByRole('button', { name: /confirm swap/i })
+        ).not.toBeInTheDocument()
+
+        await user.click(screen.getByRole('button', { name: /abandon swap/i }))
+
+        const abandonButtons = screen.getAllByRole('button', { name: /abandon swap/i })
+        await user.click(abandonButtons[abandonButtons.length - 1])
+
+        await waitFor(() => {
+            expect(abandonSwapRequest).toHaveBeenCalledWith(2)
+        })
+    })
+
+    test('shows an error if abandoning fails', async () => {
+        const user = userEvent.setup()
+        getReceivedSwapRequests.mockResolvedValue({
+            content: [{ ...RECEIVED_REQUEST, status: 'accepted', ownerConfirmed: false }],
+            totalPages: 1,
+            totalElements: 1
+        })
+        abandonSwapRequest.mockRejectedValue(new Error('Only accepted swaps can be abandoned'))
+
+        render(<SwapRequestsPage />)
+
+        await user.click(await screen.findByRole('button', { name: /abandon swap/i }))
+        await screen.findByText(/are you sure you want to abandon this swap/i)
+
+        const abandonButtons = screen.getAllByRole('button', { name: /abandon swap/i })
+        await user.click(abandonButtons[abandonButtons.length - 1])
+
+        expect(
+            await screen.findByText(/only accepted swaps can be abandoned/i)
+        ).toBeInTheDocument()
+    })
+
+    test('cancelled request shows the abandoned note and no action buttons', async () => {
+        getReceivedSwapRequests.mockResolvedValue({
+            content: [{ ...RECEIVED_REQUEST, status: 'cancelled' }],
+            totalPages: 1,
+            totalElements: 1
+        })
+
+        render(<SwapRequestsPage />)
+
+        expect(
+            await screen.findByText(/both items are available again/i)
+        ).toBeInTheDocument()
+
+        expect(
+            screen.queryByRole('button', { name: /abandon swap/i })
+        ).not.toBeInTheDocument()
+        expect(
+            screen.queryByRole('button', { name: /confirm swap/i })
+        ).not.toBeInTheDocument()
     })
 
     test('contact details are shown when the backend includes them', async () => {

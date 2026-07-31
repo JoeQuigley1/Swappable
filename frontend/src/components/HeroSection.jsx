@@ -1,7 +1,11 @@
 import { Link } from 'react-router-dom'
 import heroImage from '../assets/swappable-hero.jpg'
 
-export default function HeroSection({ itemCount = 0 }) {
+// thousands separators keep the bigger community numbers readable
+const format = (n) => Number(n || 0).toLocaleString('en-IE')
+const plural = (n) => (Number(n) === 1 ? '' : 's')
+
+export default function HeroSection({ memberCount = 0, itemCount = 0, completedSwapCount = 0 }) {
   return (
     <section className="hero-section text-white">
       <div className="container py-4">
@@ -28,13 +32,13 @@ export default function HeroSection({ itemCount = 0 }) {
             </div>
             <div className="mt-4 d-flex flex-wrap gap-4 text-white-50 small">
               <span>
-                <i className="bi bi-people-fill me-1 text-warning"></i> 1,200+ members
+                <i className="bi bi-people-fill me-1 text-warning"></i> {format(memberCount)} member{plural(memberCount)}
               </span>
               <span>
-                <i className="bi bi-box-seam me-1 text-warning"></i> {itemCount} item{itemCount === 1 ? '' : 's'} listed
+                <i className="bi bi-box-seam me-1 text-warning"></i> {format(itemCount)} item{plural(itemCount)} listed
               </span>
               <span>
-                <i className="bi bi-arrow-left-right me-1 text-warning"></i> 800+ swaps completed
+                <i className="bi bi-arrow-left-right me-1 text-warning"></i> {format(completedSwapCount)} swap{plural(completedSwapCount)} completed
               </span>
             </div>
           </div>

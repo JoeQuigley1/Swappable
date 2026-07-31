@@ -39,6 +39,32 @@ async function handle(res) {
   return res.json();
 }
 
+// Browse Items list. Every filter is applied by the backend, so the result is the
+// whole catalogue narrowed down, not just the current page refined in the browser.
+// `signal` lets the caller drop a request that a newer keystroke has superseded.
+export function getItems(
+  { page = 0, size = 20, sort = 'createdAt,desc', categoryId, search, condition, lat, lng, radiusKm } = {},
+  signal
+) {
+  const params = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+    sort,
+  });
+
+  if (categoryId) params.set('categoryId', String(categoryId));
+  if (search) params.set('search', search);
+  if (condition) params.set('condition', condition);
+  // the backend rejects a radius without coordinates, so send them together or not at all
+  if (radiusKm && Number.isFinite(lat) && Number.isFinite(lng)) {
+    params.set('lat', String(lat));
+    params.set('lng', String(lng));
+    params.set('radiusKm', String(radiusKm));
+  }
+
+  return fetch(`${BASE}/items?${params.toString()}`, { signal }).then(handle);
+}
+
 // Create an item with 0–3 images. Always multipart so the backend's
 // multipart handler (createItemWithImages) is the one that runs.
 export function createItem({

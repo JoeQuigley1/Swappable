@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { resolveImageUrl } from '../api/config.js';
 import { CONDITION_COLORS } from '../lib/constants.js';
+import { isOwnItem } from '../lib/auth.js';
 
 export default function ItemCard({ item }) {
   const {
@@ -16,6 +17,8 @@ export default function ItemCard({ item }) {
   } = item;
   const badgeColor = CONDITION_COLORS[condition] ?? 'secondary';
   const navigate = useNavigate();
+  // you cannot swap with yourself, so the action is disabled on your own items
+  const isMine = isOwnItem(ownerId);
 
   // title and image open the item detail page
   const openDetail = () => navigate(`/items/${id}`);
@@ -105,7 +108,12 @@ export default function ItemCard({ item }) {
             <i className="bi bi-eye me-1"></i>
             View Item
           </button>
-          <button className="btn btn-primary btn-sm w-50" onClick={handleRequestSwap}>
+          <button
+            className="btn btn-primary btn-sm w-50"
+            onClick={handleRequestSwap}
+            disabled={isMine}
+            title={isMine ? 'This is your own item' : undefined}
+          >
             <i className="bi bi-arrow-left-right me-1"></i>
             Request Swap
           </button>
