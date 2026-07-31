@@ -135,10 +135,17 @@ function ProfilePage() {
             const timer = setTimeout(async () => {
               try {
                 const response = await fetch(
-                  `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationSearch)},Ireland&format=json&limit=5`,
-                  { headers: { 'Accept-Language': 'en' } }
+                    `https://photon.komoot.io/api/?q=${encodeURIComponent(locationSearch)}&limit=5&lang=en&countrycode=ie&lat=53.4&lon=-8.2`
                 )
-                const results = await response.json()
+                 const data = await response.json()
+                 const results = (data.features ?? [])
+                    .filter((f) => f.properties.osm_key === 'place')
+                    .map((f) => ({
+                        display_name: [f.properties.name, f.properties.state, f.properties.country]
+                         .filter(Boolean).join(', '),
+                        lat: f.geometry.coordinates[1],
+                        lon: f.geometry.coordinates[0],
+                      }))
                 setSuggestions(results)
                 setShowSuggestions(true)
               } catch (err) {
@@ -313,17 +320,7 @@ function ProfilePage() {
             {/* email field - shows input in edit mode, plain text otherwise */}
             <div className="mb-3">
               <label className="form-label fw-semibold">Email</label>
-              {editMode ? (
-                <input
-                  type="email"
-                  className="form-control"
-                  name="email"
-                  value={profile.email}
-                  onChange={handleChange}
-                />
-              ) : (
                 <p className="form-control-plaintext">{profile.email}</p>
-              )}
             </div>
 
             {/* phone number field - shows input in edit mode, plain text otherwise */}

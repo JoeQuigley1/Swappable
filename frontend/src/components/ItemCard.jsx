@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { resolveImageUrl } from '../api/config.js';
 import { CONDITION_COLORS } from '../lib/constants.js';
-import { isOwnItem } from '../lib/auth.js';
+import { isOwnItem, isTokenValid } from '../lib/auth.js';
 
 export default function ItemCard({ item }) {
   const {
@@ -19,19 +19,13 @@ export default function ItemCard({ item }) {
   const navigate = useNavigate();
   // you cannot swap with yourself, so the action is disabled on your own items
   const isMine = isOwnItem(ownerId);
+  const isLoggedIn = isTokenValid(localStorage.getItem('token'));
 
   // title and image open the item detail page
   const openDetail = () => navigate(`/items/${id}`);
 
-  // request swap: not logged in -> login page. logged in -> item detail,
-  // where the actual offer-item / message form lives.
-  const handleRequestSwap = () => {
-      if (!localStorage.getItem('token')) {
-        navigate('/login')
-        return
-      }
-      navigate(`/items/${id}`)
-   }
+ // only reachable when logged in - the button becomes a login link otherwise
+  const handleRequestSwap = () => navigate(`/items/${id}`)
 
   // placeholders: the click targets exist now so they can be wired up later.
   const handleCategoryClick = () => {}; // TODO: filter items by this category
@@ -109,13 +103,13 @@ export default function ItemCard({ item }) {
             View Item
           </button>
           <button
-            className="btn btn-primary btn-sm w-50"
-            onClick={handleRequestSwap}
-            disabled={isMine}
-            title={isMine ? 'This is your own item' : undefined}
+            className={`btn btn-sm w-50 ${isLoggedIn ? 'btn-primary' : 'btn-outline-secondary'}`}
+            onClick={isLoggedIn ? handleRequestSwap : () => navigate('/login')}
+            disabled={isLoggedIn && isMine}
+            title={!isLoggedIn ? 'Log in to request a swap' : isMine ? 'This is your own item' : undefined}
           >
             <i className="bi bi-arrow-left-right me-1"></i>
-            Request Swap
+            {isLoggedIn ? 'Request Swap' : 'Log in to swap'}
           </button>
         </div>
       </div>

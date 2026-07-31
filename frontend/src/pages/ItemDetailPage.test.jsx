@@ -6,14 +6,10 @@ import { createSwapRequest, getMyAvailableItems } from '../api/swapRequests'
 
 const mockNavigate = vi.fn()
 
-vi.mock('react-router-dom', async () => {
-    const actual = await vi.importActual('react-router-dom')
-
-    return {
-        ...actual,
-        useNavigate: () => mockNavigate
-    }
-})
+vi.mock('../lib/auth.js', async () => {
+     const actual = await vi.importActual('../lib/auth.js')
+     return { ...actual, isTokenValid: (token) => token === 'valid-token' }
+ })
 
 vi.mock('../api/swapRequests', () => ({
     createSwapRequest: vi.fn(),
@@ -88,7 +84,7 @@ describe('ItemDetailPage', () => {
 
     test('logged-in user can send a swap request', async () => {
         const user = userEvent.setup()
-        localStorage.setItem('token', 'test-token')
+        localStorage.setItem('token', 'valid-token')
         createSwapRequest.mockResolvedValue({ id: 1 })
 
         renderPage()
@@ -119,7 +115,7 @@ describe('ItemDetailPage', () => {
 
     test('shows a validation message if no item is offered', async () => {
         const user = userEvent.setup()
-        localStorage.setItem('token', 'test-token')
+        localStorage.setItem('token', 'valid-token')
 
         renderPage()
 
@@ -137,27 +133,16 @@ describe('ItemDetailPage', () => {
         expect(createSwapRequest).not.toHaveBeenCalled()
     })
 
-    test('logged-out user is redirected to login and swap intent is saved', async () => {
-        const user = userEvent.setup()
-
-        renderPage()
-
-        await screen.findByText('Old guitar')
-
-        await user.click(
-            screen.getByRole('button', { name: /request a swap/i })
-        )
-
-        expect(mockNavigate).toHaveBeenCalledWith('/login')
-        expect(createSwapRequest).not.toHaveBeenCalled()
-
-        const saved = JSON.parse(sessionStorage.getItem('swapIntent'))
-        expect(saved.itemId).toBe('5')
-        expect(saved.itemTitle).toBe('Old guitar')
+    test('logged-out visitor sees a login prompt instead of the offer form', async () => {
+       renderPage()
+       await screen.findByText('Old guitar')
+       expect(screen.getByRole('link', { name: /log in/i })).toBeInTheDocument()
+       expect(screen.queryByRole('button', { name: /request a swap/i })).not.toBeInTheDocument()
+       expect(createSwapRequest).not.toHaveBeenCalled()
     })
 
     test('owner cannot request a swap for their own item', async () => {
-        localStorage.setItem('token', 'test-token')
+        localStorage.setItem('token', 'valid-token')
         localStorage.setItem('userId', String(ITEM.ownerId))
 
         renderPage()
@@ -175,7 +160,7 @@ describe('ItemDetailPage', () => {
 
     test('shows an error returned by the swap request API', async () => {
         const user = userEvent.setup()
-        localStorage.setItem('token', 'test-token')
+        localStorage.setItem('token', 'valid-token')
         createSwapRequest.mockRejectedValue(new Error('item not available'))
 
         renderPage()

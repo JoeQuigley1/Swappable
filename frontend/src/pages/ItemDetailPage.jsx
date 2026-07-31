@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { BRAND_COLOR } from '../lib/constants'
 import { createSwapRequest, getMyAvailableItems } from '../api/swapRequests'
-import { isOwnItem } from '../lib/auth.js'
+import { isOwnItem, isTokenValid } from '../lib/auth.js'
 import {API_BASE_URL, resolveImageUrl} from "../api/config.js";
 
 // page showing full details of one item
@@ -54,48 +54,20 @@ function ItemDetailPage() {
     loadItem()
   }, [id])
 
-
+    const hasValidSession = () => isTokenValid(localStorage.getItem('token'))
   // load your own items so you can choose what to offer
   useEffect(() => {
-      if (!localStorage.getItem('token')) return // only if logged in
+      if (!hasValidSession()) return // only if logged in
       getMyAvailableItems().then(setMyItems).catch(() => setMyItems([]))
   }, [])
 
-     // restore a swap-in-progress if the user just logged in to get here
-      const [resumedSwap, setResumedSwap] = useState(false)
-      useEffect(() => {
-        const saved = sessionStorage.getItem('swapIntent')
-        if (!saved) return
-        try {
-          const intent = JSON.parse(saved)
-         if (String(intent.itemId) === String(id)) {
-             if (intent.offeredItemId) setOfferedItemId(intent.offeredItemId)
-             if (intent.message) setMessage(intent.message)
-             setResumedSwap(true)
-         }
-        } catch {
-            // ignore malformed storage
-        } finally{
-          sessionStorage.removeItem('swapIntent')
-        }
-      }, [id])
-
 
   // runs when user clicks Request a swap
-  // TODO: replace with real API call to POST /api/swaps
+
 
   const handleRequestSwap = async () => {
       setSwapError('')
-       if (!localStorage.getItem('token')) {
-           sessionStorage.setItem('swapIntent', JSON.stringify({
-               itemId: id,
-               itemTitle: item.title,
-               offeredItemId,
-               message,
-             }))
-           navigate('/login')
-           return
-       }
+
 
       if (!offeredItemId) {
         setSwapError('Please choose one of your items to offer.')
@@ -148,6 +120,7 @@ function ItemDetailPage() {
 
     // swapping with yourself is rejected by the backend, so the form is disabled on your own items
     const isMine = isOwnItem(item.ownerId)
+    const isLoggedIn = hasValidSession()
 
   return (
     <div className="mt-4">
@@ -253,13 +226,12 @@ function ItemDetailPage() {
                    <div className="alert alert-success mb-0">
                        Swap request sent! The owner will be in touch.
                    </div>
+                ) : !isLoggedIn ? (
+                    <div className="alert alert-secondary mb-0">
+                        <Link to="/login">Log in</Link> to request a swap for this item.
+                   </div>
                ) : (
                    <div>
-                        {resumedSwap && (
-                            <div className="alert alert-info py-2">
-                                Welcome back! Continue your swap request below.
-                            </div>
-                        )}
                        {swapError && <div className="alert alert-danger py-2">{swapError}</div>}
 
                         <label className="form-label small mb-1">Offer one of your items</label>

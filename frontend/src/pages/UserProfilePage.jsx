@@ -5,6 +5,7 @@ import ItemList from '../components/ItemList.jsx'
 import { getPublicProfile } from '../api/users.js'
 import { toCardItem } from '../api/items.js'
 import { BRAND_COLOR } from '../lib/constants.js'
+import { isTokenValid } from '../lib/auth.js'
 
 // public read-only profile: a member and the items they have listed
 export default function UserProfilePage() {
@@ -42,7 +43,7 @@ export default function UserProfilePage() {
 
   // /users/me should go to your own profile, or login when logged out
   if (id === 'me') {
-    const loggedIn = !!localStorage.getItem('token')
+    const loggedIn = isTokenValid(localStorage.getItem('token'))
     return <Navigate to={loggedIn ? '/profile' : '/login'} replace />
   }
 
