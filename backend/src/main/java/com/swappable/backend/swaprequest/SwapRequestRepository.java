@@ -28,6 +28,8 @@ public interface SwapRequestRepository extends JpaRepository<SwapRequest, Intege
     @Transactional
     long deleteByStatusAndCreatedAtBefore(String status, LocalDateTime cutoff);
 
+    long countByStatus(String status);
+
     boolean existsByRequesterIdAndRequestedItemIdAndOfferedItemIdAndStatus(
             Integer requesterId,
             Integer requestedItemId,

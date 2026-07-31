@@ -16,6 +16,14 @@ export function clearSession() {
   SESSION_KEYS.forEach(key => localStorage.removeItem(key))
 }
 
+// true when the logged in user owns the given item. ids are compared as strings
+// because localStorage always hands them back as text.
+export function isOwnItem(ownerId) {
+  const userId = localStorage.getItem('userId')
+  if (!userId || ownerId === null || ownerId === undefined) return false
+  return String(ownerId) === String(userId)
+}
+
 // checks whether a JWT is present and not expired.
 // returns false for missing, malformed, or expired tokens.
 export function isTokenValid(token) {

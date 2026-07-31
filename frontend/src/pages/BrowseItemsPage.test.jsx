@@ -1,348 +1,433 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {render, screen, waitFor} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import BrowseItemsPage from './BrowseItemsPage'
+import { MemoryRouter } from 'react-router-dom'
+import BrowseItemsPage, { spreadMarkerPositions } from './BrowseItemsPage'
+import { getItems } from '../api/items'
 
-vi.mock('../api/config.js', () => ({
-    API_BASE_URL: '/api',
-    resolveImageUrl: (url) => url,
-}))
-
-vi.mock('../api/items.js', () => ({
-    toCardItem: (item) => item,
-}))
-
-vi.mock('../components/ItemGrid.jsx', () => ({
-    default: ({ items }) => (
-        <div data-testid="item-grid">
-            {items.map((item) => (
-                <div key={item.id}>{item.title}</div>
-            ))}
-        </div>
-    ),
-}))
-
-vi.mock('../components/ItemFilterBar.jsx', () => ({
-    default: ({
-                  search,
-                  onSearchChange,
-                  category,
-                  onCategoryChange,
-                  categories,
-                  condition,
-                  onConditionChange,
-                  sort,
-                  onSortChange,
-                  radius,
-                  onRadiusChange,
-                  showRadius,
-              }) => (
-        <div>
-            <input
-                aria-label="Search"
-                value={search}
-                onChange={(event) => onSearchChange(event.target.value)}
-            />
-
-            <select
-                aria-label="Category"
-                value={category}
-                onChange={(event) => onCategoryChange(event.target.value)}
-            >
-                {categories.map((value) => (
-                    <option key={value}>{value}</option>
-                ))}
-            </select>
-
-            <select
-                aria-label="Condition"
-                value={condition}
-                onChange={(event) => onConditionChange(event.target.value)}
-            >
-                <option>All</option>
-                <option>New</option>
-                <option>Good</option>
-            </select>
-
-            <select
-                aria-label="Sort"
-                value={sort}
-                onChange={(event) => onSortChange(event.target.value)}
-            >
-                <option value="newest">Newest</option>
-                <option value="oldest">Oldest</option>
-                <option value="title">Title</option>
-            </select>
-
-            {showRadius && (
-                <select
-                    aria-label="Radius"
-                    value={radius}
-                    onChange={(event) => onRadiusChange(event.target.value)}
-                >
-                    <option value="all">All</option>
-                    <option value="10">10 km</option>
-                    <option value="50">50 km</option>
-                </select>
-            )}
-        </div>
-    ),
+// the map is not what these tests are about, and leaflet needs a real DOM to draw
+vi.mock('leaflet', () => ({
+    default: {
+        Icon: { Default: { prototype: {}, mergeOptions: vi.fn() } }
+    }
 }))
 
 vi.mock('react-leaflet', () => ({
     MapContainer: ({ children }) => <div data-testid="map">{children}</div>,
     TileLayer: () => null,
-    Marker: ({ position }) => (
-        <div data-testid="marker">
-            {position.join(',')}
-        </div>
-    ),
-    Popup: ({ children }) => <div>{children}</div>,
+    Marker: () => null,
+    Popup: () => null
 }))
 
-vi.mock('leaflet', () => ({
-    default: {
-        Icon: {
-            Default: {
-                prototype: {},
-                mergeOptions: vi.fn(),
-            },
-        },
-    },
-}))
+// keep toCardItem real, it is the contract between the API and ItemCard
+vi.mock('../api/items', async () => {
+    const actual = await vi.importActual('../api/items')
 
-const categories = [
-    { id: 1, name: 'Electronics' },
-    { id: 2, name: 'Books' },
+    return {
+        ...actual,
+        getItems: vi.fn()
+    }
+})
+
+const CATEGORIES = [
+    { id: 1, name: 'Books' },
+    { id: 2, name: 'Electronics' }
 ]
 
-const items = [
-    {
-        id: 1,
-        title: 'Gaming Laptop',
-        description: 'A working laptop',
-        condition: 'Good',
-        category: 'Electronics',
-        owner: 'Joe',
-        lat: 53.34,
-        lng: -6.26,
-    },
-    {
-        id: 2,
-        title: 'Java Book',
-        description: 'Programming guide',
-        condition: 'New',
-        category: 'Books',
-        owner: 'Anna',
-        lat: 51.90,
-        lng: -8.47,
-    },
-]
+const ITEM = {
+    id: 5,
+    title: 'Mountain Bike',
+    description: 'A red mountain bike',
+    condition: 'Good',
+    imageUrl: null,
+    status: 'available',
+    categoryId: 1,
+    categoryName: 'Books',
+    ownerId: 3,
+    ownerUsername: 'dub',
+    ownerLocation: 'Dublin',
+    ownerLatitude: 53.3498,
+    ownerLongitude: -6.2603,
+    imageUrls: [],
+    createdAt: null
+}
 
-function mockSuccessfulRequests({
-                                    content = items,
-                                    totalPages = 2,
-                                    totalElements = 2,
-                                } = {}) {
-    globalThis.fetch = vi.fn((url) => {
-        if (url.includes('/categories')) {
-            return Promise.resolve({
-                ok: true,
-                json: async () => categories,
-            })
-        }
+function page(content = [ITEM]) {
+    return { content, totalPages: 1, totalElements: content.length, last: true }
+}
 
-        return Promise.resolve({
-            ok: true,
-            json: async () => ({
-                content,
-                totalPages,
-                totalElements,
-            }),
-        })
+beforeEach(() => {
+    getItems.mockReset()
+    getItems.mockResolvedValue(page())
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: true,
+        json: async () => CATEGORIES
     })
+})
+
+afterEach(() => {
+    vi.restoreAllMocks()
+})
+
+function renderPage(entry = '/items') {
+    render(
+        <MemoryRouter initialEntries={[entry]}>
+            <BrowseItemsPage />
+        </MemoryRouter>
+    )
 }
 
 describe('BrowseItemsPage', () => {
-    beforeEach(() => {
-        vi.restoreAllMocks()
-        localStorage.clear()
+    test('renders the page the server returns', async () => {
+        renderPage()
 
-        Element.prototype.scrollIntoView = vi.fn()
+        expect(await screen.findByText('Mountain Bike')).toBeInTheDocument()
+        expect(screen.getByText(/1 item found/i)).toBeInTheDocument()
     })
 
-    test('fetches categories and the first page of newest items', async () => {
-        mockSuccessfulRequests()
-
-        render(<BrowseItemsPage />)
-
-        expect(await screen.findByText('Gaming Laptop')).toBeInTheDocument()
-
-        expect(globalThis.fetch).toHaveBeenCalledWith('/api/categories')
-
-        expect(globalThis.fetch).toHaveBeenCalledWith(
-            expect.stringContaining('/api/items?page=0&size=20&sort=createdAt%2Cdesc')
-        )
-    })
-
-    test('displays the total number of items reported by the server', async () => {
-        mockSuccessfulRequests({
-            content: items,
-            totalPages: 5,
-            totalElements: 87,
-        })
-
-        render(<BrowseItemsPage />)
-
-        expect(await screen.findByText('87 items found')).toBeInTheDocument()
-    })
-
-    test('includes the category id when a category is selected', async () => {
+    test('does not query the backend while the user is typing', async () => {
         const user = userEvent.setup()
-        mockSuccessfulRequests()
+        renderPage()
 
-        render(<BrowseItemsPage />)
+        await screen.findByText('Mountain Bike')
+        const callsBeforeTyping = getItems.mock.calls.length
 
-        await screen.findByText('Gaming Laptop')
+        await user.type(screen.getByPlaceholderText(/search items/i), 'acoustic')
 
-        await user.selectOptions(
-            screen.getByRole('combobox', { name: 'Category' }),
-            'Books'
-        )
+        // eight keystrokes, zero requests
+        expect(getItems.mock.calls.length).toBe(callsBeforeTyping)
+        expect(screen.getByText(/press enter or click search/i)).toBeInTheDocument()
+    })
+
+    test('searches when the Search button is clicked', async () => {
+        const user = userEvent.setup()
+        renderPage()
+
+        await screen.findByText('Mountain Bike')
+        const callsBeforeTyping = getItems.mock.calls.length
+
+        await user.type(screen.getByPlaceholderText(/search items/i), 'bike')
+        await user.click(screen.getByRole('button', { name: /^search$/i }))
 
         await waitFor(() => {
-            expect(globalThis.fetch).toHaveBeenCalledWith(
-                expect.stringContaining('categoryId=2')
+            expect(getItems).toHaveBeenCalledWith(
+                expect.objectContaining({ search: 'bike', page: 0 }),
+                expect.anything()
+            )
+        })
+
+        // the whole word cost exactly one request
+        expect(getItems.mock.calls.length - callsBeforeTyping).toBe(1)
+    })
+
+    test('searches when Enter is pressed in the search box', async () => {
+        const user = userEvent.setup()
+        renderPage()
+
+        await screen.findByText('Mountain Bike')
+        await user.type(screen.getByPlaceholderText(/search items/i), 'bike{Enter}')
+
+        await waitFor(() => {
+            expect(getItems).toHaveBeenCalledWith(
+                expect.objectContaining({ search: 'bike' }),
+                expect.anything()
             )
         })
     })
 
-    test('sends the selected sort order to the backend', async () => {
+    test('trims the submitted term and clears it again', async () => {
         const user = userEvent.setup()
-        mockSuccessfulRequests()
+        renderPage()
 
-        render(<BrowseItemsPage />)
-
-        await screen.findByText('Gaming Laptop')
-
-        await user.selectOptions(
-            screen.getByRole('combobox', { name: 'Sort' }),
-            'oldest'
-        )
+        await screen.findByText('Mountain Bike')
+        await user.type(screen.getByPlaceholderText(/search items/i), '  bike  {Enter}')
 
         await waitFor(() => {
-            expect(globalThis.fetch).toHaveBeenCalledWith(
-                expect.stringContaining('sort=createdAt%2Casc')
-            )
-        })
-    })
-
-    test('requests the next page when Next is clicked', async () => {
-        const user = userEvent.setup()
-        mockSuccessfulRequests({ totalPages: 3 })
-
-        render(<BrowseItemsPage />)
-
-        await screen.findByText('Page 1 of 3')
-
-        await user.click(screen.getByRole('button', { name: 'Next' }))
-
-        await waitFor(() => {
-            expect(globalThis.fetch).toHaveBeenCalledWith(
-                expect.stringContaining('page=1')
+            expect(getItems).toHaveBeenCalledWith(
+                expect.objectContaining({ search: 'bike' }),
+                expect.anything()
             )
         })
 
-        expect(screen.getByText('Page 2 of 3')).toBeInTheDocument()
+        await user.click(await screen.findByRole('button', { name: /remove search: bike/i }))
+
+        await waitFor(() => {
+            expect(getItems).toHaveBeenCalledWith(
+                expect.objectContaining({ search: undefined }),
+                expect.anything()
+            )
+        })
+        expect(screen.getByPlaceholderText(/search items/i)).toHaveValue('')
     })
 
-    test('disables Previous on the first page', async () => {
-        mockSuccessfulRequests({ totalPages: 3 })
-
-        render(<BrowseItemsPage />)
-
-        expect(
-            await screen.findByRole('button', { name: 'Previous' })
-        ).toBeDisabled()
-    })
-
-    test('filters the current page using the search term', async () => {
+    test('does not query when a dropdown changes, only when submitted', async () => {
         const user = userEvent.setup()
-        mockSuccessfulRequests()
+        renderPage()
 
-        render(<BrowseItemsPage />)
+        await screen.findByRole('option', { name: 'Electronics' })
+        const callsBefore = getItems.mock.calls.length
 
-        await screen.findByText('Gaming Laptop')
+        const [categorySelect, conditionSelect, sortSelect] = screen.getAllByRole('combobox')
+        await user.selectOptions(categorySelect, '2')
+        await user.selectOptions(conditionSelect, 'Like New')
+        await user.selectOptions(sortSelect, 'title')
 
-        await user.type(
-            screen.getByRole('textbox', { name: 'Search' }),
-            'java'
-        )
+        expect(getItems.mock.calls.length).toBe(callsBefore)
 
-        expect(screen.getByText('Java Book')).toBeInTheDocument()
-        expect(screen.queryByText('Gaming Laptop')).not.toBeInTheDocument()
-        expect(screen.getByText('1 item found')).toBeInTheDocument()
+        await user.click(screen.getByRole('button', { name: /^search$/i }))
+
+        await waitFor(() => {
+            expect(getItems).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    categoryId: '2',
+                    condition: 'Like New',
+                    sort: 'title,asc',
+                    page: 0
+                }),
+                expect.anything()
+            )
+        })
+
+        // three dropdowns plus the submit cost exactly one request
+        expect(getItems.mock.calls.length - callsBefore).toBe(1)
     })
 
-    test('filters the current page by condition', async () => {
+    test('combines the search box and the dropdowns in one request', async () => {
         const user = userEvent.setup()
-        mockSuccessfulRequests()
+        renderPage()
 
-        render(<BrowseItemsPage />)
+        await screen.findByRole('option', { name: 'Electronics' })
+        const callsBefore = getItems.mock.calls.length
 
-        await screen.findByText('Gaming Laptop')
+        const [categorySelect, conditionSelect] = screen.getAllByRole('combobox')
+        await user.type(screen.getByPlaceholderText(/search items/i), 'bike')
+        await user.selectOptions(categorySelect, '1')
+        await user.selectOptions(conditionSelect, 'Good')
+        await user.click(screen.getByRole('button', { name: /^search$/i }))
 
-        await user.selectOptions(
-            screen.getByRole('combobox', { name: 'Condition' }),
-            'New'
-        )
+        await waitFor(() => {
+            expect(getItems).toHaveBeenCalledWith(
+                expect.objectContaining({ search: 'bike', categoryId: '1', condition: 'Good' }),
+                expect.anything()
+            )
+        })
 
-        expect(screen.getByText('Java Book')).toBeInTheDocument()
-        expect(screen.queryByText('Gaming Laptop')).not.toBeInTheDocument()
+        expect(getItems.mock.calls.length - callsBefore).toBe(1)
     })
 
-    test('only shows the radius filter for a logged-in user with coordinates', async () => {
+    test('shows a chip for every active filter, not just the search term', async () => {
+        getItems.mockResolvedValue(page([]))
+
+        const user = userEvent.setup()
+        renderPage()
+
+        await screen.findByRole('option', { name: 'Electronics' })
+        const [categorySelect, conditionSelect] = screen.getAllByRole('combobox')
+        await user.type(screen.getByPlaceholderText(/search items/i), 'guitar')
+        await user.selectOptions(categorySelect, '2')
+        await user.selectOptions(conditionSelect, 'Good')
+        await user.click(screen.getByRole('button', { name: /^search$/i }))
+
+        // an empty result has to be explainable: all three narrowing filters are listed
+        expect(await screen.findByText('Search: guitar')).toBeInTheDocument()
+        expect(screen.getByText('Category: Electronics')).toBeInTheDocument()
+        expect(screen.getByText('Condition: Good')).toBeInTheDocument()
+        expect(screen.getByText(/0 items found/i)).toBeInTheDocument()
+    })
+
+    test('removing one chip drops only that filter', async () => {
+        const user = userEvent.setup()
+        renderPage()
+
+        await screen.findByRole('option', { name: 'Electronics' })
+        const [categorySelect] = screen.getAllByRole('combobox')
+        await user.type(screen.getByPlaceholderText(/search items/i), 'guitar')
+        await user.selectOptions(categorySelect, '2')
+        await user.click(screen.getByRole('button', { name: /^search$/i }))
+
+        await screen.findByText('Category: Electronics')
+        await user.click(screen.getByRole('button', { name: /remove category: electronics/i }))
+
+        await waitFor(() => {
+            expect(getItems).toHaveBeenCalledWith(
+                expect.objectContaining({ search: 'guitar', categoryId: undefined }),
+                expect.anything()
+            )
+        })
+        expect(screen.getByText('Search: guitar')).toBeInTheDocument()
+    })
+
+    test('sends the distance filter with the stored coordinates', async () => {
         localStorage.setItem('token', 'test-token')
-        localStorage.setItem('lat', '53.34')
-        localStorage.setItem('lng', '-6.26')
+        localStorage.setItem('lat', '53.3498')
+        localStorage.setItem('lng', '-6.2603')
 
-        mockSuccessfulRequests()
+        const user = userEvent.setup()
+        renderPage()
 
-        render(<BrowseItemsPage />)
+        await screen.findByText('Mountain Bike')
+        const selects = screen.getAllByRole('combobox')
+        // category, condition, sort, distance, then the per page control
+        await user.selectOptions(selects[3], '25')
+        await user.click(screen.getByRole('button', { name: /^search$/i }))
 
-        expect(
-            await screen.findByRole('combobox', { name: 'Radius' })
-        ).toBeInTheDocument()
+        await waitFor(() => {
+            expect(getItems).toHaveBeenCalledWith(
+                expect.objectContaining({ radiusKm: 25, lat: 53.3498, lng: -6.2603 }),
+                expect.anything()
+            )
+        })
     })
 
-    test('does not show the radius filter when coordinates are missing', async () => {
-        localStorage.setItem('token', 'test-token')
-        mockSuccessfulRequests()
+    test('Reset puts every filter back to its default in one request', async () => {
+        const user = userEvent.setup()
+        renderPage()
 
-        render(<BrowseItemsPage />)
+        await screen.findByRole('option', { name: 'Electronics' })
+        const [categorySelect] = screen.getAllByRole('combobox')
+        await user.type(screen.getByPlaceholderText(/search items/i), 'bike')
+        await user.selectOptions(categorySelect, '2')
+        await user.click(screen.getByRole('button', { name: /^search$/i }))
 
-        await screen.findByText('Gaming Laptop')
-
-        expect(
-            screen.queryByRole('combobox', { name: 'Radius' })
-        ).not.toBeInTheDocument()
-    })
-
-    test('clears the items when the items request fails', async () => {
-        globalThis.fetch = vi.fn((url) => {
-            if (url.includes('/categories')) {
-                return Promise.resolve({
-                    ok: true,
-                    json: async () => categories,
-                })
-            }
-
-            return Promise.reject(new Error('Network error'))
+        await waitFor(() => {
+            expect(getItems).toHaveBeenCalledWith(
+                expect.objectContaining({ search: 'bike', categoryId: '2' }),
+                expect.anything()
+            )
         })
 
-        render(<BrowseItemsPage />)
+        await user.click(screen.getByRole('button', { name: /reset all filters/i }))
 
-        expect(await screen.findByText('0 items found')).toBeInTheDocument()
-        expect(screen.queryByText('Gaming Laptop')).not.toBeInTheDocument()
+        await waitFor(() => {
+            expect(getItems).toHaveBeenCalledWith(
+                expect.objectContaining({ search: undefined, categoryId: undefined, condition: undefined }),
+                expect.anything()
+            )
+        })
+        expect(screen.getByPlaceholderText(/search items/i)).toHaveValue('')
+    })
+
+    test('hides the distance filter when the account has no coordinates', async () => {
+        renderPage()
+
+        await screen.findByText('Mountain Bike')
+
+        expect(screen.queryByText(/all ireland/i)).not.toBeInTheDocument()
+    })
+
+    test('shows an error when the request fails', async () => {
+        getItems.mockRejectedValue(new Error('Request failed'))
+        renderPage()
+
+        expect(await screen.findByText(/could not load items/i)).toBeInTheDocument()
+    })
+
+    test('a category in the url filters the very first request', async () => {
+        renderPage('/items?category=Books')
+
+        await waitFor(() => {
+            expect(getItems).toHaveBeenCalledWith(
+                expect.objectContaining({ categoryId: '1' }),
+                expect.anything()
+            )
+        })
+
+        // nothing went out unfiltered while the category list was still loading
+        const unfiltered = getItems.mock.calls.filter(([params]) => !params.categoryId)
+        expect(unfiltered).toHaveLength(0)
+
+        expect(await screen.findByText('Category: Books')).toBeInTheDocument()
+    })
+
+    test('a category in the url preselects the dropdown', async () => {
+        renderPage('/items?category=Electronics')
+
+        await screen.findByRole('option', { name: 'Electronics' })
+
+        const [categorySelect] = screen.getAllByRole('combobox')
+        await waitFor(() => expect(categorySelect).toHaveValue('2'))
+    })
+
+    test('a category that does not exist behaves like no filter', async () => {
+        renderPage('/items?category=Nonsense')
+
+        await waitFor(() => expect(getItems).toHaveBeenCalled())
+
+        const filtered = getItems.mock.calls.filter(([params]) => params.categoryId)
+        expect(filtered).toHaveLength(0)
+
+        expect(screen.queryByText(/^Category:/)).not.toBeInTheDocument()
+    })
+
+    test('ignores a request that was aborted by a newer one', async () => {
+        const abortError = new Error('aborted')
+        abortError.name = 'AbortError'
+        getItems.mockRejectedValue(abortError)
+
+        renderPage()
+
+        await waitFor(() => {
+            expect(getItems).toHaveBeenCalled()
+        })
+
+        expect(screen.queryByText(/could not load items/i)).not.toBeInTheDocument()
+    })
+})
+
+describe('spreadMarkerPositions', () => {
+    test('leaves a single item at its own coordinates unchanged', () => {
+        const result = spreadMarkerPositions([
+            { id: 1, lat: 53.27, lng: -9.05 }
+        ])
+
+        expect(result).toEqual([
+            { item: { id: 1, lat: 53.27, lng: -9.05 }, position: [53.27, -9.05] }
+        ])
+    })
+
+    test('leaves items at different coordinates unchanged', () => {
+        const items = [
+            { id: 1, lat: 53.27, lng: -9.05 },
+            { id: 2, lat: 53.35, lng: -6.26 }
+        ]
+
+        const result = spreadMarkerPositions(items)
+
+        expect(result[0].position).toEqual([53.27, -9.05])
+        expect(result[1].position).toEqual([53.35, -6.26])
+    })
+
+    test('spreads apart items that share the same owner coordinates', () => {
+        // simulates one owner with three listed items - all three come
+        // through with identical ownerLatitude/ownerLongitude
+        const items = [
+            { id: 1, lat: 53.27, lng: -9.05 },
+            { id: 2, lat: 53.27, lng: -9.05 },
+            { id: 3, lat: 53.27, lng: -9.05 }
+        ]
+
+        const result = spreadMarkerPositions(items)
+
+        // the first one keeps the exact original coordinates
+        expect(result[0].position).toEqual([53.27, -9.05])
+
+        // every position is unique - no two items land on the same pixel
+        const positions = result.map((r) => r.position.join(','))
+        expect(new Set(positions).size).toBe(3)
+
+        // the offset stays small (within roughly 100m) so pins remain
+        // grouped near the real location rather than drifting away from it
+        for (const { position } of result) {
+            expect(Math.abs(position[0] - 53.27)).toBeLessThan(0.002)
+            expect(Math.abs(position[1] - (-9.05))).toBeLessThan(0.002)
+        }
+    })
+
+    test('preserves the original item reference alongside its position', () => {
+        const item = { id: 5, lat: 53.27, lng: -9.05, title: 'Bike' }
+
+        const [result] = spreadMarkerPositions([item])
+
+        expect(result.item).toBe(item)
     })
 })

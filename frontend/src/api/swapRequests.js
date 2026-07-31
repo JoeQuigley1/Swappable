@@ -50,6 +50,11 @@ export function confirmSwapRequest(id) {
   return fetch(`${BASE}/swap-requests/${id}/confirm`, { method: 'POST', headers: authHeaders() }).then(handle)
 }
 
+// walks away from an accepted swap that never got confirmed, freeing both items again
+export function abandonSwapRequest(id) {
+  return fetch(`${BASE}/swap-requests/${id}/abandon`, { method: 'POST', headers: authHeaders() }).then(handle)
+}
+
 export function cancelSwapRequest(id) {
   return fetch(`${BASE}/swap-requests/${id}`, { method: 'DELETE', headers: authHeaders() }).then(handle)
 }

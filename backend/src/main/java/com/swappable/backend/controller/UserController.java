@@ -7,9 +7,9 @@ import com.swappable.backend.user.User;
 import com.swappable.backend.user.UserRepository;
 import com.swappable.backend.user.PublicUserResponse;
 import com.swappable.backend.common.PagedResponse;
+import com.swappable.backend.item.Item;
 import com.swappable.backend.item.ItemMapper;
 import com.swappable.backend.item.ItemRepository;
-import com.swappable.backend.item.ItemResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -82,15 +82,14 @@ public class UserController {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "User not found"));
 
-        Page<ItemResponse> items = itemRepository
-                .findByUserIdAndStatus(user.getId(), ITEM_STATUS_AVAILABLE, pageable)
-                .map(itemMapper::toResponse);
+        Page<Item> items = itemRepository
+                .findByUserIdAndStatus(user.getId(), ITEM_STATUS_AVAILABLE, pageable);
 
         return new PublicUserResponse(
                 user.getId(),
                 user.getUsername(),
                 user.getLocation(),
-                PagedResponse.from(items));
+                PagedResponse.from(items, itemMapper.toResponses(items.getContent())));
     }
 
     private User loadCurrentUser() {
