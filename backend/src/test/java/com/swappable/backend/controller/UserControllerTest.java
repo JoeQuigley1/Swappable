@@ -269,8 +269,8 @@ class UserControllerTest {
         when(userRepository.findById(1)).thenReturn(Optional.of(u));
         when(itemRepository.findByUserIdAndStatus(1, "available", pageable))
                 .thenReturn(new PageImpl<>(List.of(first, second), pageable, 2));
-        when(itemMapper.toResponse(first)).thenReturn(firstResponse);
-        when(itemMapper.toResponse(second)).thenReturn(secondResponse);
+        when(itemMapper.toResponses(List.of(first, second)))
+                .thenReturn(List.of(firstResponse, secondResponse));
 
         var response = controller.getPublicProfile(1, pageable);
 
