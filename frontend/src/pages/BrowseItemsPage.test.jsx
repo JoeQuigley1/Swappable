@@ -92,7 +92,7 @@ describe('BrowseItemsPage', () => {
         await screen.findByText('Mountain Bike')
         const callsBeforeTyping = getItems.mock.calls.length
 
-        await user.type(screen.getByPlaceholderText(/search items/i), 'acoustic')
+        await user.type(screen.getByLabelText(/search item name/i), 'acoustic')
 
         // eight keystrokes, zero requests
         expect(getItems.mock.calls.length).toBe(callsBeforeTyping)
@@ -106,7 +106,7 @@ describe('BrowseItemsPage', () => {
         await screen.findByText('Mountain Bike')
         const callsBeforeTyping = getItems.mock.calls.length
 
-        await user.type(screen.getByPlaceholderText(/search items/i), 'bike')
+        await user.type(screen.getByLabelText(/search item name/i), 'bike')
         await user.click(screen.getByRole('button', { name: /^search$/i }))
 
         await waitFor(() => {
@@ -125,7 +125,7 @@ describe('BrowseItemsPage', () => {
         renderPage()
 
         await screen.findByText('Mountain Bike')
-        await user.type(screen.getByPlaceholderText(/search items/i), 'bike{Enter}')
+        await user.type(screen.getByLabelText(/search item name/i), 'bike{Enter}')
 
         await waitFor(() => {
             expect(getItems).toHaveBeenCalledWith(
@@ -140,7 +140,7 @@ describe('BrowseItemsPage', () => {
         renderPage()
 
         await screen.findByText('Mountain Bike')
-        await user.type(screen.getByPlaceholderText(/search items/i), '  bike  {Enter}')
+        await user.type(screen.getByLabelText(/search item name/i), '  bike  {Enter}')
 
         await waitFor(() => {
             expect(getItems).toHaveBeenCalledWith(
@@ -157,7 +157,7 @@ describe('BrowseItemsPage', () => {
                 expect.anything()
             )
         })
-        expect(screen.getByPlaceholderText(/search items/i)).toHaveValue('')
+        expect(screen.getByLabelText(/search item name/i)).toHaveValue('')
     })
 
     test('does not query when a dropdown changes, only when submitted', async () => {
@@ -200,7 +200,7 @@ describe('BrowseItemsPage', () => {
         const callsBefore = getItems.mock.calls.length
 
         const [categorySelect, conditionSelect] = screen.getAllByRole('combobox')
-        await user.type(screen.getByPlaceholderText(/search items/i), 'bike')
+        await user.type(screen.getByLabelText(/search item name/i), 'bike')
         await user.selectOptions(categorySelect, '1')
         await user.selectOptions(conditionSelect, 'Good')
         await user.click(screen.getByRole('button', { name: /^search$/i }))
@@ -223,7 +223,7 @@ describe('BrowseItemsPage', () => {
 
         await screen.findByRole('option', { name: 'Electronics' })
         const [categorySelect, conditionSelect] = screen.getAllByRole('combobox')
-        await user.type(screen.getByPlaceholderText(/search items/i), 'guitar')
+        await user.type(screen.getByLabelText(/search item name/i), 'guitar')
         await user.selectOptions(categorySelect, '2')
         await user.selectOptions(conditionSelect, 'Good')
         await user.click(screen.getByRole('button', { name: /^search$/i }))
@@ -241,7 +241,7 @@ describe('BrowseItemsPage', () => {
 
         await screen.findByRole('option', { name: 'Electronics' })
         const [categorySelect] = screen.getAllByRole('combobox')
-        await user.type(screen.getByPlaceholderText(/search items/i), 'guitar')
+        await user.type(screen.getByLabelText(/search item name/i), 'guitar')
         await user.selectOptions(categorySelect, '2')
         await user.click(screen.getByRole('button', { name: /^search$/i }))
 
@@ -285,7 +285,7 @@ describe('BrowseItemsPage', () => {
 
         await screen.findByRole('option', { name: 'Electronics' })
         const [categorySelect] = screen.getAllByRole('combobox')
-        await user.type(screen.getByPlaceholderText(/search items/i), 'bike')
+        await user.type(screen.getByLabelText(/search item name/i), 'bike')
         await user.selectOptions(categorySelect, '2')
         await user.click(screen.getByRole('button', { name: /^search$/i }))
 
@@ -304,7 +304,7 @@ describe('BrowseItemsPage', () => {
                 expect.anything()
             )
         })
-        expect(screen.getByPlaceholderText(/search items/i)).toHaveValue('')
+        expect(screen.getByLabelText(/search item name/i)).toHaveValue('')
     })
 
     test('hides the distance filter when the account has no coordinates', async () => {
