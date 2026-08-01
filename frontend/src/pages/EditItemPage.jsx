@@ -23,6 +23,8 @@ function EditItemPage() {
 
   // existing images as { id, url }
   const [images, setImages] = useState([])
+
+  const [imageIdsToDelete, setImageIdsToDelete] = useState([])
   // true while an image add/delete request is in flight
   const [imageBusy, setImageBusy] = useState(false)
   // shows spinner while item data is loading
@@ -122,15 +124,17 @@ function EditItemPage() {
 
   const handleDeleteImage = async (imageId) => {
     setError('')
-    setImageBusy(true)
-    try {
-      await deleteItemImage(id, imageId)
-      setImages((prev) => prev.filter((img) => img.id !== imageId))
-    } catch (err) {
-      setError(err.message || 'Failed to delete photo.')
-    } finally {
-      setImageBusy(false)
-    }
+    setImageIdsToDelete((current) => {
+      if (current.includes(imageId)) {
+        return current
+      }
+
+      return [...current, imageId]
+    })
+
+    setImages((current) =>
+        current.filter((image) => image.id !== imageId)
+    )
   }
 
   const handleSubmit = async (e) => {
@@ -159,6 +163,11 @@ function EditItemPage() {
         setError('Failed to update item.')
         return
       }
+      await Promise.all(
+          imageIdsToDelete.map((imageId) =>
+              deleteItemImage(id, imageId)
+          )
+      )
 
       navigate('/my-items')
     } catch (err) {
@@ -309,7 +318,7 @@ function EditItemPage() {
                   type="submit"
                   className="btn flex-fill"
                   style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
-                  disabled={saving}
+                  disabled={saving || imageBusy}
                 >
                   {saving ? 'Saving...' : 'Save changes'}
                 </button>
@@ -317,6 +326,7 @@ function EditItemPage() {
                   type="button"
                   className="btn btn-outline-secondary flex-fill"
                   onClick={() => navigate('/my-items')}
+                  disabled={saving || imageBusy}
                 >
                   Cancel
                 </button>
