@@ -7,11 +7,13 @@ const mockNavigate = vi.fn()
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom')
+    return { ...actual, useNavigate: () => mockNavigate }
+})
 
-    return {
-        ...actual,
-        useNavigate: () => mockNavigate
-    }
+
+vi.mock('../lib/auth.js', async () => {
+   const actual = await vi.importActual('../lib/auth.js')
+   return { ...actual, isTokenValid: (token) => token === 'valid-token' }
 })
 
 const ITEM = {
@@ -41,7 +43,7 @@ beforeEach(() => {
 
 describe('ItemCard', () => {
     test('disables the swap button on the logged-in user own item', async () => {
-        localStorage.setItem('token', 'test-token')
+        localStorage.setItem('token', 'valid-token')
         localStorage.setItem('userId', String(ITEM.ownerId))
 
         renderCard()
@@ -51,7 +53,7 @@ describe('ItemCard', () => {
 
     test('keeps the swap button enabled on someone else item', async () => {
         const user = userEvent.setup()
-        localStorage.setItem('token', 'test-token')
+        localStorage.setItem('token', 'valid-token')
         localStorage.setItem('userId', '99')
 
         renderCard()
@@ -64,12 +66,12 @@ describe('ItemCard', () => {
         expect(mockNavigate).toHaveBeenCalledWith('/items/5')
     })
 
-    test('sends a logged-out visitor to the login page', async () => {
+    test('shows a login prompt and sends a logged-out visitor to login', async () => {
         const user = userEvent.setup()
 
         renderCard()
 
-        await user.click(screen.getByRole('button', { name: /request swap/i }))
+        await user.click(screen.getByRole('button', { name: /log in to swap/i }))
 
         expect(mockNavigate).toHaveBeenCalledWith('/login')
     })

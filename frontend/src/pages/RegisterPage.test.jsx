@@ -149,7 +149,8 @@ describe('RegisterPage', () => {
         expect(mockNavigate).not.toHaveBeenCalled()
     })
 
-    test('registers the user and navigates to login', async () => {
+    test('registers the user and navigates to profile', async () => {
+
         const user = userEvent.setup()
 
         vi.spyOn(globalThis, 'fetch').mockResolvedValue({
@@ -188,7 +189,7 @@ describe('RegisterPage', () => {
         )
 
         await waitFor(() => {
-            expect(mockNavigate).toHaveBeenCalledWith('/login')
+             expect(mockNavigate).toHaveBeenCalledWith('/profile')
         })
 
         expect(fetch).toHaveBeenCalledWith(
