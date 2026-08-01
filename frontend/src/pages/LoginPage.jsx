@@ -16,12 +16,51 @@ function LoginPage() {
     password: ''
   })
 
+  const [validationErrors, setValidationErrors] = useState({
+    email: '',
+    password: ''
+  })
+
+  const validateEmail = (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  }
+
+  const validateForm = () => {
+    const errors = {}
+
+    const email = formData.email.trim()
+
+    if (!email) {
+      errors.email = 'Email is required.'
+    } else if (!validateEmail(email)) {
+      errors.email = 'Please enter a valid email address.'
+    }
+
+    if (!formData.password) {
+      errors.password = 'Password is required.'
+    }
+
+    setValidationErrors(errors)
+
+    return Object.keys(errors).length === 0
+  }
+
   // error message shown to user if login fails
   const [error, setError] = useState('')
 
   // updates form data when user types in any field
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+
+    setFormData((previous) => ({
+      ...previous,
+      [name]: value
+    }))
+
+    setValidationErrors((previous) => ({
+      ...previous,
+      [name]: ''
+    }))
   }
 
   // runs when user clicks Log in
@@ -31,6 +70,9 @@ function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    if (!validateForm()) {
+      return
+    }
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
@@ -61,7 +103,7 @@ function LoginPage() {
       await cacheMyLocation()
        navigate('/profile')
     } catch (err) {
-      setError('Could not login. Please try again..')
+      setError('Could not login. Please try again.')
     }
   }
 
@@ -79,20 +121,33 @@ function LoginPage() {
               <div className="alert alert-danger">{error}</div>
             )}
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
 
               {/* email field */}
               <div className="mb-3">
                 <label className="form-label fw-semibold">Email</label>
                 <input
                   type="email"
-                  className="form-control"
+                  className={`form-control ${
+                  validationErrors.email ? 'is-invalid' : ''
+                  }`}
                   name="email"
                   placeholder="your@email.com"
                   value={formData.email}
                   onChange={handleChange}
-                  required
+                  aria-invalid={Boolean(validationErrors.email)}
+                  aria-describedby={
+                    validationErrors.email ? 'email-error' : undefined
+                  }
                 />
+                {validationErrors.email && (
+                    <div
+                        id="email-error"
+                        className="invalid-feedback"
+                    >
+                      {validationErrors.email}
+                    </div>
+                )}
               </div>
 
               {/* password field */}
@@ -101,12 +156,17 @@ function LoginPage() {
                 <div className="input-group">
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    className="form-control"
+                    className={`form-control ${
+                      validationErrors.password ? 'is-invalid' : ''
+                    }`}
                     name="password"
                     placeholder="Your password"
                     value={formData.password}
                     onChange={handleChange}
-                    required
+                    aria-invalid={Boolean(validationErrors.password)}
+                    aria-describedby={
+                      validationErrors.password ? 'password-error' : undefined
+                    }
                   />
                   <button
                     type="button"
@@ -115,6 +175,14 @@ function LoginPage() {
                   >
                     {showPassword ? 'Hide' : 'Show'}
                   </button>
+                  {validationErrors.password && (
+                      <div
+                          id="password-error"
+                          className="invalid-feedback"
+                      >
+                        {validationErrors.password}
+                      </div>
+                  )}
                 </div>
                 <div className="text-end mt-1">
                   <Link to="/forgot-password" className="text-muted small">Forgot password?</Link>
