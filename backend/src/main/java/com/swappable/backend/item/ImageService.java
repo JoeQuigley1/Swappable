@@ -38,6 +38,7 @@ public class ImageService {
         }
 
         try {
+            // Scrimage will automatically handles EXIF orientation and metadata
             ImmutableImage image = ImmutableImage.loader().fromBytes(file.getBytes());
             return image
                     .bound(MAX_DIMENSION, MAX_DIMENSION)
