@@ -74,7 +74,7 @@ describe('CreateItemPage', () => {
 
         await screen.findByRole('option', { name: 'Books' })
 
-        const titleInput = document.querySelector('input[name="title"]')
+        const titleInput = screen.getByPlaceholderText(/title/i)
         const descriptionInput = screen.getByPlaceholderText(/describe your item/i)
 
         // category/condition <label> elements aren't wired to their <select>
@@ -105,7 +105,7 @@ describe('CreateItemPage', () => {
         await screen.findByRole('option', { name: 'Books' })
 
         await user.type(
-            document.querySelector('input[name="title"]'),
+            screen.getByPlaceholderText(/title/i),
             'Old guitar'
         )
         await user.type(
@@ -135,7 +135,7 @@ describe('CreateItemPage', () => {
 
     test('shows an error message when creating the item fails', async () => {
         const user = userEvent.setup()
-        createItem.mockRejectedValue(new Error('Request failed'))
+        createItem.mockRejectedValue({})
 
         render(
             <MemoryRouter>
@@ -146,7 +146,7 @@ describe('CreateItemPage', () => {
         await screen.findByRole('option', { name: 'Books' })
 
         await user.type(
-            document.querySelector('input[name="title"]'),
+            screen.getByPlaceholderText(/title/i),
             'Old guitar'
         )
         await user.type(
@@ -164,6 +164,50 @@ describe('CreateItemPage', () => {
         expect(
             await screen.findByText(
                 'Failed to create item. Please try again.'
+            )
+        ).toBeInTheDocument()
+
+        expect(mockNavigate).not.toHaveBeenCalled()
+    })
+
+    test('shows an image validation message when the uploaded image is too large', async () => {
+        const user = userEvent.setup()
+
+        const error = new Error('Payload Too Large')
+        error.status = 413
+        createItem.mockRejectedValue(error)
+
+        render(
+            <MemoryRouter>
+                <CreateItemPage />
+            </MemoryRouter>
+        )
+
+        await screen.findByRole('option', { name: 'Books' })
+
+        await user.type(
+            screen.getByPlaceholderText(/title/i),
+            'Old guitar'
+        )
+
+        await user.type(
+            screen.getByPlaceholderText(/describe your item/i),
+            'Barely used acoustic guitar'
+        )
+
+        const [categorySelect, conditionSelect] =
+            screen.getAllByRole('combobox')
+
+        await user.selectOptions(categorySelect, '1')
+        await user.selectOptions(conditionSelect, 'Good')
+
+        await user.click(
+            screen.getByRole('button', { name: /list item/i })
+        )
+
+        expect(
+            await screen.findByText(
+                'This photo is too large or high-resolution. Please choose a smaller or resized image.'
             )
         ).toBeInTheDocument()
 

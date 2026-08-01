@@ -160,6 +160,42 @@ describe('EditItemPage', () => {
         expect(mockNavigate).not.toHaveBeenCalled()
     })
 
+    test('shows an image validation message when an uploaded image is too large', async () => {
+        const user = userEvent.setup()
+
+        addItemImages.mockRejectedValue(
+            Object.assign(new Error('Payload Too Large'), {
+                status: 413
+            })
+        )
+
+        renderPage()
+
+        await screen.findByDisplayValue('Old guitar')
+
+        const file = new File(['image'], 'photo.jpg', {
+            type: 'image/jpeg'
+        })
+
+        const input = document.querySelector('input[type="file"]')
+
+        expect(input).not.toBeNull()
+
+        await user.upload(input, file)
+
+        await user.click(
+            screen.getByRole('button', { name: /save changes/i })
+        )
+
+        expect(
+            await screen.findByText(
+                'This photo is too large or high-resolution. Please choose a smaller or resized image.'
+            )
+        ).toBeInTheDocument()
+
+        expect(mockNavigate).not.toHaveBeenCalled()
+    })
+
     test('marks an existing photo for deletion and deletes it on save', async () => {
         const user = userEvent.setup()
         deleteItemImage.mockResolvedValue(null)
