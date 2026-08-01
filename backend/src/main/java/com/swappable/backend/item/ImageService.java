@@ -28,32 +28,27 @@ public class ImageService {
     private static final int MAX_DIMENSION = 1200;
     private static final int WEBP_QUALITY = 80;
 
-    // Upload limits protect the memory-constrained deployed service
     private static final long MAX_FILE_SIZE = 8L * 1024 * 1024;
     private static final long MAX_PIXELS = 10_000_000L;
     private static final int MAX_SOURCE_DIMENSION = 6000;
 
-    // Validates uploaded file before decoding, resizing and converting
     public byte[] toWebp(MultipartFile file) {
         validateFile(file);
         validateDimensions(file);
 
         try {
-            // Decode full pixel data and handle EXIF orientation/metadata automatically through Scrimage
             ImmutableImage image = ImmutableImage.loader().fromBytes(file.getBytes());
-            // Preserve aspect ratio, limit dimensions and convert to WebP
             return image
                     .bound(MAX_DIMENSION, MAX_DIMENSION)
                     .bytes(WebpWriter.DEFAULT.withQ(WEBP_QUALITY));
-        } catch (IOException | RuntimeException e) {
+        } catch (IOException e) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Could not process image file"
+                    "Could not read image file"
             );
         }
     }
 
-    // Checks upload exists, has an allowed type and is within 8 MB
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new ResponseStatusException(
@@ -78,7 +73,6 @@ public class ImageService {
         }
     }
 
-    // Reads image metadata before full decoding to avoid excessive memory use
     private void validateDimensions(MultipartFile file) {
         try (ImageInputStream input =
                      ImageIO.createImageInputStream(file.getInputStream())) {
@@ -102,7 +96,6 @@ public class ImageService {
                 int height = reader.getHeight(0);
                 long pixels = (long) width * height;
 
-                // Reject high-resolution images before they are decoded into memory
                 if (width > MAX_SOURCE_DIMENSION ||
                         height > MAX_SOURCE_DIMENSION ||
                         pixels > MAX_PIXELS) {
@@ -112,12 +105,10 @@ public class ImageService {
                     );
                 }
             } finally {
-                // Release resources held by the ImageIO reader
                 reader.dispose();
             }
 
         } catch (ResponseStatusException e) {
-            // Preserve the intended 400 or 413 response
             throw e;
         } catch (IOException | RuntimeException e) {
             throw invalidImage();
