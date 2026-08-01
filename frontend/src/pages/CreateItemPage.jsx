@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createItem } from '../api/items';
 import {API_BASE_URL} from "../api/config.js";
+import { validateItemForm } from '../utils/itemValidation.js';
 
 // condition options describe the physical state of the item
 //TODO remove conditions and store them in the DB
@@ -68,30 +69,17 @@ function CreateItem() {
   ];
 
   const validateForm = () => {
-    const errors = {};
+    const errors = validateItemForm(formData);
 
-    if (!formData.title.trim()) {
-      errors.title = 'Please enter a title.';
-    } else if (formData.title.trim().length > 100)
-    {
-      errors.title = 'The title must be 100 characters or fewer.';
-    }
+    setValidationErrors((current) => ({
+      ...current,
+      ...errors,
+      title: errors.title || '',
+      description: errors.description || '',
+      categoryId: errors.categoryId || '',
+      condition: errors.condition || '',
+    }));
 
-    if (!formData.description.trim()) {
-      errors.description = 'Please enter a description.';
-    } else if (formData.description.trim().length > 500) {
-      errors.description = 'The description must be 500 characters or fewer.';
-    }
-
-    if (!formData.categoryId) {
-      errors.categoryId = 'Please select a category.';
-    }
-
-    if (!formData.condition) {
-      errors.condition = 'Please select a condition.';
-    }
-
-    setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
