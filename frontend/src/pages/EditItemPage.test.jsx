@@ -160,7 +160,7 @@ describe('EditItemPage', () => {
         expect(mockNavigate).not.toHaveBeenCalled()
     })
 
-    test('deletes an existing photo', async () => {
+    test('marks an existing photo for deletion and deletes it on save', async () => {
         const user = userEvent.setup()
         deleteItemImage.mockResolvedValue(null)
 
@@ -169,14 +169,22 @@ describe('EditItemPage', () => {
         await screen.findByText('2 / 3 photos')
 
         await user.click(
-            screen.getAllByRole('button', { name: /delete photo/i })[0]
+            screen.getAllByRole('button', { name: /remove photo/i })[0]
+        )
+
+        // The image disappears locally, but is not deleted before Save.
+        expect(screen.getByText('1 / 3 photos')).toBeInTheDocument()
+        expect(deleteItemImage).not.toHaveBeenCalled()
+
+        await user.click(
+            screen.getByRole('button', { name: /save changes/i })
         )
 
         await waitFor(() => {
             expect(deleteItemImage).toHaveBeenCalledWith('5', 10)
         })
 
-        expect(await screen.findByText('1 / 3 photos')).toBeInTheDocument()
+        expect(mockNavigate).toHaveBeenCalledWith('/my-items')
     })
 
     test('cancel button navigates back to my items without saving', async () => {

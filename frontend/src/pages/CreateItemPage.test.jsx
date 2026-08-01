@@ -74,7 +74,7 @@ describe('CreateItemPage', () => {
 
         await screen.findByRole('option', { name: 'Books' })
 
-        const titleInput = screen.getByPlaceholderText(/blue mountain bike/i)
+        const titleInput = document.querySelector('input[name="title"]')
         const descriptionInput = screen.getByPlaceholderText(/describe your item/i)
 
         // category/condition <label> elements aren't wired to their <select>
@@ -105,7 +105,7 @@ describe('CreateItemPage', () => {
         await screen.findByRole('option', { name: 'Books' })
 
         await user.type(
-            screen.getByPlaceholderText(/blue mountain bike/i),
+            document.querySelector('input[name="title"]'),
             'Old guitar'
         )
         await user.type(
@@ -146,7 +146,7 @@ describe('CreateItemPage', () => {
         await screen.findByRole('option', { name: 'Books' })
 
         await user.type(
-            screen.getByPlaceholderText(/blue mountain bike/i),
+            document.querySelector('input[name="title"]'),
             'Old guitar'
         )
         await user.type(
@@ -162,7 +162,9 @@ describe('CreateItemPage', () => {
         )
 
         expect(
-            await screen.findByText('Failed to create item.')
+            await screen.findByText(
+                'Failed to create item. Please try again.'
+            )
         ).toBeInTheDocument()
 
         expect(mockNavigate).not.toHaveBeenCalled()
@@ -206,7 +208,7 @@ describe('CreateItemPage', () => {
         await user.upload(fileInput, files)
 
         expect(
-            await screen.findByText(/you can upload at most 3 photos/i)
+            await screen.findByText(/you can select up to 3 photos/i)
         ).toBeInTheDocument()
 
         expect(screen.getAllByAltText(/^Preview/)).toHaveLength(3)
