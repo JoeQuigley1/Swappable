@@ -70,16 +70,6 @@ public class ImageService {
             );
         }
 
-
-        try {
-            // Scrimage will automatically handles EXIF orientation and metadata
-            ImmutableImage image = ImmutableImage.loader().fromBytes(file.getBytes());
-            return image
-                    .bound(MAX_DIMENSION, MAX_DIMENSION)
-                    .bytes(WebpWriter.DEFAULT.withQ(WEBP_QUALITY));
-        } catch (IOException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not read image file");
-
         if (file.getSize() > MAX_FILE_SIZE) {
             throw new ResponseStatusException(
                     HttpStatus.PAYLOAD_TOO_LARGE,
