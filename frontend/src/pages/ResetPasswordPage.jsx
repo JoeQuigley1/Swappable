@@ -112,8 +112,9 @@ function ResetPasswordPage() {
                 {error && <div className="alert alert-danger">{error}</div>}
                 <form onSubmit={handleSubmit} noValidate>
                   <div className="mb-3">
-                    <label className="form-label fw-semibold">New password</label>
+                    <label htmlFor="newPassword" className="form-label fw-semibold">New password</label>
                     <input
+                      id="newPassword"
                       type="password"
                       className={`form-control ${
                           validationErrors.newPassword ? 'is-invalid' : ''
@@ -139,8 +140,9 @@ function ResetPasswordPage() {
                     )}
                   </div>
                   <div className="mb-4">
-                    <label className="form-label fw-semibold">Confirm new password</label>
+                    <label htmlFor="confirmPassword" className="form-label fw-semibold">Confirm new password</label>
                     <input
+                      id="confirmPassword"
                       type="password"
                       className={`form-control ${
                           validationErrors.confirmPassword ? 'is-invalid' : ''

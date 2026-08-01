@@ -67,8 +67,9 @@ function ForgotPasswordPage() {
                 {error && <div className="alert alert-danger">{error}</div>}
                 <form onSubmit={handleSubmit} noValidate>
                   <div className="mb-3">
-                    <label className="form-label fw-semibold">Email</label>
+                    <label htmlFor="email" className="form-label fw-semibold">Email</label>
                     <input
+                      id="email"
                       type="email"
                       className={`form-control ${
                           validationError ? 'is-invalid' : ''
