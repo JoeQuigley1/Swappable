@@ -7,8 +7,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Set;
+
 
 @Service
 public class ImageService {
@@ -24,9 +29,39 @@ public class ImageService {
     private static final int MAX_DIMENSION = 1200;
     private static final int WEBP_QUALITY = 80;
 
+    // Upload limits protect the memory-constrained deployed service
+    private static final long MAX_FILE_SIZE = 8L * 1024 * 1024;
+    private static final long MAX_PIXELS = 10_000_000L;
+    private static final int MAX_SOURCE_DIMENSION = 6000;
+
+    // Validates the uploaded file before decoding, resizing and converting it
     public byte[] toWebp(MultipartFile file) {
+        validateFile(file);
+        validateDimensions(file);
+
+        try {
+            // Decode the full pixel data only after confirming that the file size
+            // and image resolution are within the configured memory-safety limits
+            ImmutableImage image =
+                    ImmutableImage.loader().fromBytes(file.getBytes());
+            // Preserve the aspect ratio, limit dimensions and convert to WebP
+            return image
+                    .bound(MAX_DIMENSION, MAX_DIMENSION)
+                    .bytes(WebpWriter.DEFAULT.withQ(WEBP_QUALITY));
+        } catch (IOException | RuntimeException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Could not process image file"
+            );
+        }
+    }
+    // Checks that the upload exists, has an allowed type and is within 8 MB
+    private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Image file is empty");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Image file is empty"
+            );
         }
 
         String contentType = file.getContentType();
@@ -45,6 +80,63 @@ public class ImageService {
                     .bytes(WebpWriter.DEFAULT.withQ(WEBP_QUALITY));
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not read image file");
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new ResponseStatusException(
+                    HttpStatus.PAYLOAD_TOO_LARGE,
+                    "Image must be smaller than 8 MB"
+            );
         }
+    }
+    // Reads image metadata before full decoding to avoid excessive memory use
+    private void validateDimensions(MultipartFile file) {
+        try (ImageInputStream input =
+                     ImageIO.createImageInputStream(file.getInputStream())) {
+
+            if (input == null) {
+                throw invalidImage();
+            }
+
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
+
+            if (!readers.hasNext()) {
+                throw invalidImage();
+            }
+
+            ImageReader reader = readers.next();
+
+            try {
+                reader.setInput(input, true, true);
+
+                int width = reader.getWidth(0);
+                int height = reader.getHeight(0);
+                long pixels = (long) width * height;
+
+                // Reject high-resolution images before they are decoded into memory
+                if (width > MAX_SOURCE_DIMENSION ||
+                        height > MAX_SOURCE_DIMENSION ||
+                        pixels > MAX_PIXELS) {
+                    throw new ResponseStatusException(
+                            HttpStatus.PAYLOAD_TOO_LARGE,
+                            "Image resolution is too large"
+                    );
+                }
+            } finally {
+                // Release resources held by the ImageIO reader
+                reader.dispose();
+            }
+
+        } catch (ResponseStatusException e) {
+            // Preserve the intended 400 or 413 response
+            throw e;
+        } catch (IOException | RuntimeException e) {
+            throw invalidImage();
+        }
+    }
+
+    private ResponseStatusException invalidImage() {
+        return new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Could not read image file"
+        );
     }
 }
