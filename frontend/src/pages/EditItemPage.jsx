@@ -274,7 +274,22 @@ function EditItemPage() {
 
       navigate('/my-items')
     } catch (err) {
-      setError(err.message || 'Failed to update item.')
+      if (err.status === 413) {
+        setValidationErrors((current) => ({
+          ...current,
+          images:
+              'This photo is too large or high-resolution. Please choose a smaller or resized image.'
+        }))
+      } else if (err.status === 400) {
+        setValidationErrors((current) => ({
+          ...current,
+          images:
+              err.message ||
+              'The selected image could not be processed. Please choose another image.'
+        }))
+      } else {
+        setError(err.message || 'Failed to update item.')
+      }
     } finally {
       setSaving(false)
     }
