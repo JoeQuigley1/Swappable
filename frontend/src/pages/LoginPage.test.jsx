@@ -252,56 +252,6 @@ describe('LoginPage', () => {
         expect(mockCacheMyLocation).not.toHaveBeenCalled()
     })
 
-    test('returns the user to the item when login follows a swap request', async () => {
-        const user = userEvent.setup()
-
-        sessionStorage.setItem('swapIntent', JSON.stringify({
-            itemId: 25,
-            itemTitle: 'Mountain Bike'
-        }))
-
-        vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-            ok: true,
-            json: async () => ({
-                token: 'test-token',
-                userId: 12,
-                username: 'joeuser',
-                email: 'joe@example.com'
-            })
-        })
-
-        render(
-            <MemoryRouter>
-                <LoginPage />
-            </MemoryRouter>
-        )
-
-        expect(
-            screen.getByText(/log in to send your swap request/i)
-        ).toBeInTheDocument()
-
-        expect(
-            screen.getByText('Mountain Bike')
-        ).toBeInTheDocument()
-
-        await user.type(
-            screen.getByPlaceholderText(/your@email.com/i),
-            'joe@example.com'
-        )
-
-        await user.type(
-            screen.getByPlaceholderText(/your password/i),
-            'Password123!'
-        )
-
-        await user.click(
-            screen.getByRole('button', { name: /^log in$/i })
-        )
-
-        await waitFor(() => {
-            expect(mockNavigate).toHaveBeenCalledWith('/items/25')
-        })
-    })
 
     test('displays an error when the login request fails', async () => {
         const user = userEvent.setup()

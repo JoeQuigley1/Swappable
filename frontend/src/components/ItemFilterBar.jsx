@@ -30,7 +30,7 @@ export default function ItemFilterBar({
               back to two per row on small screens */}
           <div className="row g-3 align-items-end">
             <div className="col-12 col-lg-3">
-              <label htmlFor="itemSearch" className="form-label fw-semibold small mb-1">Search</label>
+                <label htmlFor="itemSearch" className="form-label fw-semibold small mb-1">Search item name or description</label>
               <div className="input-group">
                 <span className="input-group-text bg-white border-end-0">
                   <i className="bi bi-search text-muted"></i>
@@ -39,7 +39,7 @@ export default function ItemFilterBar({
                   id="itemSearch"
                   type="text"
                   className="form-control border-start-0"
-                  placeholder="Search items..."
+                  placeholder="e.g. bike, novel, plant pot..."
                   value={filters.search}
                   onChange={(e) => onChange('search', e.target.value)}
                 />

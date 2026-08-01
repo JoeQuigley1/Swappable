@@ -196,6 +196,13 @@ function MyItemsPage() {
                 ) : (
                   <div className="d-flex gap-2">
                     <button
+                     className="btn btn-outline-secondary btn-sm flex-fill"
+                     onClick={() => navigate(`/items/${item.id}`)}
+                    >
+                    <i className="bi bi-eye me-1"></i>
+                     View
+                    </button>
+                    <button
                       className="btn btn-outline-primary btn-sm flex-fill"
                       onClick={() => navigate(`/items/edit/${item.id}`)}
                     >

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { BRAND_COLOR } from '../lib/constants'
 import { createSwapRequest, getMyAvailableItems } from '../api/swapRequests'
-import { isOwnItem } from '../lib/auth.js'
+import { isOwnItem, isTokenValid } from '../lib/auth.js'
 import {API_BASE_URL, resolveImageUrl} from "../api/config.js";
 
 // page showing full details of one item
@@ -54,48 +54,20 @@ function ItemDetailPage() {
     loadItem()
   }, [id])
 
-
+    const hasValidSession = () => isTokenValid(localStorage.getItem('token'))
   // load your own items so you can choose what to offer
   useEffect(() => {
-      if (!localStorage.getItem('token')) return // only if logged in
+      if (!hasValidSession()) return // only if logged in
       getMyAvailableItems().then(setMyItems).catch(() => setMyItems([]))
   }, [])
 
-     // restore a swap-in-progress if the user just logged in to get here
-      const [resumedSwap, setResumedSwap] = useState(false)
-      useEffect(() => {
-        const saved = sessionStorage.getItem('swapIntent')
-        if (!saved) return
-        try {
-          const intent = JSON.parse(saved)
-         if (String(intent.itemId) === String(id)) {
-             if (intent.offeredItemId) setOfferedItemId(intent.offeredItemId)
-             if (intent.message) setMessage(intent.message)
-             setResumedSwap(true)
-         }
-        } catch {
-            // ignore malformed storage
-        } finally{
-          sessionStorage.removeItem('swapIntent')
-        }
-      }, [id])
-
 
   // runs when user clicks Request a swap
-  // TODO: replace with real API call to POST /api/swaps
+
 
   const handleRequestSwap = async () => {
       setSwapError('')
-       if (!localStorage.getItem('token')) {
-           sessionStorage.setItem('swapIntent', JSON.stringify({
-               itemId: id,
-               itemTitle: item.title,
-               offeredItemId,
-               message,
-             }))
-           navigate('/login')
-           return
-       }
+
 
       if (!offeredItemId) {
         setSwapError('Please choose one of your items to offer.')
@@ -148,6 +120,7 @@ function ItemDetailPage() {
 
     // swapping with yourself is rejected by the backend, so the form is disabled on your own items
     const isMine = isOwnItem(item.ownerId)
+    const isLoggedIn = hasValidSession()
 
   return (
     <div className="mt-4">
@@ -249,63 +222,105 @@ function ItemDetailPage() {
               </div>
 
               {/* show success message or swap request button */}
-               {swapRequested ? (
-                   <div className="alert alert-success mb-0">
-                       Swap request sent! The owner will be in touch.
-                   </div>
-               ) : (
-                   <div>
-                        {resumedSwap && (
-                            <div className="alert alert-info py-2">
-                                Welcome back! Continue your swap request below.
-                            </div>
-                        )}
-                       {swapError && <div className="alert alert-danger py-2">{swapError}</div>}
+              {swapRequested ? (
+                  <div className="alert alert-success mb-0">
+                    Swap request sent! The owner will be in touch.
+                  </div>
+              ) : !isLoggedIn ? (
+                  <div className="alert alert-secondary mb-0">
+                    <Link to="/login">Log in</Link> to request a swap for this item.
+                  </div>
+              ) : isMine ? (
+                  <div className="border rounded bg-light p-3">
+                    <h5 className="mb-3">Your Listing</h5>
 
-                        <label className="form-label small mb-1">Offer one of your items</label>
-                        <select
-                            className="form-select mb-2"
-                            value={offeredItemId}
-                            onChange={(e) => setOfferedItemId(e.target.value)}
-                            disabled={isMine}
-                        >
-                           <option value="">Select an item…</option>
-                           {myItems.map((mi) => (
-                               <option key={mi.id} value={mi.id}>{mi.title}</option>
-                           ))}
-                       </select>
+                    <p className="mb-2">
+                      <span className="fw-semibold">Status: </span>
+                      <span className="badge bg-success">
+                      {item.status || 'Available'}
+                      </span>
+                    </p>
+                    <p className="mb-2">
+                      <span className="fw-semibold">Created: </span>
+                      {item.createdAt
+                          ? new Date(item.createdAt).toLocaleDateString('en-IE')
+                          : 'Not available'}
+                    </p>
 
-                       <textarea
-                            className="form-control mb-2"
-                            rows="2"
-                            placeholder="Add a message (optional)"
-                            maxLength={500}
-                            value={message}
-                            onChange={(e) => setMessage(e.target.value)}
-                            disabled={isMine}
-                       />
+                    <p className="mb-2">
+                      <span className="fw-semibold">Photos: </span>
+                      {images.length}
+                    </p>
 
-                       <button
-                            className="btn w-100"
-                            style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
-                            onClick={handleRequestSwap}
-                            disabled={isMine}
-                            title={isMine ? 'This is your own item' : undefined}
-                       >
-                         Request a swap
-                       </button>
+                    <p className="text-muted small mb-0">
+                      This listing is visible to other users browsing Swappable.
+                    </p>
+                    <button
+                        type="button"
+                        className="btn btn-outline-primary mt-3"
+                        onClick={() => navigate(`/items/edit/${item.id}`)}
+                    >
+                      Edit Item
+                    </button>
+                  </div>
+              ) : (
+                  <div>
+                    {swapError && (
+                        <div className="alert alert-danger py-2">
+                        {swapError}
+                        </div>
+                    )}
 
-                       {isMine ? (
-                           <p className="text-muted small mt-2 mb-0">
-                               This is your own item, so you cannot request a swap for it.
-                           </p>
-                       ) : myItems.length === 0 && (
-                           <p className="text-muted small mt-2 mb-0">
-                               You need an available item of your own to offer a swap.
-                           </p>
-                       )}
-                      </div>
-                   )}
+                    <label
+                        htmlFor="offeredItem"
+                        className="form-label small mb-1"
+                    >
+                      Offer one of your items
+                    </label>
+
+                    <select
+                        id="offeredItem"
+                        className="form-select mb-2"
+                        value={offeredItemId}
+                        onChange={(e) => setOfferedItemId(e.target.value)}
+                    >
+                      <option value="">Select an item…</option>
+
+                      {myItems.map((mi) => (
+                          <option key={mi.id} value={mi.id}>
+                            {mi.title}
+                          </option>
+                      ))}
+                    </select>
+
+                    <textarea
+                        className="form-control mb-2"
+                        rows="2"
+                        placeholder="Add a message (optional)"
+                        maxLength={500}
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                    />
+
+                    <button
+                        type="button"
+                        className="btn w-100"
+                        style={{
+                          backgroundColor: BRAND_COLOR,
+                          color: 'white',
+                        }}
+                        onClick={handleRequestSwap}
+                    >
+                      Request a swap
+                    </button>
+
+                    {myItems.length === 0 && (
+                        <p className="text-muted small mt-2 mb-0">
+                          You need an available item of your own to offer a swap.
+                        </p>
+                    )}
+                  </div>
+              )}
 
               <div className="border-top pt-3 mb-4">
                 <button
