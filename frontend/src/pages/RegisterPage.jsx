@@ -197,7 +197,11 @@ function RegisterPage() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData)
+          body: JSON.stringify({
+              ...formData,
+              username: formData.username.trim(),
+              email: formData.email.trim()
+          })
       })
 
       if (!response.ok) {
