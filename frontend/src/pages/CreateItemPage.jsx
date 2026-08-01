@@ -186,16 +186,20 @@ function CreateItem() {
       console.error(err);
 
       if (err.status === 413) {
-        setError(
-            'This photo is too large or high-resolution. Please choose a smaller or resized image.'
-        );
+        setValidationErrors((current) => ({
+          ...current,
+          images:
+              'This photo is too large or high-resolution. Please choose a smaller or resized image.'
+        }));
       } else if (err.status === 400) {
-        setError(
-            err.message ||
-            'The selected image could not be processed. Please choose another image.'
-        );
+        setValidationErrors((current) => ({
+          ...current,
+          images:
+              err.message ||
+              'The selected image could not be processed. Please choose another image.'
+        }));
       } else {
-        setError('Failed to create item. Please try again.');
+        setError(err.message || 'Failed to create item. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -223,6 +227,7 @@ function CreateItem() {
                         validationErrors.title ? 'is-invalid' : ''
                     }`}
                     name="title"
+                    placeholder="Title"
                     value={formData.title}
                     onChange={handleChange}
                 />
