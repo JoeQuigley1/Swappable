@@ -12,24 +12,50 @@ function ResetPasswordPage() {
     newPassword: '',
     confirmPassword: ''
   })
+  const [validationErrors, setValidationErrors] = useState({
+    newPassword: '',
+    confirmPassword: ''
+  })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
 
+  const validateForm = () => {
+    const errors = {}
+
+    if (!formData.newPassword) {
+      errors.newPassword = 'New password is required.'
+    } else if (formData.newPassword.length < 8) {
+      errors.newPassword = 'Password must be at least 8 characters.'
+    }
+
+    if (!formData.confirmPassword) {
+      errors.confirmPassword = 'Please confirm your new password.'
+    } else if (formData.newPassword !== formData.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match.'
+    }
+
+    setValidationErrors(errors)
+    return Object.keys(errors).length === 0
+  }
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+
+    setFormData((previous) => ({
+      ...previous,
+      [name]: value
+    }))
+
+    setValidationErrors((previous) => ({
+      ...previous,
+      [name]: ''
+    }))
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
-    if (formData.newPassword !== formData.confirmPassword) {
-      setError('Passwords do not match.')
-      return
-    }
-
-    if (formData.newPassword.length < 8) {
-      setError('Password must be at least 8 characters.')
+    if (!validateForm()) {
       return
     }
 
@@ -84,30 +110,62 @@ function ResetPasswordPage() {
             ) : (
               <>
                 {error && <div className="alert alert-danger">{error}</div>}
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} noValidate>
                   <div className="mb-3">
-                    <label className="form-label fw-semibold">New password</label>
+                    <label htmlFor="newPassword" className="form-label fw-semibold">New password</label>
                     <input
+                      id="newPassword"
                       type="password"
-                      className="form-control"
+                      className={`form-control ${
+                          validationErrors.newPassword ? 'is-invalid' : ''
+                      }`}
                       name="newPassword"
                       placeholder="At least 8 characters"
                       value={formData.newPassword}
                       onChange={handleChange}
-                      required
+                      aria-invalid={Boolean(validationErrors.newPassword)}
+                      aria-describedby={
+                        validationErrors.newPassword
+                            ? 'new-password-error'
+                            : undefined
+                      }
                     />
+                    {validationErrors.newPassword && (
+                        <div
+                            id="new-password-error"
+                            className="invalid-feedback"
+                        >
+                          {validationErrors.newPassword}
+                        </div>
+                    )}
                   </div>
                   <div className="mb-4">
-                    <label className="form-label fw-semibold">Confirm new password</label>
+                    <label htmlFor="confirmPassword" className="form-label fw-semibold">Confirm new password</label>
                     <input
+                      id="confirmPassword"
                       type="password"
-                      className="form-control"
+                      className={`form-control ${
+                          validationErrors.confirmPassword ? 'is-invalid' : ''
+                      }`}
                       name="confirmPassword"
                       placeholder="Repeat your new password"
                       value={formData.confirmPassword}
                       onChange={handleChange}
-                      required
+                      aria-invalid={Boolean(validationErrors.confirmPassword)}
+                      aria-describedby={
+                        validationErrors.confirmPassword
+                            ? 'confirm-password-error'
+                            : undefined
+                      }
                     />
+                    {validationErrors.confirmPassword && (
+                        <div
+                            id="confirm-password-error"
+                            className="invalid-feedback"
+                        >
+                          {validationErrors.confirmPassword}
+                        </div>
+                    )}
                   </div>
                   <button
                     type="submit"

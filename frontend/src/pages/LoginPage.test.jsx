@@ -281,7 +281,7 @@ describe('LoginPage', () => {
 
         expect(
             await screen.findByText(
-                'Could not login. Please try again..'
+                'Could not login. Please try again.'
             )
         ).toBeInTheDocument()
 
@@ -313,6 +313,9 @@ describe('LoginPage', () => {
         expect(
             screen.getByPlaceholderText(/your password/i)
         ).toBeInvalid()
+        expect(
+            await screen.findByText('Password is required.')
+        ).toBeInTheDocument()
     })
 
     test('does not submit when the email is empty', async () => {
@@ -340,6 +343,44 @@ describe('LoginPage', () => {
         expect(
             screen.getByPlaceholderText(/your@email.com/i)
         ).toBeInvalid()
+        expect(
+            await screen.findByText('Email is required.')
+        ).toBeInTheDocument()
+    })
+
+    test('does not submit when the email format is invalid', async () => {
+        const user = userEvent.setup()
+
+        const fetchSpy = vi.spyOn(globalThis, 'fetch')
+
+        render(
+            <MemoryRouter>
+                <LoginPage />
+            </MemoryRouter>
+        )
+
+        await user.type(
+            screen.getByPlaceholderText(/your@email.com/i),
+            'not-an-email'
+        )
+
+        await user.type(
+            screen.getByPlaceholderText(/your password/i),
+            'Password123!'
+        )
+
+        await user.click(
+            screen.getByRole('button', { name: /^log in$/i })
+        )
+
+        expect(
+            await screen.findByText(
+                'Please enter a valid email address.'
+            )
+        ).toBeInTheDocument()
+
+        expect(fetchSpy).not.toHaveBeenCalled()
+        expect(mockNavigate).not.toHaveBeenCalled()
     })
 
 })
