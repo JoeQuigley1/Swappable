@@ -153,7 +153,7 @@ function LoginPage() {
               {/* password field */}
               <div className="mb-4">
                 <label className="form-label fw-semibold">Password</label>
-                <div className="input-group">
+                <div className="input-group has-validation">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     className={`form-control ${
