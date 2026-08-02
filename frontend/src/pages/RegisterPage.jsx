@@ -10,30 +10,77 @@ function RegisterPage() {
   const navigate = useNavigate()
 
   // form fields
-  const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState({
     username: '',
     email: '',
     password: '',
     location: '',
     lat: '',
     lng: ''
-  })
-  const [showPassword, setShowPassword] = useState(false)
-  // error message shown to user if something goes wrong
-  const [error, setError] = useState('')
-  // tracks if browser is currently getting location
-  const [locating, setLocating] = useState(false)
-  // message shown after location is detected
-  const [locationMessage, setLocationMessage] = useState('')
+    })
 
-  const [locationSearch, setLocationSearch] = useState('')
-  const [searching, setSearching] = useState(false)
-  const [suggestions, setSuggestions] = useState([])
-  const [showSuggestions, setShowSuggestions] = useState(false)
+    const [validationErrors, setValidationErrors] = useState({
+        username: '',
+        email: '',
+        password: '',
+    })
+
+
+    const [showPassword, setShowPassword] = useState(false)
+    // error message shown to user if something goes wrong
+    const [error, setError] = useState('')
+    // tracks if browser is currently getting location
+    const [locating, setLocating] = useState(false)
+    // message shown after location is detected
+    const [locationMessage, setLocationMessage] = useState('')
+
+    const [locationSearch, setLocationSearch] = useState('')
+    const [searching, setSearching] = useState(false)
+    const [suggestions, setSuggestions] = useState([])
+    const [showSuggestions, setShowSuggestions] = useState(false)
+
+    const validateRegistration = () => {
+        const errors = {}
+
+        const username = formData.username.trim()
+        const email = formData.email.trim()
+        const password = formData.password
+
+        if (!username) {
+            errors.username = 'Username is required.'
+        } else if (username.length < 3) {
+            errors.username = 'Username must be at least 3 characters.'
+        }
+
+        if (!email) {
+            errors.email = 'Email is required.'
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            errors.email = 'Please enter a valid email address.'
+        }
+
+        if (!password) {
+            errors.password = 'Password is required.'
+        } else if (password.length < 8) {
+            errors.password = 'Password must be at least 8 characters.'
+        }
+
+        setValidationErrors(errors)
+        return Object.keys(errors).length === 0
+    }
 
   // updates form data when user types in any field
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
+      const { name, value } = e.target
+
+      setFormData((previous) => ({
+          ...previous,
+          [name]: value
+      }))
+
+      setValidationErrors((previous) => ({
+          ...previous,
+          [name]: ''
+      }))
   }
 
  // debounced nominatim lookup - turn on automatically as the user types
@@ -46,10 +93,17 @@ function RegisterPage() {
    const timer = setTimeout(async () => {
      try {
        const response = await fetch(
-         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationSearch)},Ireland&format=json&limit=5`,
-         { headers: { 'Accept-Language': 'en' } }
+         `https://photon.komoot.io/api/?q=${encodeURIComponent(locationSearch)}&limit=5&lang=en&countrycode=ie&lat=53.4&lon=-8.2`
        )
-       const results = await response.json()
+       const data = await response.json()
+       const results = (data.features ?? [])
+         .filter((f) => f.properties.osm_key === 'place')
+         .map((f) => ({
+           display_name: [f.properties.name, f.properties.state, f.properties.country]
+             .filter(Boolean).join(', '),
+           lat: f.geometry.coordinates[1],
+           lon: f.geometry.coordinates[0],
+          }))
        setSuggestions(results)
        setShowSuggestions(true)
      } catch (err) {
@@ -89,7 +143,8 @@ function RegisterPage() {
          const userLng = position.coords.longitude
          try {
              const response = await fetch(
-                 `https://nominatim.openstreetmap.org/reverse?lat=${userLat}&lon=${userLng}&format=json`,
+                  `https://nominatim.openstreetmap.org/reverse?lat=${userLat}&lon=${userLng}&format=json`,
+
                  { headers: { 'Accept-Language': 'en' } }
              )
             const data = await response.json()
@@ -131,14 +186,22 @@ function RegisterPage() {
   // sends data to backend and saves token on success
   const handleSubmit = async (e) => {
     e.preventDefault()
+      if (!validateRegistration()) {
+          return
+      }
     setError('')
+
     try {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData)
+          body: JSON.stringify({
+              ...formData,
+              username: formData.username.trim(),
+              email: formData.email.trim()
+          })
       })
 
       if (!response.ok) {
@@ -155,7 +218,7 @@ function RegisterPage() {
       localStorage.setItem('location', formData.location)
       localStorage.setItem('lat', formData.lat)
       localStorage.setItem('lng', formData.lng)
-      navigate('/login')
+      navigate('/profile')
     } catch (err) {
       setError('Registration failed. Please try again.')
     }
@@ -175,20 +238,35 @@ function RegisterPage() {
               <div className="alert alert-danger">{error}</div>
             )}
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
 
               {/* username field */}
               <div className="mb-3">
                 <label className="form-label fw-semibold">Username</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className={`form-control ${
+                      validationErrors.username ? 'is-invalid' : ''
+                  }`}
                   name="username"
                   placeholder="Choose a username"
                   value={formData.username}
                   onChange={handleChange}
-                  required
+                  aria-invalid={Boolean(validationErrors.username)}
+                  aria-describedby={
+                      validationErrors.username
+                          ? 'register-username-error'
+                          : undefined
+                  }
                 />
+                  {validationErrors.username && (
+                      <div
+                          id="register-username-error"
+                          className="invalid-feedback"
+                      >
+                          {validationErrors.username}
+                      </div>
+                  )}
               </div>
 
               {/* email field */}
@@ -196,27 +274,49 @@ function RegisterPage() {
                 <label className="form-label fw-semibold">Email</label>
                 <input
                   type="email"
-                  className="form-control"
+                  className={`form-control ${
+                      validationErrors.email ? 'is-invalid' : ''
+                  }`}
                   name="email"
                   placeholder="your@email.com"
                   value={formData.email}
                   onChange={handleChange}
-                  required
+                  aria-invalid={Boolean(validationErrors.email)}
+                  aria-describedby={
+                      validationErrors.email
+                          ? 'register-email-error'
+                          : undefined
+                  }
                 />
+                  {validationErrors.email && (
+                      <div
+                          id="register-email-error"
+                          className="invalid-feedback"
+                      >
+                          {validationErrors.email}
+                      </div>
+                  )}
               </div>
 
               {/* password field */}
               <div className="mb-3">
                 <label className="form-label fw-semibold">Password</label>
-                <div className="input-group">
+                  <div className="input-group has-validation">
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    className="form-control"
+                    className={`form-control ${
+                        validationErrors.password ? 'is-invalid' : ''
+                    }`}
                     name="password"
                     placeholder="Choose a password"
                     value={formData.password}
                     onChange={handleChange}
-                    required
+                    aria-invalid={Boolean(validationErrors.password)}
+                    aria-describedby={
+                        validationErrors.password
+                            ? 'register-password-error'
+                            : undefined
+                    }
                   />
                   <button
                     type="button"
@@ -226,6 +326,14 @@ function RegisterPage() {
                     {showPassword ? 'Hide' : 'Show'}
                   </button>
                 </div>
+                  {validationErrors.password && (
+                      <div
+                          id="register-password-error"
+                          className="text-danger small mt-1"
+                      >
+                          {validationErrors.password}
+                      </div>
+                  )}
               </div>
 
               {/* location section - county dropdown and use my location button */}

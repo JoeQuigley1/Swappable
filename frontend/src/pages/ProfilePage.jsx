@@ -20,6 +20,34 @@ function ProfilePage() {
     lng: ''
   })
 
+  const [validationErrors, setValidationErrors] = useState({
+    username: '',
+    phoneNumber: '',
+  })
+
+  const validateProfile = () => {
+    const errors = {}
+
+    const username = profile.username.trim()
+    const phoneNumber = profile.phoneNumber.trim()
+
+    if (!username) {
+      errors.username = 'Username is required.'
+    } else if (username.length < 3) {
+      errors.username = 'Username must be at least 3 characters.'
+    }
+
+    if (
+        phoneNumber &&
+        !/^\+?[0-9\s-]{7,20}$/.test(phoneNumber)
+    ) {
+      errors.phoneNumber = 'Please enter a valid phone number.'
+    }
+    setValidationErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+
   // controls whether the form fields are editable or just displayed as text
   const [editMode, setEditMode] = useState(false)
   // success message shown after saving
@@ -80,7 +108,17 @@ function ProfilePage() {
 
   // updates profile data when user types in any field
   const handleChange = (e) => {
-    setProfile({ ...profile, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+
+    setProfile((previous) => ({
+      ...previous,
+      [name]: value
+    }))
+
+    setValidationErrors((previous) => ({
+      ...previous,
+      [name]: ''
+    }))
   }
 
   // asks browser for user's exact GPS coordinates
@@ -135,12 +173,18 @@ function ProfilePage() {
             const timer = setTimeout(async () => {
               try {
                 const response = await fetch(
-                  `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationSearch)},Ireland&format=json&limit=5`,
-                  { headers: { 'Accept-Language': 'en' } }
+                    `https://photon.komoot.io/api/?q=${encodeURIComponent(locationSearch)}&limit=5&lang=en&countrycode=ie&lat=53.4&lon=-8.2`
                 )
-                const results = await response.json()
+                 const data = await response.json()
+                 const results = (data.features ?? [])
+                    .filter((f) => f.properties.osm_key === 'place')
+                    .map((f) => ({
+                        display_name: [f.properties.name, f.properties.state, f.properties.country]
+                         .filter(Boolean).join(', '),
+                        lat: f.geometry.coordinates[1],
+                        lon: f.geometry.coordinates[0],
+                      }))
                 setSuggestions(results)
-                setShowSuggestions(true)
               } catch (err) {
                 setSuggestions([])
               }
@@ -165,20 +209,20 @@ function ProfilePage() {
             setSuggestions([])
             setShowSuggestions(false)
           }
-
-
-
     // runs when user clicks Save changes
       const handleSave = async () => {
+        if (!validateProfile()) {
+          return
+        }
         try {
           // the coordinates go up with the name. without them the backend keeps
           // the old ones and item map pins stay on the previous location.
           const isCoord = (value) => value !== '' && Number.isFinite(Number(value))
           const hasCoords = isCoord(profile.lat) && isCoord(profile.lng)
           const updated = await updateMyProfile({
-            username: profile.username,
+            username: profile.username.trim(),
             location: profile.location,
-            phoneNumber: profile.phoneNumber,
+            phoneNumber: profile.phoneNumber.trim(),
             ...(hasCoords ? { lat: Number(profile.lat), lng: Number(profile.lng) } : {})
           })
           setProfile({
@@ -298,13 +342,32 @@ function ProfilePage() {
             <div className="mb-3">
               <label className="form-label fw-semibold">Username</label>
               {editMode ? (
+                  <>
                 <input
                   type="text"
-                  className="form-control"
+                  className={`form-control ${
+                      validationErrors.username ? 'is-invalid' : ''
+                  }`}
                   name="username"
                   value={profile.username}
                   onChange={handleChange}
+                  aria-describedby={
+                    validationErrors.username
+                        ? 'username-error'
+                        : undefined
+                  }
+                  aria-invalid={Boolean(validationErrors.username)}
                 />
+
+                {validationErrors.username && (
+                    <div
+                        id="username-error"
+                        className="invalid-feedback"
+                    >
+                      {validationErrors.username}
+                    </div>
+                )}
+                  </>
               ) : (
                 <p className="form-control-plaintext">{profile.username}</p>
               )}
@@ -313,34 +376,43 @@ function ProfilePage() {
             {/* email field - shows input in edit mode, plain text otherwise */}
             <div className="mb-3">
               <label className="form-label fw-semibold">Email</label>
-              {editMode ? (
-                <input
-                  type="email"
-                  className="form-control"
-                  name="email"
-                  value={profile.email}
-                  onChange={handleChange}
-                />
-              ) : (
                 <p className="form-control-plaintext">{profile.email}</p>
-              )}
             </div>
 
             {/* phone number field - shows input in edit mode, plain text otherwise */}
             <div className="mb-3">
                 <label className="form-label fw-semibold">Phone number</label>
                 {editMode ? (
-                    <input
-                        type="tel"
-                        className="form-control"
-                        name="phoneNumber"
-                        placeholder="e.g. 087 123 4567"
-                        value={profile.phoneNumber}
-                        onChange={handleChange}
-                    />
+                    <>
+                      <input
+                          type="tel"
+                          className={`form-control ${
+                              validationErrors.phoneNumber ? 'is-invalid' : ''
+                          }`}
+                          name="phoneNumber"
+                          placeholder="e.g. 087 123 4567"
+                          value={profile.phoneNumber}
+                          onChange={handleChange}
+                          aria-invalid={Boolean(validationErrors.phoneNumber)}
+                          aria-describedby={
+                            validationErrors.phoneNumber
+                                ? 'phone-number-error'
+                                : undefined
+                          }
+                      />
+                      {validationErrors.phoneNumber && (
+                          <div
+                              id="phone-number-error"
+                              className="invalid-feedback"
+                          >
+                            {validationErrors.phoneNumber}
+                          </div>
+                      )}
+                    </>
+
                 ) : (
                     <p className="form-control-plaintext">
-                          {profile.phoneNumber || <span className="text-muted">Not set</span>}
+                      {profile.phoneNumber || <span className="text-muted">Not set</span>}
                     </p>
                 )}
             </div>
@@ -366,7 +438,10 @@ function ProfilePage() {
                              className="form-control"
                              placeholder="Type your town or city..."
                              value={locationSearch}
-                             onChange={(e) => setLocationSearch(e.target.value)}
+                             onChange={(e) => {
+                               setLocationSearch(e.target.value)
+                               setShowSuggestions(true)
+                             }}
                              onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
                              onBlur={() => setShowSuggestions(false)}
                              autoComplete="off"

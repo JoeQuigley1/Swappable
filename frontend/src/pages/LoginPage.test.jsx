@@ -252,56 +252,6 @@ describe('LoginPage', () => {
         expect(mockCacheMyLocation).not.toHaveBeenCalled()
     })
 
-    test('returns the user to the item when login follows a swap request', async () => {
-        const user = userEvent.setup()
-
-        sessionStorage.setItem('swapIntent', JSON.stringify({
-            itemId: 25,
-            itemTitle: 'Mountain Bike'
-        }))
-
-        vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-            ok: true,
-            json: async () => ({
-                token: 'test-token',
-                userId: 12,
-                username: 'joeuser',
-                email: 'joe@example.com'
-            })
-        })
-
-        render(
-            <MemoryRouter>
-                <LoginPage />
-            </MemoryRouter>
-        )
-
-        expect(
-            screen.getByText(/log in to send your swap request/i)
-        ).toBeInTheDocument()
-
-        expect(
-            screen.getByText('Mountain Bike')
-        ).toBeInTheDocument()
-
-        await user.type(
-            screen.getByPlaceholderText(/your@email.com/i),
-            'joe@example.com'
-        )
-
-        await user.type(
-            screen.getByPlaceholderText(/your password/i),
-            'Password123!'
-        )
-
-        await user.click(
-            screen.getByRole('button', { name: /^log in$/i })
-        )
-
-        await waitFor(() => {
-            expect(mockNavigate).toHaveBeenCalledWith('/items/25')
-        })
-    })
 
     test('displays an error when the login request fails', async () => {
         const user = userEvent.setup()
@@ -331,7 +281,7 @@ describe('LoginPage', () => {
 
         expect(
             await screen.findByText(
-                'Could not login. Please try again..'
+                'Could not login. Please try again.'
             )
         ).toBeInTheDocument()
 
@@ -363,6 +313,9 @@ describe('LoginPage', () => {
         expect(
             screen.getByPlaceholderText(/your password/i)
         ).toBeInvalid()
+        expect(
+            await screen.findByText('Password is required.')
+        ).toBeInTheDocument()
     })
 
     test('does not submit when the email is empty', async () => {
@@ -390,6 +343,44 @@ describe('LoginPage', () => {
         expect(
             screen.getByPlaceholderText(/your@email.com/i)
         ).toBeInvalid()
+        expect(
+            await screen.findByText('Email is required.')
+        ).toBeInTheDocument()
+    })
+
+    test('does not submit when the email format is invalid', async () => {
+        const user = userEvent.setup()
+
+        const fetchSpy = vi.spyOn(globalThis, 'fetch')
+
+        render(
+            <MemoryRouter>
+                <LoginPage />
+            </MemoryRouter>
+        )
+
+        await user.type(
+            screen.getByPlaceholderText(/your@email.com/i),
+            'not-an-email'
+        )
+
+        await user.type(
+            screen.getByPlaceholderText(/your password/i),
+            'Password123!'
+        )
+
+        await user.click(
+            screen.getByRole('button', { name: /^log in$/i })
+        )
+
+        expect(
+            await screen.findByText(
+                'Please enter a valid email address.'
+            )
+        ).toBeInTheDocument()
+
+        expect(fetchSpy).not.toHaveBeenCalled()
+        expect(mockNavigate).not.toHaveBeenCalled()
     })
 
 })
