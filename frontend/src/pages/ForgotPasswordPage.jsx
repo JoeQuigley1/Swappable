@@ -7,15 +7,38 @@ function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
+  const [validationError, setValidationError] = useState('')
+  const validateEmail = (value) => {
+    const trimmedEmail = value.trim()
+
+    if (!trimmedEmail) {
+      return 'Email is required.'
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      return 'Please enter a valid email address.'
+    }
+
+    return ''
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    const emailError = validateEmail(email)
+
+    if (emailError) {
+      setValidationError(emailError)
+      return
+    }
+
     try {
       await fetch(`${API_BASE_URL}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({
+          email: email.trim()
+        })
       })
       // always show confirmation regardless of whether email exists
       setSubmitted(true)
@@ -42,17 +65,31 @@ function ForgotPasswordPage() {
             ) : (
               <>
                 {error && <div className="alert alert-danger">{error}</div>}
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} noValidate>
                   <div className="mb-3">
-                    <label className="form-label fw-semibold">Email</label>
+                    <label htmlFor="email" className="form-label fw-semibold">Email</label>
                     <input
+                      id="email"
                       type="email"
-                      className="form-control"
+                      className={`form-control ${
+                          validationError ? 'is-invalid' : ''
+                      }`}
                       placeholder="your@email.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      required
+                      aria-invalid={Boolean(validationError)}
+                      aria-describedby={
+                        validationError ? 'forgot-email-error' : undefined
+                      }
                     />
+                    {validationError && (
+                        <div
+                            id="forgot-email-error"
+                            className="invalid-feedback"
+                        >
+                          {validationError}
+                        </div>
+                    )}
                   </div>
                   <button
                     type="submit"

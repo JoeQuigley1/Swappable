@@ -16,12 +16,23 @@ vi.mock('../api/swapRequests', () => ({
     getMyAvailableItems: vi.fn()
 }))
 
+vi.mock('react-router-dom', async () => {
+    const actual = await vi.importActual('react-router-dom')
+
+    return {
+        ...actual,
+        useNavigate: () => mockNavigate,
+    }
+})
+
 const ITEM = {
     id: 5,
     title: 'Old guitar',
     description: 'Barely used acoustic guitar',
     categoryName: 'Music',
     condition: 'Good',
+    status: 'available',
+    createdAt: '2026-07-31T10:00:00Z',
     ownerId: 2,
     ownerUsername: 'anna',
     ownerLocation: 'Galway',
@@ -141,7 +152,9 @@ describe('ItemDetailPage', () => {
        expect(createSwapRequest).not.toHaveBeenCalled()
     })
 
-    test('owner cannot request a swap for their own item', async () => {
+
+    test('owner sees listing details instead of the swap form', async () => {
+
         localStorage.setItem('token', 'valid-token')
         localStorage.setItem('userId', String(ITEM.ownerId))
 
@@ -150,12 +163,50 @@ describe('ItemDetailPage', () => {
         await screen.findByText('Old guitar')
 
         expect(
-            screen.getByRole('button', { name: /request a swap/i })
-        ).toBeDisabled()
+            screen.getByRole('heading', { name: /your listing/i })
+        ).toBeInTheDocument()
 
         expect(
-            screen.getByText(/this is your own item/i)
+            screen.getByText(/status:/i)
         ).toBeInTheDocument()
+
+        const statusBadge = screen.getByText(/^available$/i)
+
+        expect(statusBadge).toBeInTheDocument()
+        expect(statusBadge).toHaveClass('badge')
+
+        expect(
+            screen.getByText(/photos:/i)
+        ).toBeInTheDocument()
+
+        expect(
+            screen.getByRole('button', { name: /edit item/i })
+        ).toBeInTheDocument()
+
+        expect(
+            screen.queryByRole('button', { name: /request a swap/i })
+        ).not.toBeInTheDocument()
+
+        expect(
+            screen.queryByRole('combobox')
+        ).not.toBeInTheDocument()
+    })
+
+    test('owner can navigate to the edit page from item details', async () => {
+        const user = userEvent.setup()
+
+        localStorage.setItem('token', 'valid-token')
+        localStorage.setItem('userId', String(ITEM.ownerId))
+
+        renderPage()
+
+        await screen.findByText('Old guitar')
+
+        await user.click(
+            screen.getByRole('button', { name: /edit item/i })
+        )
+
+        expect(mockNavigate).toHaveBeenCalledWith('/items/edit/5')
     })
 
     test('shows an error returned by the swap request API', async () => {

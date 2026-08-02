@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import ProfilePage from './ProfilePage'
 import { getMyProfile, updateMyProfile } from '../api/users'
+localStorage.setItem('token', 'test-token')
 
 vi.mock('../api/users', () => ({
     getMyProfile: vi.fn(),
@@ -17,6 +18,7 @@ const PROFILE = {
     lat: 53.27,
     lng: -9.05
 }
+let fetchMock
 
 beforeEach(() => {
     getMyProfile.mockReset()
@@ -24,7 +26,7 @@ beforeEach(() => {
     getMyProfile.mockResolvedValue(PROFILE)
     localStorage.clear()
 
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+    fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
         ok: true,
         json: async () => ({ totpEnabled: false })
     })
@@ -153,4 +155,220 @@ describe('ProfilePage', () => {
             await screen.findByText(/location detected: waterford/i)
         ).toBeInTheDocument()
     })
+    test('shows an error when username is empty', async () => {
+        const user = userEvent.setup()
+
+        render(<MemoryRouter><ProfilePage /></MemoryRouter>)
+
+        await screen.findByText('Galway')
+        await user.click(
+            screen.getByRole('button', { name: /edit profile/i })
+        )
+
+        const usernameInput = screen.getByDisplayValue('anna')
+
+        await user.clear(usernameInput)
+
+        await user.click(
+            screen.getByRole('button', { name: /save changes/i })
+        )
+
+        expect(
+            screen.getByText(/username is required/i)
+        ).toBeInTheDocument()
+
+        expect(updateMyProfile).not.toHaveBeenCalled()
+    })
+
+    test('shows that 2FA is enabled when returned by the backend', async () => {
+        localStorage.setItem('token', 'test-token')
+
+        fetch.mockResolvedValue({
+            ok: true,
+            json: async () => ({ totpEnabled: true })
+        })
+
+        render(<MemoryRouter><ProfilePage /></MemoryRouter>)
+
+        expect(
+            await screen.findByText(
+                /two-factor authentication is enabled/i
+            )
+        ).toBeInTheDocument()
+
+        expect(
+            screen.getByRole('button', { name: /disable 2fa/i })
+        ).toBeInTheDocument()
+    })
+
+    test('starts 2FA setup and displays the secret', async () => {
+        const user = userEvent.setup()
+
+        localStorage.setItem('token', 'test-token')
+
+        fetchMock.mockImplementation((url) => {
+            if (url.includes('/2fa/status')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ totpEnabled: false })
+                })
+            }
+
+            if (url.includes('/2fa/setup')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({
+                        qrCodeUrl: 'otpauth://test',
+                        secret: 'TESTSECRET'
+                    })
+                })
+            }
+
+            return Promise.reject(new Error('Unexpected request'))
+        })
+
+        render(<MemoryRouter><ProfilePage /></MemoryRouter>)
+
+        await user.click(
+            await screen.findByRole('button', {
+                name: /enable 2fa/i
+            })
+        )
+
+        expect(
+            await screen.findByText('TESTSECRET')
+        ).toBeInTheDocument()
+
+        expect(
+            screen.getByPlaceholderText('123456')
+        ).toBeInTheDocument()
+    })
+
+    test('verifies a 2FA code and enables 2FA', async () => {
+        const user = userEvent.setup()
+
+        localStorage.setItem('token', 'test-token')
+
+        fetchMock.mockImplementation((url) => {
+            if (url.includes('/2fa/status')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ totpEnabled: false })
+                })
+            }
+
+            if (url.includes('/2fa/setup')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({
+                        qrCodeUrl: 'otpauth://test',
+                        secret: 'TESTSECRET'
+                    })
+                })
+            }
+
+            if (url.includes('/verify-setup')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({})
+                })
+            }
+
+            return Promise.reject(new Error('Unexpected request'))
+        })
+
+        render(<MemoryRouter><ProfilePage /></MemoryRouter>)
+
+        await user.click(
+            await screen.findByRole('button', {
+                name: /enable 2fa/i
+            })
+        )
+
+        await user.type(
+            await screen.findByPlaceholderText('123456'),
+            '123456'
+        )
+
+        await user.click(
+            screen.getByRole('button', {
+                name: /verify and enable/i
+            })
+        )
+
+        expect(
+            await screen.findByText(/2fa enabled successfully/i)
+        ).toBeInTheDocument()
+
+        expect(
+            screen.getByText(
+                /two-factor authentication is enabled/i
+            )
+        ).toBeInTheDocument()
+
+        expect(fetchMock).toHaveBeenCalledWith(
+            expect.stringContaining('/2fa/verify-setup'),
+            expect.objectContaining({
+                method: 'POST',
+                body: JSON.stringify({
+                    code: '123456'
+                })
+            })
+        )
+    })
+
+    test('shows an error when the 2FA verification code is invalid', async () => {
+        const user = userEvent.setup()
+
+        localStorage.setItem('token', 'test-token')
+
+        fetchMock.mockImplementation((url) => {
+            if (url.includes('/2fa/status')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ totpEnabled: false })
+                })
+            }
+
+            if (url.includes('/2fa/setup')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({
+                        qrCodeUrl: 'otpauth://test',
+                        secret: 'TESTSECRET'
+                    })
+                })
+            }
+
+            return Promise.resolve({
+                ok: false,
+                json: async () => ({})
+            })
+        })
+
+        render(<MemoryRouter><ProfilePage /></MemoryRouter>)
+
+        await user.click(
+            await screen.findByRole('button', {
+                name: /enable 2fa/i
+            })
+        )
+
+        await user.type(
+            await screen.findByPlaceholderText('123456'),
+            '000000'
+        )
+
+        await user.click(
+            screen.getByRole('button', {
+                name: /verify and enable/i
+            })
+        )
+
+        expect(
+            await screen.findByText(/invalid code/i)
+        ).toBeInTheDocument()
+    })
+
+
 })

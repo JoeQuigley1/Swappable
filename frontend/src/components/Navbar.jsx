@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Collapse } from 'bootstrap';
 import logo from '../assets/swappable-logo.png';
 import { HERO_ROUTES } from '../lib/constants';
 import { isTokenValid, clearSession } from '../lib/auth';
@@ -15,6 +14,9 @@ export default function Navbar() {
   // other (light) page the navbar needs a solid background so links show.
   const hasHero = HERO_ROUTES.includes(location.pathname);
 
+  // Tracks whether the mobile navigation menu is open or closed
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   const [isLoggedIn, setIsLoggedIn] = useState(() =>
      isTokenValid(localStorage.getItem('token'))
     );
@@ -23,12 +25,9 @@ export default function Navbar() {
      // clicking a nav link doesn't reload the page, and Bootstrap's collapse
      // has no way to know navigation happened - without this it stays open
      // and covers the new page underneath it.
-     useEffect(() => {
-       const menuEl = document.getElementById('mainNav');
-       if (!menuEl) return;
-       const instance = Collapse.getOrCreateInstance(menuEl, { toggle: false });
-       instance.hide();
-     }, [location]);
+    useEffect(() => {
+      setIsMenuOpen(false);
+    }, [location.pathname]);
 
     // re-check when this tab navigates
     useEffect(() => {
@@ -64,16 +63,17 @@ export default function Navbar() {
         <button
           className="navbar-toggler"
           type="button"
-          data-bs-toggle="collapse"
+          onClick={() => setIsMenuOpen((open) => !open)}
           data-bs-target="#mainNav"
           aria-controls="mainNav"
-          aria-expanded="false"
+          aria-expanded={isMenuOpen}
           aria-label="Toggle navigation"
         >
           <span className="navbar-toggler-icon"></span>
         </button>
 
-        <div className="collapse navbar-collapse" id="mainNav">
+        <div className={`collapse navbar-collapse${isMenuOpen ? ' show' : ''}`}
+             id="mainNav">
           <ul className="navbar-nav me-auto mb-2 mb-lg-0">
             <li className="nav-item">
               <NavLink className="nav-link" to="/" end>

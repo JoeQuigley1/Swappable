@@ -294,4 +294,221 @@ test('fills in the location search box with a real place name after using GPS lo
         ).toBeInTheDocument()
 
     })
+    test('shows required validation errors when the form is empty', async () => {
+        const user = userEvent.setup()
+
+        const fetchSpy = vi.spyOn(globalThis, 'fetch')
+
+        render(
+            <MemoryRouter>
+                <RegisterPage />
+            </MemoryRouter>
+        )
+
+        await user.click(
+            screen.getByRole('button', { name: /^register$/i })
+        )
+
+        expect(
+            screen.getByText(/username is required/i)
+        ).toBeInTheDocument()
+
+        expect(
+            screen.getByText(/email is required/i)
+        ).toBeInTheDocument()
+
+        expect(
+            screen.getByText(/password is required/i)
+        ).toBeInTheDocument()
+
+        expect(fetchSpy).not.toHaveBeenCalled()
+    })
+    test('shows an error when the username is shorter than 3 characters', async () => {
+        const user = userEvent.setup()
+
+        const fetchSpy = vi.spyOn(globalThis, 'fetch')
+
+        render(
+            <MemoryRouter>
+                <RegisterPage />
+            </MemoryRouter>
+        )
+
+        await user.type(
+            screen.getByPlaceholderText(/choose a username/i),
+            'jo'
+        )
+
+        await user.type(
+            screen.getByPlaceholderText(/your@email.com/i),
+            'joe@example.com'
+        )
+
+        await user.type(
+            screen.getByPlaceholderText(/choose a password/i),
+            'Password123!'
+        )
+
+        await user.click(
+            screen.getByRole('button', { name: /^register$/i })
+        )
+
+        expect(
+            screen.getByText(/username must be at least 3 characters/i)
+        ).toBeInTheDocument()
+
+        expect(fetchSpy).not.toHaveBeenCalled()
+    })
+    test('shows an error when the username is shorter than 3 characters', async () => {
+        const user = userEvent.setup()
+
+        const fetchSpy = vi.spyOn(globalThis, 'fetch')
+
+        render(
+            <MemoryRouter>
+                <RegisterPage />
+            </MemoryRouter>
+        )
+
+        await user.type(
+            screen.getByPlaceholderText(/choose a username/i),
+            'jo'
+        )
+
+        await user.type(
+            screen.getByPlaceholderText(/your@email.com/i),
+            'joe@example.com'
+        )
+
+        await user.type(
+            screen.getByPlaceholderText(/choose a password/i),
+            'Password123!'
+        )
+
+        await user.click(
+            screen.getByRole('button', { name: /^register$/i })
+        )
+
+        expect(
+            screen.getByText(/username must be at least 3 characters/i)
+        ).toBeInTheDocument()
+
+        expect(fetchSpy).not.toHaveBeenCalled()
+    })
+    test('shows an error when the password is shorter than 8 characters', async () => {
+        const user = userEvent.setup()
+
+        const fetchSpy = vi.spyOn(globalThis, 'fetch')
+
+        render(
+            <MemoryRouter>
+                <RegisterPage />
+            </MemoryRouter>
+        )
+
+        await user.type(
+            screen.getByPlaceholderText(/choose a username/i),
+            'joeuser'
+        )
+
+        await user.type(
+            screen.getByPlaceholderText(/your@email.com/i),
+            'joe@example.com'
+        )
+
+        await user.type(
+            screen.getByPlaceholderText(/choose a password/i),
+            'short'
+        )
+
+        await user.click(
+            screen.getByRole('button', { name: /^register$/i })
+        )
+
+        expect(
+            screen.getByText(/password must be at least 8 characters/i)
+        ).toBeInTheDocument()
+
+        expect(fetchSpy).not.toHaveBeenCalled()
+    })
+    test('clears a validation error when the user edits that field', async () => {
+        const user = userEvent.setup()
+
+        render(
+            <MemoryRouter>
+                <RegisterPage />
+            </MemoryRouter>
+        )
+
+        await user.click(
+            screen.getByRole('button', { name: /^register$/i })
+        )
+
+        expect(
+            screen.getByText(/username is required/i)
+        ).toBeInTheDocument()
+
+        await user.type(
+            screen.getByPlaceholderText(/choose a username/i),
+            'j'
+        )
+
+        expect(
+            screen.queryByText(/username is required/i)
+        ).not.toBeInTheDocument()
+    })
+    test('trims username and email before sending registration request', async () => {
+        const user = userEvent.setup()
+
+        vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                token: 'test-token',
+                userId: 12,
+                username: 'joeuser',
+                email: 'joe@example.com'
+            })
+        })
+
+        render(
+            <MemoryRouter>
+                <RegisterPage />
+            </MemoryRouter>
+        )
+
+        await user.type(
+            screen.getByPlaceholderText(/choose a username/i),
+            '  joeuser  '
+        )
+
+        await user.type(
+            screen.getByPlaceholderText(/your@email.com/i),
+            '  joe@example.com  '
+        )
+
+        await user.type(
+            screen.getByPlaceholderText(/choose a password/i),
+            'Password123!'
+        )
+
+        await user.click(
+            screen.getByRole('button', { name: /^register$/i })
+        )
+
+        await waitFor(() => {
+            expect(fetch).toHaveBeenCalled()
+        })
+
+        const [, options] = fetch.mock.calls[0]
+
+        expect(JSON.parse(options.body)).toEqual({
+            username: 'joeuser',
+            email: 'joe@example.com',
+            password: 'Password123!',
+            location: '',
+            lat: '',
+            lng: ''
+        })
+    })
+
 })
