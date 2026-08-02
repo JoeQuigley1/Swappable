@@ -235,6 +235,11 @@ function SwapRequestsPage() {
                       <p className="mb-3 text-muted small">
                           They want: <strong>{request.requestedItemTitle}</strong>
                       </p>
+                      {request.message && (
+                          <p className="mb-3 fst-italic">
+                              "{request.message}"
+                          </p>
+                       )}
 
                         {request.message && (
                             <p className="mb-3 fst-italic">
