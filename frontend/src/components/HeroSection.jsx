@@ -25,10 +25,6 @@ export default function HeroSection({ memberCount = 0, itemCount = 0, completedS
                 <i className="bi bi-search me-2"></i>
                 Browse Items
               </Link>
-              <Link to="/items/create" className="btn btn-outline-light btn-lg px-4">
-                <i className="bi bi-plus-circle me-2"></i>
-                Post an Item
-              </Link>
             </div>
             <div className="mt-4 d-flex flex-wrap gap-4 text-white-50 small">
               <span>
