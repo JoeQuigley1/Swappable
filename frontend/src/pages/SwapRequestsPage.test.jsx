@@ -87,11 +87,33 @@ describe('SwapRequestsPage', () => {
 
         await user.click(screen.getByRole('button', { name: /sent \(1\)/i }))
 
-        expect(await screen.findByText(/to:/i)).toBeInTheDocument()
-        expect(screen.getByText('ben')).toBeInTheDocument()
-    })
+ expect(await screen.findByText(/to:/i)).toBeInTheDocument()
+         expect(screen.getByText('ben')).toBeInTheDocument()
+     })
 
-    test('shows empty state messages when there are no requests', async () => {
+     test('shows the message included with a received swap request', async () => {
+         getReceivedSwapRequests.mockResolvedValue({
+             content: [{ ...RECEIVED_REQUEST, message: 'Would love to swap for this!' }],
+             totalPages: 1,
+             totalElements: 1
+         })
+
+         render(<SwapRequestsPage />)
+
+         expect(
+             await screen.findByText(/would love to swap for this!/i)
+         ).toBeInTheDocument()
+     })
+
+     test('does not show a message block when the request has no message', async () => {
+         render(<SwapRequestsPage />)
+
+         await screen.findByText(/from:/i)
+
+         expect(screen.queryByText(/^"/)).not.toBeInTheDocument()
+     })
+
+     test('shows empty state messages when there are no requests', async () => {
         getReceivedSwapRequests.mockResolvedValue(emptyPage())
         getSentSwapRequests.mockResolvedValue(emptyPage())
 

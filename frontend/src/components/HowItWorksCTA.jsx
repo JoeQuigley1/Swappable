@@ -16,10 +16,6 @@ export default function HowItWorksCTA() {
               <i className="bi bi-person-plus me-2"></i>
               Create an Account
             </Link>
-            <Link to="/items/create" className="btn btn-outline-light btn-lg px-4">
-              <i className="bi bi-plus-circle me-2"></i>
-              Post an Item
-            </Link>
           </div>
         </div>
       </div>
