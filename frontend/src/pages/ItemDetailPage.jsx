@@ -222,62 +222,106 @@ function ItemDetailPage() {
               </div>
 
               {/* show success message or swap request button */}
-               {swapRequested ? (
-                   <div className="alert alert-success mb-0">
-                       Swap request sent! The owner will be in touch.
-                   </div>
-                ) : !isLoggedIn ? (
-                    <div className="alert alert-secondary mb-0">
-                        <Link to="/login">Log in</Link> to request a swap for this item.
-                   </div>
-               ) : (
-                   <div>
-                       {swapError && <div className="alert alert-danger py-2">{swapError}</div>}
 
-                        <label className="form-label small mb-1">Offer one of your items</label>
-                        <select
-                            className="form-select mb-2"
-                            value={offeredItemId}
-                            onChange={(e) => setOfferedItemId(e.target.value)}
-                            disabled={isMine}
-                        >
-                           <option value="">Select an item…</option>
-                           {myItems.map((mi) => (
-                               <option key={mi.id} value={mi.id}>{mi.title}</option>
-                           ))}
-                       </select>
-
-                       <textarea
-                            className="form-control mb-2"
-                            rows="2"
-                            placeholder="Add a message (optional)"
-                            maxLength={500}
-                            value={message}
-                            onChange={(e) => setMessage(e.target.value)}
-                            disabled={isMine}
-                       />
-
-                       <button
-                            className="btn w-100"
-                            style={{ backgroundColor: BRAND_COLOR, color: 'white' }}
-                            onClick={handleRequestSwap}
-                            disabled={isMine}
-                            title={isMine ? 'This is your own item' : undefined}
-                       >
-                         Request a swap
-                       </button>
-
-                       {isMine ? (
-                           <p className="text-muted small mt-2 mb-0">
-                               This is your own item, so you cannot request a swap for it.
-                           </p>
-                       ) : myItems.length === 0 && (
-                           <p className="text-muted small mt-2 mb-0">
-                               You need an available item of your own to offer a swap.
-                           </p>
-                       )}
+                  {swapRequested ? (
+                      <div className="alert alert-success mb-0">
+                          Swap request sent! The owner will be in touch.
                       </div>
-                   )}
+                  ) : !isLoggedIn ? (
+                      <div className="alert alert-secondary mb-0">
+                          <Link to="/login">Log in</Link> to request a swap for this item.
+                      </div>
+                  ) : isMine ? (
+                      <div className="border rounded bg-light p-3">
+                          <h5 className="mb-3">Your Listing</h5>
+
+                    <p className="mb-2">
+                      <span className="fw-semibold">Status: </span>
+                      <span className="badge bg-success">
+                      {item.status || 'Available'}
+                      </span>
+                    </p>
+                    <p className="mb-2">
+                      <span className="fw-semibold">Created: </span>
+                      {item.createdAt
+                          ? new Date(item.createdAt).toLocaleDateString('en-IE')
+                          : 'Not available'}
+                    </p>
+
+                    <p className="mb-2">
+                      <span className="fw-semibold">Photos: </span>
+                      {images.length}
+                    </p>
+
+                    <p className="text-muted small mb-0">
+                      This listing is visible to other users browsing Swappable.
+                    </p>
+                    <button
+                        type="button"
+                        className="btn btn-outline-primary mt-3"
+                        onClick={() => navigate(`/items/edit/${item.id}`)}
+                    >
+                      Edit Item
+                    </button>
+                  </div>
+              ) : (
+                  <div>
+                    {swapError && (
+                        <div className="alert alert-danger py-2">
+                        {swapError}
+                        </div>
+                    )}
+
+                    <label
+                        htmlFor="offeredItem"
+                        className="form-label small mb-1"
+                    >
+                      Offer one of your items
+                    </label>
+
+                    <select
+                        id="offeredItem"
+                        className="form-select mb-2"
+                        value={offeredItemId}
+                        onChange={(e) => setOfferedItemId(e.target.value)}
+                    >
+                      <option value="">Select an item…</option>
+
+                      {myItems.map((mi) => (
+                          <option key={mi.id} value={mi.id}>
+                            {mi.title}
+                          </option>
+                      ))}
+                    </select>
+
+                    <textarea
+                        className="form-control mb-2"
+                        rows="2"
+                        placeholder="Add a message (optional)"
+                        maxLength={500}
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                    />
+
+                    <button
+                        type="button"
+                        className="btn w-100"
+                        style={{
+                          backgroundColor: BRAND_COLOR,
+                          color: 'white',
+                        }}
+                        onClick={handleRequestSwap}
+                    >
+                      Request a swap
+                    </button>
+
+                    {myItems.length === 0 && (
+                        <p className="text-muted small mt-2 mb-0">
+                          You need an available item of your own to offer a swap.
+                        </p>
+                    )}
+                  </div>
+              )}
 
               <div className="border-top pt-3 mb-4">
                 <button
